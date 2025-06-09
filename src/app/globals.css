@@ -110,12 +110,18 @@
 
 @layer utilities {
   @media print {
-    body {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+    html, body {
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
       background-color: white !important;
       color: black !important;
-      font-size: 10pt;
+    }
+    body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      font-size: 10pt !important;
+      width: 100% !important; /* Ensure body takes full width */
     }
     .no-print {
       display: none !important;
@@ -123,65 +129,89 @@
     .print-only {
       display: block !important;
     }
+
     .print-dialog-content {
       position: absolute !important;
       left: 0 !important;
       top: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
-      height: auto !important;
+      height: 100% !important; /* Take full height of the page */
       max-height: none !important;
       border: none !important;
       box-shadow: none !important;
-      padding: 1rem !important;
+      padding: 1rem !important; /* Adjust padding as needed for print */
       margin: 0 !important;
-      overflow: visible !important;
+      overflow: hidden !important; /* Prevent scrollbars on the dialog itself */
       transform: none !important;
       background-color: white !important; 
       color: black !important;
-    }
-    .print-dialog-content *,
-    .print-dialog-content *::before,
-    .print-dialog-content *::after {
-      background-color: transparent !important;
-      color: black !important;
-      box-shadow: none !important;
-      text-shadow: none !important;
-      border-color: #ddd !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-sizing: border-box !important;
     }
 
-    /* Override specific common elements if transparent isn't enough */
+    /* Target specific elements inside the dialog for white background and black text if needed */
     .print-dialog-content div,
     .print-dialog-content p,
     .print-dialog-content span,
     .print-dialog-content label,
     .print-dialog-content header, /* DialogHeader */
-    .print-dialog-content main, /* For any main content wrapper if used inside */
-    .print-dialog-content section, /* For semantic sections */
+    .print-dialog-content main, 
+    .print-dialog-content section,
     .print-dialog-content h1, /* DialogTitle and other headings */
     .print-dialog-content h2,
     .print-dialog-content h3,
     .print-dialog-content h4,
     .print-dialog-content h5,
     .print-dialog-content h6 {
-        background-color: white !important; /* Fallback to white if transparent shows underlying issues */
+        background-color: white !important; 
         color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+     .print-dialog-content *,
+    .print-dialog-content *::before,
+    .print-dialog-content *::after {
+      border-color: #ccc !important; /* Softer borders for print */
     }
     
-    [data-radix-dialog-overlay], [data-radix-scroll-area-corner] {
-      display: none !important;
+    #printable-bill-content { /* The direct child that holds all bill elements */
+      display: flex !important;
+      flex-direction: column !important;
+      flex-grow: 1 !important; /* Make this section grow to fill DialogContent */
+      width: 100% !important;
+      overflow: hidden; /* Prevent its own scrollbars if content is too much for one page */
     }
 
-    .print-dialog-scroll-area, 
-    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] {
-      max-height: none !important;
-      overflow: visible !important;
-      border: none !important;
+    .print-items-table-area { /* The ScrollArea containing the table */
+      flex-grow: 1 !important; /* This will make the table area expand */
+      overflow: visible !important; /* For print, we want content to flow, not scroll */
+      border: none !important; /* Remove border for print if desired */
       background-color: white !important;
     }
-
-    .print-dialog-scroll-area [role="scrollbar"] {
+    .print-items-table-area > div[data-radix-scroll-area-viewport] {
+       max-height: none !important; /* Override screen max-height */
+       height: auto !important; /* Let content determine height */
+       overflow: visible !important;
+       background-color: white !important;
+    }
+     .print-dialog-scroll-area [role="scrollbar"] {
         display: none !important;
+    }
+
+    .print-grand-total {
+      margin-top: auto !important; /* Pushes the grand total to the bottom */
+      width: 100% !important;
+      page-break-inside: avoid !important; /* Try to keep total on one page */
+      border-top: 1px solid #ccc !important; /* Light border above total */
+      padding-top: 0.5rem !important; /* Space above total */
+      background-color: white !important;
+      color: black !important;
+    }
+
+    [data-radix-dialog-overlay], [data-radix-scroll-area-corner] {
+      display: none !important;
     }
 
     .print-dialog-content table {
@@ -196,19 +226,22 @@
       text-align: left;
       background-color: white !important;
       color: black !important;
+      page-break-inside: avoid; /* Try to keep rows/cells from breaking */
     }
     .print-dialog-content th {
-      background-color: #f2f2f2 !important;
+      background-color: #f2f2f2 !important; /* Light grey for table headers */
       font-weight: bold;
       color: black !important;
     }
+
+    /* Tailwind text alignment and font weight helpers for print */
     .print-dialog-content .text-right { text-align: right !important; }
     .print-dialog-content .text-center { text-align: center !important; }
     .print-dialog-content .font-semibold { font-weight: 600 !important; }
     .print-dialog-content .font-medium { font-weight: 500 !important; }
     .print-dialog-content .font-bold { font-weight: 700 !important; }
     .print-dialog-content .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important; }
-    .print-dialog-content badge, .print-dialog-content [class*="badge"] {
+    .print-dialog-content .badge, .print-dialog-content [class*="badge"] {
       border: 1px solid #ccc !important;
       background-color: #f9f9f9 !important;
       color: black !important;
@@ -217,7 +250,3 @@
     }
   }
 }
-
-    
-
-    

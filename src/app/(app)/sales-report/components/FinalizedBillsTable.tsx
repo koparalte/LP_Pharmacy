@@ -183,7 +183,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
               </div>
             </div>
 
-            <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md print-dialog-scroll-area">
+            <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md print-dialog-scroll-area print-items-table-area">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -205,7 +205,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 </TableBody>
               </Table>
             </ScrollArea>
-            <div className="flex justify-end items-center font-semibold text-lg border-t pt-4">
+            <div className="flex justify-end items-center font-semibold text-lg border-t pt-4 print-grand-total">
               <span>Grand Total:</span>
               <span className="ml-2">INR ₹{selectedBill.grandTotal.toFixed(2)}</span>
             </div>
