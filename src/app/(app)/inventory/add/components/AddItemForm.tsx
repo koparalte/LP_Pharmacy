@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -291,7 +292,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
             name="unitPrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unit Price (₹)</FormLabel>
+                <FormLabel>Unit Price (INR ₹)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>

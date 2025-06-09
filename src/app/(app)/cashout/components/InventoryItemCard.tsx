@@ -24,7 +24,7 @@ export function InventoryItemCard({ item, onAddItemToBill, isOutOfStock }: Inven
       </CardHeader>
       <CardContent className="flex-grow space-y-2">
         <p className="text-sm">
-          <span className="font-semibold">Price:</span> ₹{item.unitPrice.toFixed(2)}
+          <span className="font-semibold">Price:</span> INR ₹{item.unitPrice.toFixed(2)}
         </p>
         <p className={`text-sm ${item.stock <= item.lowStockThreshold && item.stock > 0 ? 'text-orange-600' : item.stock === 0 ? 'text-destructive' : ''}`}>
           <span className="font-semibold">Stock:</span> {item.stock} units

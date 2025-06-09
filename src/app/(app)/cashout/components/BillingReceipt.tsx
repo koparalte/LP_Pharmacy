@@ -106,8 +106,8 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right py-2">₹{item.unitPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-right py-2">₹{calculateSubtotal(item).toFixed(2)}</TableCell>
+                  <TableCell className="text-right py-2">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
+                  <TableCell className="text-right py-2">INR ₹{calculateSubtotal(item).toFixed(2)}</TableCell>
                   <TableCell className="text-center py-2">
                     <Button variant="ghost" size="icon" onClick={() => onRemoveItem(item.id)} className="text-destructive hover:text-destructive/80 h-7 w-7">
                       <Trash2 className="h-4 w-4" />
@@ -122,7 +122,7 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
       <CardFooter className="flex flex-col space-y-3 border-t pt-4">
         <div className="flex justify-between w-full text-lg font-semibold">
           <span>Grand Total:</span>
-          <span>₹{grandTotal.toFixed(2)}</span>
+          <span>INR ₹{grandTotal.toFixed(2)}</span>
         </div>
         <Button onClick={onFinalizeBill} className="w-full" size="lg" disabled={isSubmitting || billItems.length === 0}>
           {isSubmitting ? "Processing..." : "Finalize Bill"}
