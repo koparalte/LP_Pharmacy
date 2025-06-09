@@ -9,7 +9,7 @@ interface QuickStatsProps {
 export function QuickStats({ data }: QuickStatsProps) {
   const stats = [
     { title: "Total Items", value: data.totalItems, icon: Package, color: "text-primary" },
-    { title: "Total Inventory Value", value: `$${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
+    { title: "Total Inventory Value", value: `₹${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
     { title: "Low Stock Items", value: data.lowStockItemsCount, icon: AlertTriangle, color: "text-destructive" },
   ];
 

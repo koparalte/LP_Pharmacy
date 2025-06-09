@@ -14,7 +14,7 @@ interface ReportSummaryProps {
 export function ReportSummary({ data }: ReportSummaryProps) {
   const summaries = [
     { title: "Total Unique Items", value: data.totalItems, icon: Package, details: "Count of distinct products." },
-    { title: "Total Inventory Value", value: `$${data.totalValue.toFixed(2)}`, icon: DollarSign, details: "Estimated value of all stock." },
+    { title: "Total Inventory Value", value: `₹${data.totalValue.toFixed(2)}`, icon: DollarSign, details: "Estimated value of all stock." },
     { title: "Low Stock Alerts", value: data.lowStockItemsCount, icon: AlertTriangle, details: "Items below reorder threshold." },
     { title: "Items Expiring Soon", value: data.itemsExpiringSoon ?? 0, icon: CalendarClock, details: "Items expiring in next 30 days." },
     { title: "Number of Categories", value: data.categoriesCount ?? 0, icon: ListChecks, details: "Distinct product categories." },

@@ -69,7 +69,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>
                   {item.stock}
                 </TableCell>
-                <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{item.unitPrice.toFixed(2)}</TableCell>
                 <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1 max-w-xs">
