@@ -30,7 +30,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
   const handleDeleteConfirm = () => {
     if (itemToDelete) {
       onDelete(itemToDelete.id);
-      setItemToDelete(null);
+      setItemToDelete(null); // This will close the dialog via onOpenChange
     }
   };
   
@@ -45,7 +45,11 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
   }
 
   return (
-    <>
+    <AlertDialog open={!!itemToDelete} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        setItemToDelete(null);
+      }
+    }}>
       <div className="border rounded-lg shadow-sm overflow-hidden bg-card">
         <Table>
           <TableHeader>
@@ -92,9 +96,10 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
           </TableBody>
         </Table>
       </div>
-      {itemToDelete && (
-        <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-          <AlertDialogContent>
+      
+      <AlertDialogContent>
+        {itemToDelete && (
+          <>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure you want to delete this item?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -102,14 +107,14 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-    </>
+          </>
+        )}
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
