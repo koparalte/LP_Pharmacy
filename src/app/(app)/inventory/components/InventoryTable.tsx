@@ -30,7 +30,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
   const handleDeleteConfirm = () => {
     if (itemToDelete) {
       onDelete(itemToDelete.id);
-      setItemToDelete(null); // This will close the dialog via onOpenChange
+      setItemToDelete(null); 
     }
   };
   
@@ -97,24 +97,22 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
         </Table>
       </div>
       
-      <AlertDialogContent>
-        {itemToDelete && (
-          <>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to delete this item?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete "{itemToDelete.name}" from the inventory.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </>
-        )}
-      </AlertDialogContent>
+      {itemToDelete && (
+        <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this item?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete "{itemToDelete.name}" from the inventory.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+        </AlertDialogContent>
+      )}
     </AlertDialog>
   );
 }
