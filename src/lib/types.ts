@@ -44,4 +44,7 @@ export type FinalizedBill = {
   date: string; // ISO DateTime string when the bill was finalized
   items: BillItem[]; // Array of items in the bill
   grandTotal: number; // Total amount of the bill
+  customerName: string;
+  customerAddress?: string;
 };
+

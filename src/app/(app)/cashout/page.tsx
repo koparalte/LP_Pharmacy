@@ -143,6 +143,8 @@ export default function BillingPage() {
       date: new Date().toISOString(),
       items: [...billItems],
       grandTotal: grandTotal,
+      customerName: "Walk-in Customer", // Default customer name
+      customerAddress: "N/A", // Default customer address
     };
 
     const existingFinalizedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);

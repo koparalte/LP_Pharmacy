@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { FinalizedBill } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
@@ -13,25 +13,35 @@ export default function SalesReportPage() {
   const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadBills = useCallback(() => {
     const storedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
     let parsedBills: FinalizedBill[] = [];
     if (storedBillsRaw) {
       try {
         parsedBills = JSON.parse(storedBillsRaw);
-        if (!Array.isArray(parsedBills)) { // Ensure it's an array
+        if (!Array.isArray(parsedBills)) { 
           parsedBills = [];
         }
       } catch (e) {
         console.error("Failed to parse finalized bills from localStorage", e);
-        parsedBills = []; // Use empty array on error
+        parsedBills = []; 
       }
     }
     // Sort bills by date, most recent first
     parsedBills.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setFinalizedBills(parsedBills);
-    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadBills();
+    setLoading(false);
+  }, [loadBills]);
+
+  const handleBillUpdate = useCallback((updatedBills: FinalizedBill[]) => {
+    // The updatedBills from child is already sorted and from localStorage.
+    setFinalizedBills(updatedBills);
+  }, []);
+
 
   return (
     <div className="space-y-6">
@@ -43,14 +53,14 @@ export default function SalesReportPage() {
             Finalized Bills
           </CardTitle>
           <CardDescription>
-            Review all completed sales transactions.
+            Review all completed sales transactions. Customer details can be edited.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p>Loading sales data...</p>
           ) : (
-            <FinalizedBillsTable bills={finalizedBills} />
+            <FinalizedBillsTable bills={finalizedBills} onBillUpdate={handleBillUpdate} />
           )}
         </CardContent>
       </Card>
