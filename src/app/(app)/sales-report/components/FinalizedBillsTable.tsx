@@ -21,8 +21,8 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-  DialogFooter, // Added DialogFooter for completeness
-  DialogClose, // Added DialogClose
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { useState } from "react";
 
@@ -46,7 +46,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
   };
 
   return (
-    <>
+    <Dialog open={!!selectedBill} onOpenChange={(isOpen) => !isOpen && setSelectedBill(null)}>
       <ScrollArea className="h-[calc(100vh-220px)] rounded-md border">
         <Table>
           <TableHeader>
@@ -80,51 +80,52 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
         </Table>
       </ScrollArea>
 
+      {/* DialogContent is still conditionally rendered based on selectedBill to ensure data is ready */}
       {selectedBill && (
-        <Dialog open={!!selectedBill} onOpenChange={(isOpen) => !isOpen && setSelectedBill(null)}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
-              <DialogDescription>
-                Date: {formatDate(selectedBill.date)}
-              </DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="max-h-[50vh] pr-3 my-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item Name</TableHead>
-                    <TableHead className="text-center">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Subtotal</TableHead>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
+            <DialogDescription>
+              Date: {formatDate(selectedBill.date)}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh] pr-3 my-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item Name</TableHead>
+                  <TableHead className="text-center">Qty</TableHead>
+                  <TableHead className="text-right">Unit Price</TableHead>
+                  <TableHead className="text-right">Subtotal</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedBill.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell className="text-center">{item.quantityInBill}</TableCell>
+                    <TableCell className="text-right">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">INR ₹{(item.unitPrice * item.quantityInBill).toFixed(2)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedBill.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell className="text-center">{item.quantityInBill}</TableCell>
-                      <TableCell className="text-right">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">INR ₹{(item.unitPrice * item.quantityInBill).toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-            <div className="flex justify-end items-center font-semibold text-lg border-t pt-4">
-              <span>Grand Total:</span>
-              <span className="ml-2">INR ₹{selectedBill.grandTotal.toFixed(2)}</span>
-            </div>
-            <DialogFooter className="mt-4">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Close
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+          <div className="flex justify-end items-center font-semibold text-lg border-t pt-4">
+            <span>Grand Total:</span>
+            <span className="ml-2">INR ₹{selectedBill.grandTotal.toFixed(2)}</span>
+          </div>
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
       )}
-    </>
+    </Dialog>
   );
 }
+
+    
