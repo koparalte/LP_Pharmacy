@@ -113,8 +113,9 @@
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      background-color: white !important; /* Ensure plain background for printing */
+      background-color: white !important;
       color: black !important;
+      font-size: 10pt; /* Adjust base font size for print if needed */
     }
     .no-print {
       display: none !important;
@@ -132,34 +133,70 @@
       max-height: none !important;
       border: none !important;
       box-shadow: none !important;
-      padding: 1rem !important;
+      padding: 1rem !important; /* Standard padding for print */
       margin: 0 !important;
       overflow: visible !important;
       transform: none !important;
-      background-color: white !important;
-      color: black !important;
+      background-color: white !important; /* Force dialog background to white */
+      color: black !important; /* Default text color for the dialog */
     }
-     .print-dialog-content * {
-        color: black !important; /* Ensure text within dialog is black for printing */
-     }
+    .print-dialog-content *,
+    .print-dialog-content *::before,
+    .print-dialog-content *::after {
+      background-color: transparent !important; /* Ensure nested elements have transparent background */
+      color: black !important; /* Ensure all text within dialog is black */
+      box-shadow: none !important;
+      text-shadow: none !important;
+      border-color: #ddd !important; /* Lighter border color for print if any universal border is applied */
+    }
     .print-dialog-scroll-area {
       max-height: none !important;
       overflow: visible !important;
       border: none !important;
     }
-    /* Hide Radix Dialog Overlay during print */
     [data-radix-dialog-overlay] {
       display: none !important;
     }
-    /* Ensure table borders are visible for print if desired, or remove them */
-    .print-dialog-content table,
-    .print-dialog-content th,
-    .print-dialog-content td {
-      border: 1px solid #ccc; /* Example: light grey border for table structure */
+    .print-dialog-content table {
+      width: 100%;
+      border-collapse: collapse; /* Professional table look */
     }
     .print-dialog-content th,
     .print-dialog-content td {
-      padding: 0.25rem 0.5rem; /* Minimal padding for print */
+      border: 1px solid #ccc !important; /* Clear borders for table cells */
+      padding: 0.3rem 0.5rem !important; /* Consistent padding */
+      text-align: left; /* Align text left by default */
+    }
+    .print-dialog-content th {
+      background-color: #f2f2f2 !important; /* Light grey background for table headers */
+      font-weight: bold;
+    }
+    .print-dialog-content .text-right { /* Ensure Tailwind text-right works in print */
+        text-align: right !important;
+    }
+    .print-dialog-content .text-center { /* Ensure Tailwind text-center works in print */
+        text-align: center !important;
+    }
+    .print-dialog-content .font-semibold { /* Ensure Tailwind font-semibold works in print */
+        font-weight: 600 !important;
+    }
+    .print-dialog-content .font-medium { /* Ensure Tailwind font-medium works in print */
+        font-weight: 500 !important;
+    }
+     .print-dialog-content .font-bold { /* Ensure Tailwind font-bold works in print */
+        font-weight: 700 !important;
+    }
+    .print-dialog-content .font-mono { /* Ensure Tailwind font-mono works in print if used */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    }
+    .print-dialog-content badge, .print-dialog-content [class*="badge"] { /* Style badges for print */
+        border: 1px solid #ccc !important;
+        background-color: #f9f9f9 !important;
+        color: black !important;
+        padding: 0.1rem 0.3rem !important;
+        font-size: 0.8em !important;
     }
   }
 }
+
+    
