@@ -115,13 +115,13 @@
       print-color-adjust: exact;
       background-color: white !important;
       color: black !important;
-      font-size: 10pt; /* Adjust base font size for print if needed */
+      font-size: 10pt;
     }
     .no-print {
       display: none !important;
     }
     .print-only {
-      display: block !important; /* Use block, or flex, or grid as needed */
+      display: block !important;
     }
     .print-dialog-content {
       position: absolute !important;
@@ -133,70 +133,91 @@
       max-height: none !important;
       border: none !important;
       box-shadow: none !important;
-      padding: 1rem !important; /* Standard padding for print */
+      padding: 1rem !important;
       margin: 0 !important;
       overflow: visible !important;
       transform: none !important;
-      background-color: white !important; /* Force dialog background to white */
-      color: black !important; /* Default text color for the dialog */
+      background-color: white !important; 
+      color: black !important;
     }
     .print-dialog-content *,
     .print-dialog-content *::before,
     .print-dialog-content *::after {
-      background-color: transparent !important; /* Ensure nested elements have transparent background */
-      color: black !important; /* Ensure all text within dialog is black */
+      background-color: transparent !important;
+      color: black !important;
       box-shadow: none !important;
       text-shadow: none !important;
-      border-color: #ddd !important; /* Lighter border color for print if any universal border is applied */
+      border-color: #ddd !important;
     }
-    .print-dialog-scroll-area {
+
+    /* Override specific common elements if transparent isn't enough */
+    .print-dialog-content div,
+    .print-dialog-content p,
+    .print-dialog-content span,
+    .print-dialog-content label,
+    .print-dialog-content header, /* DialogHeader */
+    .print-dialog-content main, /* For any main content wrapper if used inside */
+    .print-dialog-content section, /* For semantic sections */
+    .print-dialog-content h1, /* DialogTitle and other headings */
+    .print-dialog-content h2,
+    .print-dialog-content h3,
+    .print-dialog-content h4,
+    .print-dialog-content h5,
+    .print-dialog-content h6 {
+        background-color: white !important; /* Fallback to white if transparent shows underlying issues */
+        color: black !important;
+    }
+    
+    [data-radix-dialog-overlay], [data-radix-scroll-area-corner] {
+      display: none !important;
+    }
+
+    .print-dialog-scroll-area, 
+    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] {
       max-height: none !important;
       overflow: visible !important;
       border: none !important;
+      background-color: white !important;
     }
-    [data-radix-dialog-overlay] {
-      display: none !important;
+
+    .print-dialog-scroll-area [role="scrollbar"] {
+        display: none !important;
     }
+
     .print-dialog-content table {
       width: 100%;
-      border-collapse: collapse; /* Professional table look */
+      border-collapse: collapse;
+      background-color: white !important;
     }
     .print-dialog-content th,
     .print-dialog-content td {
-      border: 1px solid #ccc !important; /* Clear borders for table cells */
-      padding: 0.3rem 0.5rem !important; /* Consistent padding */
-      text-align: left; /* Align text left by default */
+      border: 1px solid #ccc !important;
+      padding: 0.3rem 0.5rem !important;
+      text-align: left;
+      background-color: white !important;
+      color: black !important;
     }
     .print-dialog-content th {
-      background-color: #f2f2f2 !important; /* Light grey background for table headers */
+      background-color: #f2f2f2 !important;
       font-weight: bold;
+      color: black !important;
     }
-    .print-dialog-content .text-right { /* Ensure Tailwind text-right works in print */
-        text-align: right !important;
-    }
-    .print-dialog-content .text-center { /* Ensure Tailwind text-center works in print */
-        text-align: center !important;
-    }
-    .print-dialog-content .font-semibold { /* Ensure Tailwind font-semibold works in print */
-        font-weight: 600 !important;
-    }
-    .print-dialog-content .font-medium { /* Ensure Tailwind font-medium works in print */
-        font-weight: 500 !important;
-    }
-     .print-dialog-content .font-bold { /* Ensure Tailwind font-bold works in print */
-        font-weight: 700 !important;
-    }
-    .print-dialog-content .font-mono { /* Ensure Tailwind font-mono works in print if used */
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-    }
-    .print-dialog-content badge, .print-dialog-content [class*="badge"] { /* Style badges for print */
-        border: 1px solid #ccc !important;
-        background-color: #f9f9f9 !important;
-        color: black !important;
-        padding: 0.1rem 0.3rem !important;
-        font-size: 0.8em !important;
+    .print-dialog-content .text-right { text-align: right !important; }
+    .print-dialog-content .text-center { text-align: center !important; }
+    .print-dialog-content .font-semibold { font-weight: 600 !important; }
+    .print-dialog-content .font-medium { font-weight: 500 !important; }
+    .print-dialog-content .font-bold { font-weight: 700 !important; }
+    .print-dialog-content .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important; }
+    .print-dialog-content badge, .print-dialog-content [class*="badge"] {
+      border: 1px solid #ccc !important;
+      background-color: #f9f9f9 !important;
+      color: black !important;
+      padding: 0.1rem 0.3rem !important;
+      font-size: 0.8em !important;
     }
   }
 }
+
+    
 
     
