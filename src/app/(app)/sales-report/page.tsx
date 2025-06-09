@@ -1,32 +1,57 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
+import type { FinalizedBill } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import Image from "next/image";
+import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
+import { FileText } from "lucide-react";
+
+const FINALIZED_BILLS_STORAGE_KEY = 'lpPharmacyFinalizedBills';
 
 export default function SalesReportPage() {
+  const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const storedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
+    let parsedBills: FinalizedBill[] = [];
+    if (storedBillsRaw) {
+      try {
+        parsedBills = JSON.parse(storedBillsRaw);
+        if (!Array.isArray(parsedBills)) { // Ensure it's an array
+          parsedBills = [];
+        }
+      } catch (e) {
+        console.error("Failed to parse finalized bills from localStorage", e);
+        parsedBills = []; // Use empty array on error
+      }
+    }
+    // Sort bills by date, most recent first
+    parsedBills.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setFinalizedBills(parsedBills);
+    setLoading(false);
+  }, []);
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Sales Report</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Sales Data Overview</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" />
+            Finalized Bills
+          </CardTitle>
           <CardDescription>
-            Detailed sales analytics and trends will be displayed here.
+            Review all completed sales transactions.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
-          <Image
-            src="https://placehold.co/600x300.png"
-            alt="Placeholder for sales report chart"
-            width={600}
-            height={300}
-            className="rounded-md object-cover"
-            data-ai-hint="sales chart graph"
-          />
-          <p className="mt-4 text-muted-foreground">
-            Sales report functionality is under development.
-          </p>
+        <CardContent>
+          {loading ? (
+            <p>Loading sales data...</p>
+          ) : (
+            <FinalizedBillsTable bills={finalizedBills} />
+          )}
         </CardContent>
       </Card>
     </div>

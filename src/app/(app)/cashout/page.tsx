@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import type { InventoryItem, BillItem } from "@/lib/types";
+import type { InventoryItem, BillItem, FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +26,7 @@ const fallbackInventoryItems: InventoryItem[] = [
 ];
 
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
+const FINALIZED_BILLS_STORAGE_KEY = 'lpPharmacyFinalizedBills';
 
 export default function BillingPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -135,12 +136,33 @@ export default function BillingPage() {
       return invItem;
     });
 
+    // Save finalized bill
+    const grandTotal = billItems.reduce((total, item) => total + (item.unitPrice * item.quantityInBill), 0);
+    const newFinalizedBill: FinalizedBill = {
+      id: String(Date.now()), // Simple unique ID
+      date: new Date().toISOString(),
+      items: [...billItems],
+      grandTotal: grandTotal,
+    };
+
+    const existingFinalizedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
+    let existingFinalizedBills: FinalizedBill[] = [];
+    if (existingFinalizedBillsRaw) {
+      try {
+        existingFinalizedBills = JSON.parse(existingFinalizedBillsRaw);
+      } catch (e) {
+        console.error("Failed to parse finalized bills from localStorage", e);
+      }
+    }
+    const updatedFinalizedBills = [...existingFinalizedBills, newFinalizedBill];
+    localStorage.setItem(FINALIZED_BILLS_STORAGE_KEY, JSON.stringify(updatedFinalizedBills));
+
     updateInventoryInStorage(updatedInventory);
     setBillItems([]); // Clear the bill
 
     toast({
       title: "Bill Finalized!",
-      description: "The bill has been processed and inventory updated.",
+      description: "The bill has been processed, inventory updated, and sales record saved.",
     });
     setIsSubmittingBill(false);
   };

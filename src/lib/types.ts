@@ -38,3 +38,10 @@ export type CashoutTransaction = {
 export type BillItem = InventoryItem & {
   quantityInBill: number;
 };
+
+export type FinalizedBill = {
+  id: string; // Unique ID for the bill
+  date: string; // ISO DateTime string when the bill was finalized
+  items: BillItem[]; // Array of items in the bill
+  grandTotal: number; // Total amount of the bill
+};
