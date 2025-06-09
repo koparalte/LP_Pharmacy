@@ -172,7 +172,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 </Label>
                 <Input
                   id="customerAddress"
-                  value={editableCustomerAddress}
+                  value={editableCustomerAddress ?? ""}
                   onChange={(e) => setEditableCustomerAddress(e.target.value)}
                   className="col-span-3"
                   placeholder="Optional"
