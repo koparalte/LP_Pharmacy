@@ -15,6 +15,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger, // Added missing import
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 
@@ -116,3 +117,4 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
     </AlertDialog>
   );
 }
+
