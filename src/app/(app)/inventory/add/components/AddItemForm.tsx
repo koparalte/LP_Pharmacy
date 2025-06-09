@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { tagNewInventory, type TagNewInventoryInput } from "@/ai/flows/tag-new-inventory";
@@ -123,8 +123,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
+        <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
@@ -137,29 +136,6 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
 
         <FormField
           control={form.control}
@@ -175,6 +151,36 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           )}
         />
         
+        <FormField
+          control={form.control}
+          name="category"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Category</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-wrap gap-x-6 gap-y-3"
+                >
+                  {categories.map((cat) => (
+                    <FormItem key={cat} className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value={cat} />
+                      </FormControl>
+                      <FormLabel className="font-normal text-sm"> {/* Ensure label text is visible and normal weight */}
+                        {cat}
+                      </FormLabel>
+                    </FormItem>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+
         <div className="space-y-2">
           <FormLabel>Tags</FormLabel>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -197,7 +203,6 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
               )}
               Suggest Tags with AI
             </Button>
-            {/* TODO: Add manual tag input if desired */}
           </div>
            <FormDescription>
               Tags help categorize and search for items. AI suggestions are based on the description.

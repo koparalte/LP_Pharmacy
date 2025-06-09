@@ -86,8 +86,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     if (billIndex > -1) {
       storedBills[billIndex] = updatedBill;
       localStorage.setItem(FINALIZED_BILLS_STORAGE_KEY, JSON.stringify(storedBills));
-      onBillUpdate(storedBills.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())); // Pass sorted updated list
-      setSelectedBill(updatedBill); // Update the selected bill in dialog state
+      onBillUpdate(storedBills.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setSelectedBill(updatedBill); 
       toast({ title: "Success", description: "Customer details updated." });
     } else {
       toast({ title: "Error", description: "Bill not found for update.", variant: "destructive" });
@@ -95,22 +95,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   };
   
   const handlePrint = () => {
-    // For a more controlled print, you might hide elements not part of the bill.
-    // This is a basic implementation.
-    const printContents = document.getElementById("printable-bill-content")?.innerHTML;
-    const originalContents = document.body.innerHTML;
-
-    if (printContents) {
-      // Temporarily replace body content, print, then restore
-      // This is a very basic approach and might have side effects or styling issues
-      // A better way is a dedicated printable component or CSS print styles.
-      // document.body.innerHTML = printContents;
-      window.print();
-      // document.body.innerHTML = originalContents; 
-      // window.location.reload(); // Reload to restore event listeners etc. if body.innerHTML was replaced
-    } else {
-       window.print(); // Fallback to printing the whole dialog if specific content not found
-    }
+    window.print();
   };
 
 
@@ -156,17 +141,17 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
       </ScrollArea>
 
       {selectedBill && (
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl print-dialog-content">
+          <DialogHeader> {/* This header will be part of the printed content */}
             <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
             <DialogDescription>
               Date: {formatDate(selectedBill.date)}
             </DialogDescription>
           </DialogHeader>
           
-          <div id="printable-bill-content"> {/* Wrapper for printing */}
+          <div id="printable-bill-content">
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
+              <div className="grid grid-cols-4 items-center gap-4 no-print">
                 <Label htmlFor="customerName" className="text-right col-span-1">
                   Customer Name
                 </Label>
@@ -177,7 +162,11 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
+               <div className="print-only hidden text-sm"> {/* Hidden on screen, visible on print */}
+                <p><strong>Customer Name:</strong> {editableCustomerName}</p>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4 no-print">
                 <Label htmlFor="customerAddress" className="text-right col-span-1">
                   Address
                 </Label>
@@ -189,9 +178,12 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   placeholder="Optional"
                 />
               </div>
+              <div className="print-only hidden text-sm"> {/* Hidden on screen, visible on print */}
+                <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
+              </div>
             </div>
 
-            <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md">
+            <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md print-dialog-scroll-area">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -219,7 +211,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
             </div>
           </div>
 
-          <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2">
+          <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
             <Button type="button" variant="outline" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" /> Print Bill
             </Button>

@@ -28,7 +28,7 @@ const navItems = [
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar>
+      <Sidebar className="no-print">
         <SidebarHeader>
           <Logo />
         </SidebarHeader>
@@ -36,7 +36,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.label}>
-                <Link href={item.href}>
+                <Link href={item.href} passHref legacyBehavior={false}>
                   <SidebarMenuButton
                     tooltip={item.label}
                     // isActive={pathname === item.href} // Add this if you implement active state based on pathname
@@ -52,7 +52,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <SidebarFooter>
            <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/settings">
+              <Link href="/settings" passHref legacyBehavior={false}>
                 <SidebarMenuButton tooltip="Settings">
                   <Settings />
                   <span>Settings</span>
@@ -60,7 +60,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-               <Link href="/help">
+               <Link href="/help" passHref legacyBehavior={false}>
                 <SidebarMenuButton tooltip="Help">
                   <HelpCircle />
                   <span>Help</span>
@@ -71,7 +71,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 no-print">
           <SidebarTrigger className="md:hidden" />
           <div className="flex items-center gap-4">
             {/* Can add breadcrumbs or page title here */}
