@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {
   SidebarProvider,
@@ -33,7 +34,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.label}>
-                <Link href={item.href} passHref legacyBehavior>
+                <Link href={item.href}>
                   <SidebarMenuButton
                     tooltip={item.label}
                     // isActive={pathname === item.href} // Add this if you implement active state based on pathname
@@ -49,7 +50,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <SidebarFooter>
            <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/settings" passHref legacyBehavior>
+              <Link href="/settings">
                 <SidebarMenuButton tooltip="Settings">
                   <Settings />
                   <span>Settings</span>
@@ -57,7 +58,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-               <Link href="/help" passHref legacyBehavior>
+               <Link href="/help">
                 <SidebarMenuButton tooltip="Help">
                   <HelpCircle />
                   <span>Help</span>
