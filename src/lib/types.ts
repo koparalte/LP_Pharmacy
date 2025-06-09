@@ -1,3 +1,4 @@
+
 export type InventoryItem = {
   id: string;
   name: string;
@@ -26,10 +27,14 @@ export type StockByCategory = {
 };
 
 export type CashoutTransaction = {
-  id: string;
+  id:string;
   amount: number;
   method: string;
   status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
   date: string; // ISO DateTime string
   notes?: string;
+};
+
+export type BillItem = InventoryItem & {
+  quantityInBill: number;
 };
