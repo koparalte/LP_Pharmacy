@@ -14,13 +14,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, BarChart3, Settings, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Boxes, BarChart3, Settings, HelpCircle, Landmark } from "lucide-react";
 import type { ReactNode } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/cashout", label: "Cashout", icon: Landmark },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
