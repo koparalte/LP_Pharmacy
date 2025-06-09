@@ -6,9 +6,16 @@ import type { InventoryItem, BillItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, AlertTriangle } from "lucide-react";
-import { InventoryItemCard } from "./components/InventoryItemCard";
+import { Search, PackageSearch } from "lucide-react";
+import { InventoryBillingTableRow } from "./components/InventoryBillingTableRow";
 import { BillingReceipt } from "./components/BillingReceipt";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Fallback mock data for inventory if localStorage is empty
 const fallbackInventoryItems: InventoryItem[] = [
@@ -152,42 +159,51 @@ export default function BillingPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="Search inventory items..."
+            placeholder="Search inventory items by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
         <ScrollArea className="flex-grow rounded-md border">
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredInventory.length > 0 ? (
-              filteredInventory.map((item) => {
-                const billItem = billItems.find(bi => bi.id === item.id);
-                const currentStockForItem = item.stock - (billItem?.quantityInBill || 0);
-                const effectiveStockDisplay = item.stock; // Show original stock on card
-                 const isOutOfStockForNewAddition = item.stock <= 0;
+          {filteredInventory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Category</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Stock</TableHead>
+                  <TableHead className="text-center w-[120px]">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInventory.map((item) => {
+                  const billItem = billItems.find(bi => bi.id === item.id);
+                  const isOutOfStock = item.stock <= 0;
+                  const isMaxInBill = billItem ? billItem.quantityInBill >= item.stock : false;
 
-
-                // Check if item in bill already uses up all stock
-                const isMaxInBill = billItem ? billItem.quantityInBill >= item.stock : false;
-
-
-                return (
-                    <InventoryItemCard
-                    key={item.id}
-                    item={{...item, stock: effectiveStockDisplay}} // Pass item with its current real stock for display
-                    onAddItemToBill={handleAddItemToBill}
-                    isOutOfStock={isOutOfStockForNewAddition || isMaxInBill}
+                  return (
+                    <InventoryBillingTableRow
+                      key={item.id}
+                      item={item}
+                      onAddItemToBill={handleAddItemToBill}
+                      isOutOfStock={isOutOfStock}
+                      isMaxInBill={isMaxInBill}
                     />
-                );
-                })
-            ) : (
-              <div className="col-span-full text-center py-10">
-                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">No inventory items match your search, or inventory is empty.</p>
-              </div>
-            )}
-          </div>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center py-12 h-full">
+              <PackageSearch className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Items Found</h3>
+              <p className="text-muted-foreground">
+                No inventory items match your search, or the inventory is empty.
+              </p>
+            </div>
+          )}
         </ScrollArea>
       </div>
 
