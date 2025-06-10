@@ -3,8 +3,7 @@ export type InventoryItem = {
   id: string;
   name: string;
   description: string;
-  // category: string; // Removed
-  // supplier: string; // Removed
+  batchNo?: string; // Added Batch No.
   stock: number;
   lowStockThreshold: number;
   unitPrice: number;
@@ -18,14 +17,7 @@ export type ReportData = {
   totalValue: number;
   lowStockItemsCount: number;
   itemsExpiringSoon?: number;
-  // categoriesCount?: number; // Removed as categories are removed
 };
-
-// Removed StockByCategory as it's no longer relevant
-// export type StockByCategory = {
-//   category: string;
-//   count: number;
-// };
 
 export type CashoutTransaction = {
   id:string;
@@ -48,4 +40,3 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
-

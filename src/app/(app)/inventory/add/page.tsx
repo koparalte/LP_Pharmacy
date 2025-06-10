@@ -34,15 +34,16 @@ export default function AddInventoryItemPage() {
     console.log("New item data:", data);
 
     const newItem: InventoryItem = {
-      ...data, // Spread data which no longer contains category or supplier
+      ...data, 
       id: String(Date.now()), // Simple unique ID for mock
       lastUpdated: new Date().toISOString(),
       expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined, // Format date correctly
+      batchNo: data.batchNo || undefined, // Ensure batchNo is either string or undefined
     };
 
     const updatedItems = [...inventoryItems, newItem];
     localStorage.setItem('lpPharmacyInventory', JSON.stringify(updatedItems));
-    setInventoryItems(updatedItems); // Update state for current session if needed elsewhere
+    setInventoryItems(updatedItems); 
 
     toast({
       title: "Item Added Successfully!",

@@ -1,36 +1,72 @@
 
+"use client";
 import { QuickStats } from "./components/QuickStats";
 import { LowStockSummary } from "./components/LowStockSummary";
 import type { InventoryItem, ReportData } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
-// Mock data for demonstration
-// Removed category and supplier from mock data
-const mockInventoryItems: InventoryItem[] = [
-  { id: "1", name: "Amoxicillin 250mg", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-  { id: "2", name: "Ibuprofen 200mg", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
+const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
+
+const fallbackMockInventoryItems: InventoryItem[] = [
+  { id: "1", name: "Amoxicillin 250mg", batchNo: "AMX250-D001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
+  { id: "2", name: "Ibuprofen 200mg", batchNo: "IBU200-D002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
   { id: "3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
-  { id: "4", name: "Paracetamol 500mg", description: "Pain and fever reducer", stock: 100, lowStockThreshold: 50, unitPrice: 0.15, expiryDate: "2026-01-31", tags: ["otc", "fever"], lastUpdated: new Date().toISOString()},
+  { id: "4", name: "Paracetamol 500mg", batchNo: "PAR500-D003", description: "Pain and fever reducer", stock: 100, lowStockThreshold: 50, unitPrice: 0.15, expiryDate: "2026-01-31", tags: ["otc", "fever"], lastUpdated: new Date().toISOString()},
   { id: "5", name: "Loratadine 10mg", description: "Antihistamine", stock: 25, lowStockThreshold: 15, unitPrice: 0.8, tags: ["otc", "allergy"], lastUpdated: new Date().toISOString() },
 ];
 
-const mockReportData: ReportData = {
-  totalItems: mockInventoryItems.length,
-  totalValue: mockInventoryItems.reduce((sum, item) => sum + item.stock * item.unitPrice, 0),
-  lowStockItemsCount: mockInventoryItems.filter(item => item.stock <= item.lowStockThreshold).length,
-  // categoriesCount is removed from ReportData type, so it's removed here too
-};
 
 export default function DashboardPage() {
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [reportData, setReportData] = useState<ReportData>({
+    totalItems: 0,
+    totalValue: 0,
+    lowStockItemsCount: 0,
+  });
+
+  useEffect(() => {
+    let storedInventory = localStorage.getItem(INVENTORY_STORAGE_KEY);
+    let itemsToUse: InventoryItem[];
+    if (storedInventory) {
+      try {
+        const parsed = JSON.parse(storedInventory);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          itemsToUse = parsed;
+        } else {
+          itemsToUse = fallbackMockInventoryItems;
+          localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse));
+        }
+      } catch (e) {
+        console.error("Failed to parse inventory from localStorage for dashboard", e);
+        itemsToUse = fallbackMockInventoryItems;
+        localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse));
+      }
+    } else {
+      itemsToUse = fallbackMockInventoryItems;
+      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse));
+    }
+    setInventoryItems(itemsToUse);
+
+    const newReportData: ReportData = {
+      totalItems: itemsToUse.length,
+      totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.unitPrice, 0),
+      lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
+    };
+    setReportData(newReportData);
+
+  }, []);
+
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
       
-      <QuickStats data={mockReportData} />
+      <QuickStats data={reportData} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LowStockSummary items={mockInventoryItems} />
+        <LowStockSummary items={inventoryItems} />
         
         <Card>
           <CardHeader>

@@ -57,6 +57,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Batch No.</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Unit Price</TableHead>
               <TableHead>Expiry Date</TableHead>
@@ -68,6 +69,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
             {items.map((item) => (
               <TableRow key={item.id} className={item.stock <= item.lowStockThreshold ? "bg-destructive/10 hover:bg-destructive/20" : ""}>
                 <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell>{item.batchNo || 'N/A'}</TableCell>
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>
                   {item.stock}
                 </TableCell>

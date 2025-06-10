@@ -2,63 +2,76 @@
 "use client"; 
 
 import { useState, useEffect } from "react";
-// StockLevelChart import removed as it's no longer used
 import { ReportSummary } from "./components/ReportSummary";
-// StockByCategory type import removed
 import type { InventoryItem, ReportData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 
-// Mock data fetching and processing.
-// Removed logic for stockByCategory and categoriesCount
-const getMockData = (): { inventory: InventoryItem[], report: ReportData } => {
-  const mockInventoryItems: InventoryItem[] = JSON.parse(localStorage.getItem('lpPharmacyInventory') || '[]') as InventoryItem[];
-  
-  if (mockInventoryItems.length === 0) { 
-     mockInventoryItems.push(
-        { id: "1", name: "Amoxicillin 250mg", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-        { id: "2", name: "Ibuprofen 200mg", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
-        { id: "3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
-     );
-  }
+const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
 
+const fallbackInventoryItemsForReport: InventoryItem[] = [
+    { id: "rfb1", name: "Amoxicillin 250mg", batchNo: "RFBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
+    { id: "rfb2", name: "Ibuprofen 200mg", batchNo: "RFBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
+    { id: "rfb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
+];
+
+const getReportData = (): ReportData & { itemsExpiringSoon?: number } => {
+  let itemsToUse: InventoryItem[];
+  const storedInventory = localStorage.getItem(INVENTORY_STORAGE_KEY);
+
+  if (storedInventory) {
+      try {
+        const parsed = JSON.parse(storedInventory);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          itemsToUse = parsed;
+        } else {
+          itemsToUse = fallbackInventoryItemsForReport;
+          // Optionally save fallback to localStorage if it was empty or invalid
+          // localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse)); 
+        }
+      } catch (e) {
+        console.error("Failed to parse inventory from localStorage for reports", e);
+        itemsToUse = fallbackInventoryItemsForReport;
+      }
+    } else {
+      itemsToUse = fallbackInventoryItemsForReport;
+      // Optionally save fallback to localStorage if it didn't exist
+      // localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse));
+    }
+  
   const reportData: ReportData = {
-    totalItems: mockInventoryItems.length,
-    totalValue: mockInventoryItems.reduce((sum, item) => sum + item.stock * item.unitPrice, 0),
-    lowStockItemsCount: mockInventoryItems.filter(item => item.stock <= item.lowStockThreshold).length,
+    totalItems: itemsToUse.length,
+    totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.unitPrice, 0),
+    lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
   };
   
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-  const itemsExpiringSoon = mockInventoryItems.filter(item => {
+  const itemsExpiringSoon = itemsToUse.filter(item => {
     if (!item.expiryDate) return false;
-    const expiry = new Date(item.expiryDate);
-    return expiry <= thirtyDaysFromNow && expiry >= new Date();
+    try {
+        const expiry = new Date(item.expiryDate);
+        return expiry <= thirtyDaysFromNow && expiry >= new Date();
+    } catch (e) {
+        console.error("Invalid date format for item:", item.name, item.expiryDate);
+        return false;
+    }
   }).length;
 
-  // categoriesCount removed
-  return { 
-    inventory: mockInventoryItems, 
-    report: { ...reportData, itemsExpiringSoon }, 
-    // stockByCategory: stockByCategoryData // Removed
-  };
+  return { ...reportData, itemsExpiringSoon };
 };
 
 
 export default function ReportsPage() {
-  // categoriesCount removed from reportData state
   const [reportData, setReportData] = useState<ReportData & { itemsExpiringSoon?: number }>({
     totalItems: 0, totalValue: 0, lowStockItemsCount: 0, itemsExpiringSoon: 0
   });
-  // stockByCategory state removed
-  // const [stockByCategory, setStockByCategory] = useState<StockByCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const data = getMockData();
-    setReportData(data.report);
-    // setStockByCategory(data.stockByCategory); // Removed
+    const data = getReportData();
+    setReportData(data);
     setLoading(false);
   }, []);
 
@@ -77,8 +90,7 @@ export default function ReportsPage() {
       <ReportSummary data={reportData} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* StockLevelChart removed */}
-        <Card className="lg:col-span-2"> {/* Placeholder card can now take full width if needed */}
+        <Card className="lg:col-span-2"> 
           <CardHeader>
             <CardTitle>Future Report Enhancements</CardTitle>
             <CardDescription>More detailed reports and analytics will be available here.</CardDescription>

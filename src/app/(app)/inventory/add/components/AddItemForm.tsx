@@ -19,7 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Not needed anymore
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { tagNewInventory, type TagNewInventoryInput } from "@/ai/flows/tag-new-inventory";
@@ -31,8 +30,7 @@ import { Badge } from "@/components/ui/badge";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500),
-  // category: z.string().min(1, { message: "Please select a category." }), // Removed
-  // supplier: z.string().min(2, { message: "Supplier must be at least 2 characters." }).max(100), // Removed
+  batchNo: z.string().max(50).optional(), // Added Batch No.
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
   unitPrice: z.coerce.number().min(0.01, { message: "Price must be at least 0.01." }),
@@ -57,8 +55,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
     defaultValues: {
       name: "",
       description: "",
-      // category: "", // Removed
-      // supplier: "", // Removed
+      batchNo: "", // Added Batch No.
       stock: 0,
       lowStockThreshold: 10,
       unitPrice: 0,
@@ -120,19 +117,35 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Amoxicillin 250mg" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Amoxicillin 250mg" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            <FormField
+              control={form.control}
+              name="batchNo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Batch No. (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., BATCH123XYZ" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        </div>
+        
 
         <FormField
           control={form.control}
@@ -148,9 +161,6 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           )}
         />
         
-        {/* Category Field Removed */}
-        {/* Supplier Field Removed from its original position */}
-
         <div className="space-y-2">
           <FormLabel>Tags</FormLabel>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -209,7 +219,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                      disabled={(date) => date < new Date(new Date().toDateString()) || date < new Date("1900-01-01")}
                       initialFocus
                     />
                   </PopoverContent>

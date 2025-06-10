@@ -17,13 +17,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Fallback mock data for inventory if localStorage is empty
-// Removed category and supplier from fallback data
 const fallbackInventoryItems: InventoryItem[] = [
-  { id: "fb1", name: "Amoxicillin 250mg", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-  { id: "fb2", name: "Ibuprofen 200mg", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
+  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
+  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
   { id: "fb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
-  { id: "fb4", name: "Paracetamol 500mg", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, tags: ["otc", "fever"], lastUpdated: new Date().toISOString() },
+  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, tags: ["otc", "fever"], lastUpdated: new Date().toISOString() },
 ];
 
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
@@ -41,10 +39,18 @@ export default function BillingPage() {
     let parsedInventory: InventoryItem[] = [];
     if (storedInventory) {
       try {
-        parsedInventory = JSON.parse(storedInventory);
+        const tempParsed = JSON.parse(storedInventory);
+        // Ensure it's an array and not empty before setting, otherwise use fallback
+        if (Array.isArray(tempParsed) && tempParsed.length > 0) {
+          parsedInventory = tempParsed;
+        } else {
+          parsedInventory = fallbackInventoryItems;
+          localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); 
+        }
       } catch (e) {
         console.error("Failed to parse inventory from localStorage", e);
         parsedInventory = fallbackInventoryItems; 
+        localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); 
       }
     } else {
       parsedInventory = fallbackInventoryItems; 
@@ -170,7 +176,7 @@ export default function BillingPage() {
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.batchNo && item.batchNo.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [inventory, searchTerm]);
 
@@ -181,7 +187,7 @@ export default function BillingPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="Search inventory items by name..."
+            placeholder="Search inventory by name or batch no..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -193,7 +199,6 @@ export default function BillingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  {/* <TableHead className="hidden md:table-cell">Category</TableHead> // Removed */}
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-center w-[120px]">Action</TableHead>
