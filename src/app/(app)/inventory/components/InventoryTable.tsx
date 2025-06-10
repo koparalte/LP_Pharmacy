@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { format } from 'date-fns';
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -56,8 +57,6 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              {/* <TableHead>Category</TableHead> // Removed */}
-              {/* <TableHead>Supplier</TableHead> // Removed */}
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Unit Price</TableHead>
               <TableHead>Expiry Date</TableHead>
@@ -69,13 +68,11 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
             {items.map((item) => (
               <TableRow key={item.id} className={item.stock <= item.lowStockThreshold ? "bg-destructive/10 hover:bg-destructive/20" : ""}>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                {/* <TableCell>{item.category}</TableCell> // Removed */}
-                {/* <TableCell>{item.supplier}</TableCell> // Removed */}
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>
                   {item.stock}
                 </TableCell>
                 <TableCell className="text-right">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
-                <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'}</TableCell>
+                <TableCell>{item.expiryDate ? format(new Date(item.expiryDate), 'PPP') : 'N/A'}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1 max-w-xs">
                     {item.tags?.slice(0,3).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
