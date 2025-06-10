@@ -1,11 +1,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, DollarSign, AlertTriangle, ListChecks, CalendarClock } from "lucide-react";
-import type { ReportData } from "@/lib/types"; // Assuming this might expand
+import { Package, DollarSign, AlertTriangle, CalendarClock } from "lucide-react"; // ListChecks removed
+import type { ReportData } from "@/lib/types";
 
+// ExtendedReportData adjusted, categoriesCount removed
 interface ExtendedReportData extends ReportData {
-  itemsExpiringSoon?: number; // Example of an additional metric
-  categoriesCount?: number;
+  itemsExpiringSoon?: number;
+  // categoriesCount?: number; // Removed
 }
 
 interface ReportSummaryProps {
@@ -18,7 +19,7 @@ export function ReportSummary({ data }: ReportSummaryProps) {
     { title: "Total Inventory Value", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, details: "Estimated value of all stock." },
     { title: "Low Stock Alerts", value: data.lowStockItemsCount, icon: AlertTriangle, details: "Items below reorder threshold." },
     { title: "Items Expiring Soon", value: data.itemsExpiringSoon ?? 0, icon: CalendarClock, details: "Items expiring in next 30 days." },
-    { title: "Number of Categories", value: data.categoriesCount ?? 0, icon: ListChecks, details: "Distinct product categories." },
+    // { title: "Number of Categories", value: data.categoriesCount ?? 0, icon: ListChecks, details: "Distinct product categories." }, // Removed
   ];
 
   return (

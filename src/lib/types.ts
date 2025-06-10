@@ -3,8 +3,8 @@ export type InventoryItem = {
   id: string;
   name: string;
   description: string;
-  category: string;
-  supplier: string;
+  // category: string; // Removed
+  // supplier: string; // Removed
   stock: number;
   lowStockThreshold: number;
   unitPrice: number;
@@ -18,13 +18,14 @@ export type ReportData = {
   totalValue: number;
   lowStockItemsCount: number;
   itemsExpiringSoon?: number;
-  categoriesCount?: number;
+  // categoriesCount?: number; // Removed as categories are removed
 };
 
-export type StockByCategory = {
-  category: string;
-  count: number;
-};
+// Removed StockByCategory as it's no longer relevant
+// export type StockByCategory = {
+//   category: string;
+//   count: number;
+// };
 
 export type CashoutTransaction = {
   id:string;

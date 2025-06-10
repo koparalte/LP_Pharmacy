@@ -18,11 +18,12 @@ import {
 } from "@/components/ui/table";
 
 // Fallback mock data for inventory if localStorage is empty
+// Removed category and supplier from fallback data
 const fallbackInventoryItems: InventoryItem[] = [
-  { id: "fb1", name: "Amoxicillin 250mg", description: "Antibiotic", category: "Antibiotics", supplier: "Pharma Co", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-  { id: "fb2", name: "Ibuprofen 200mg", description: "Pain reliever", category: "Pain Relief", supplier: "Health Inc", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
-  { id: "fb3", name: "Vitamin C 1000mg", description: "Supplement", category: "Vitamins", supplier: "Wellness Ltd", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
-  { id: "fb4", name: "Paracetamol 500mg", description: "Fever reducer", category: "Pain Relief", supplier: "MediSupply", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, tags: ["otc", "fever"], lastUpdated: new Date().toISOString() },
+  { id: "fb1", name: "Amoxicillin 250mg", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
+  { id: "fb2", name: "Ibuprofen 200mg", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
+  { id: "fb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
+  { id: "fb4", name: "Paracetamol 500mg", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, tags: ["otc", "fever"], lastUpdated: new Date().toISOString() },
 ];
 
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
@@ -43,11 +44,11 @@ export default function BillingPage() {
         parsedInventory = JSON.parse(storedInventory);
       } catch (e) {
         console.error("Failed to parse inventory from localStorage", e);
-        parsedInventory = fallbackInventoryItems; // Use fallback on error
+        parsedInventory = fallbackInventoryItems; 
       }
     } else {
-      parsedInventory = fallbackInventoryItems; // Use fallback if nothing in storage
-      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); // Optionally pre-populate
+      parsedInventory = fallbackInventoryItems; 
+      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); 
     }
     setInventory(parsedInventory);
   }, []);
@@ -104,9 +105,9 @@ export default function BillingPage() {
               description: `Cannot set quantity for ${item.name} to ${newQuantity}. Available stock: ${item.stock}.`,
               variant: "destructive",
             });
-            return { ...item, quantityInBill: item.stock }; // Cap at available stock
+            return { ...item, quantityInBill: item.stock }; 
           }
-          return { ...item, quantityInBill: Math.max(1, newQuantity) }; // Ensure quantity is at least 1
+          return { ...item, quantityInBill: Math.max(1, newQuantity) }; 
         }
         return item;
       })
@@ -125,7 +126,6 @@ export default function BillingPage() {
 
     setIsSubmittingBill(true);
     
-    // Simulate API call & stock update
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const updatedInventory = inventory.map(invItem => {
@@ -136,15 +136,14 @@ export default function BillingPage() {
       return invItem;
     });
 
-    // Save finalized bill
     const grandTotal = billItems.reduce((total, item) => total + (item.unitPrice * item.quantityInBill), 0);
     const newFinalizedBill: FinalizedBill = {
-      id: String(Date.now()), // Simple unique ID
+      id: String(Date.now()), 
       date: new Date().toISOString(),
       items: [...billItems],
       grandTotal: grandTotal,
-      customerName: "Walk-in Customer", // Default customer name
-      customerAddress: "N/A", // Default customer address
+      customerName: "Walk-in Customer", 
+      customerAddress: "N/A", 
     };
 
     const existingFinalizedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
@@ -160,7 +159,7 @@ export default function BillingPage() {
     localStorage.setItem(FINALIZED_BILLS_STORAGE_KEY, JSON.stringify(updatedFinalizedBills));
 
     updateInventoryInStorage(updatedInventory);
-    setBillItems([]); // Clear the bill
+    setBillItems([]); 
 
     toast({
       title: "Bill Finalized!",
@@ -176,8 +175,7 @@ export default function BillingPage() {
   }, [inventory, searchTerm]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-110px)]"> {/* Adjusted for header height */}
-      {/* Inventory Selection Area */}
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-110px)]">
       <div className="lg:w-3/5 space-y-4 flex flex-col">
         <h1 className="text-3xl font-bold font-headline">Create Bill</h1>
         <div className="relative">
@@ -195,7 +193,7 @@ export default function BillingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead className="hidden md:table-cell">Category</TableHead>
+                  {/* <TableHead className="hidden md:table-cell">Category</TableHead> // Removed */}
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-center w-[120px]">Action</TableHead>
@@ -231,7 +229,6 @@ export default function BillingPage() {
         </ScrollArea>
       </div>
 
-      {/* Billing Receipt Area */}
       <div className="lg:w-2/5">
         <BillingReceipt
           billItems={billItems}

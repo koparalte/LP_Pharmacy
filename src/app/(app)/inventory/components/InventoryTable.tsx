@@ -15,7 +15,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added missing import
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 
@@ -56,8 +56,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Supplier</TableHead>
+              {/* <TableHead>Category</TableHead> // Removed */}
+              {/* <TableHead>Supplier</TableHead> // Removed */}
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Unit Price</TableHead>
               <TableHead>Expiry Date</TableHead>
@@ -69,8 +69,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
             {items.map((item) => (
               <TableRow key={item.id} className={item.stock <= item.lowStockThreshold ? "bg-destructive/10 hover:bg-destructive/20" : ""}>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>{item.category}</TableCell>
-                <TableCell>{item.supplier}</TableCell>
+                {/* <TableCell>{item.category}</TableCell> // Removed */}
+                {/* <TableCell>{item.supplier}</TableCell> // Removed */}
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>
                   {item.stock}
                 </TableCell>
@@ -78,8 +78,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                 <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1 max-w-xs">
-                    {item.tags.slice(0,3).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                    {item.tags.length > 3 && <Badge variant="outline">+{item.tags.length - 3}</Badge>}
+                    {item.tags?.slice(0,3).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                    {item.tags?.length > 3 && <Badge variant="outline">+{item.tags.length - 3}</Badge>}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -117,4 +117,3 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
     </AlertDialog>
   );
 }
-

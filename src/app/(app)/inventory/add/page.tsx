@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AddItemForm } from "./components/AddItemForm";
@@ -5,6 +6,10 @@ import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+// Define the type for form data, excluding fields that are generated or no longer exist
+type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated'>;
+
 
 export default function AddInventoryItemPage() {
   const { toast } = useToast();
@@ -24,12 +29,12 @@ export default function AddInventoryItemPage() {
     }
   }, []);
 
-  const handleFormSubmit = async (data: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
+  const handleFormSubmit = async (data: AddItemFormData) => {
     // In a real app, you would send this data to your backend API
     console.log("New item data:", data);
 
     const newItem: InventoryItem = {
-      ...data,
+      ...data, // Spread data which no longer contains category or supplier
       id: String(Date.now()), // Simple unique ID for mock
       lastUpdated: new Date().toISOString(),
       expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined, // Format date correctly

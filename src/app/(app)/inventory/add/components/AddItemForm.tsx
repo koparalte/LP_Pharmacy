@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Not needed anymore
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { tagNewInventory, type TagNewInventoryInput } from "@/ai/flows/tag-new-inventory";
@@ -31,8 +31,8 @@ import { Badge } from "@/components/ui/badge";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500),
-  category: z.string().min(1, { message: "Please select a category." }),
-  supplier: z.string().min(2, { message: "Supplier must be at least 2 characters." }).max(100),
+  // category: z.string().min(1, { message: "Please select a category." }), // Removed
+  // supplier: z.string().min(2, { message: "Supplier must be at least 2 characters." }).max(100), // Removed
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
   unitPrice: z.coerce.number().min(0.01, { message: "Price must be at least 0.01." }),
@@ -41,9 +41,6 @@ const formSchema = z.object({
 });
 
 type AddItemFormValues = z.infer<typeof formSchema>;
-
-// Mock data for categories - in a real app, this might come from an API or be configurable
-const categories = ["Antibiotics", "Pain Relief", "Vitamins", "Diabetes", "Cardiovascular", "Allergy", "Medical Supplies", "Other"];
 
 interface AddItemFormProps {
   onFormSubmit: (data: AddItemFormValues) => Promise<void>;
@@ -60,8 +57,8 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
     defaultValues: {
       name: "",
       description: "",
-      category: "",
-      supplier: "",
+      // category: "", // Removed
+      // supplier: "", // Removed
       stock: 0,
       lowStockThreshold: 10,
       unitPrice: 0,
@@ -151,35 +148,8 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="category"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Category</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-wrap gap-x-6 gap-y-3"
-                >
-                  {categories.map((cat) => (
-                    <FormItem key={cat} className="flex items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value={cat} />
-                      </FormControl>
-                      <FormLabel className="font-normal text-sm"> {/* Ensure label text is visible and normal weight */}
-                        {cat}
-                      </FormLabel>
-                    </FormItem>
-                  ))}
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
+        {/* Category Field Removed */}
+        {/* Supplier Field Removed from its original position */}
 
         <div className="space-y-2">
           <FormLabel>Tags</FormLabel>
@@ -209,22 +179,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
             </FormDescription>
         </div>
 
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="supplier"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Supplier</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Pharma Co" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
+        <FormField
             control={form.control}
             name="expiryDate"
             render={({ field }) => (
@@ -236,7 +191,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
+                          "w-full pl-3 text-left font-normal md:w-1/2", // Adjusted width
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -263,7 +218,6 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
               </FormItem>
             )}
           />
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
