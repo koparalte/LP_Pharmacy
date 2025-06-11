@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// AddItemFormData reflects the form structure including mrp and rate
 type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated' >;
 
 
@@ -37,6 +38,7 @@ export default function AddInventoryItemPage() {
       expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
       batchNo: data.batchNo || undefined,
       unit: data.unit || undefined,
+      // mrp and rate are directly from form data
     };
 
     const updatedItems = [...inventoryItems, newItem];

@@ -10,7 +10,8 @@ interface QuickStatsProps {
 export function QuickStats({ data }: QuickStatsProps) {
   const stats = [
     { title: "Total Items", value: data.totalItems, icon: Package, color: "text-primary" },
-    { title: "Total Inventory Value", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
+    // Total Inventory Value will now be calculated using 'rate' by the data source
+    { title: "Total Inventory Value (at Rate)", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
     { title: "Low Stock Items", value: data.lowStockItemsCount, icon: AlertTriangle, color: "text-destructive" },
   ];
 

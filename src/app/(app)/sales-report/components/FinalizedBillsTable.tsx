@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { FinalizedBill } from "@/lib/types";
+import type { FinalizedBill, BillItem } from "@/lib/types"; // BillItem needs to be imported if not already
 import {
   Table,
   TableBody,
@@ -142,7 +142,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
 
       {selectedBill && (
         <DialogContent className="sm:max-w-2xl print-dialog-content">
-          <DialogHeader> {/* This header will be part of the printed content */}
+          <DialogHeader>
             <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
             <DialogDescription>
               Date: {formatDate(selectedBill.date)}
@@ -162,7 +162,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   className="col-span-3"
                 />
               </div>
-               <div className="print-only hidden text-sm"> {/* Hidden on screen, visible on print */}
+               <div className="print-only hidden text-sm">
                 <p><strong>Customer Name:</strong> {editableCustomerName}</p>
               </div>
 
@@ -178,7 +178,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   placeholder="Optional"
                 />
               </div>
-              <div className="print-only hidden text-sm"> {/* Hidden on screen, visible on print */}
+              <div className="print-only hidden text-sm">
                 <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
               </div>
             </div>
@@ -189,17 +189,17 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   <TableRow>
                     <TableHead>Item Name</TableHead>
                     <TableHead className="text-center">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
+                    <TableHead className="text-right">Rate (₹)</TableHead> {/* Was Unit Price */}
                     <TableHead className="text-right">Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedBill.items.map((item) => (
+                  {selectedBill.items.map((item: BillItem) => ( // Explicitly type item as BillItem
                     <TableRow key={item.id}>
                       <TableCell>{item.name}</TableCell>
                       <TableCell className="text-center">{item.quantityInBill}</TableCell>
-                      <TableCell className="text-right">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">INR ₹{(item.unitPrice * item.quantityInBill).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">INR ₹{item.rate.toFixed(2)}</TableCell> {/* Use item.rate */}
+                      <TableCell className="text-right">INR ₹{(item.rate * item.quantityInBill).toFixed(2)}</TableCell> {/* Use item.rate */}
                     </TableRow>
                   ))}
                 </TableBody>

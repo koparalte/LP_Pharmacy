@@ -59,7 +59,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
               <TableHead>Batch No.</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Stock</TableHead>
-              <TableHead className="text-right">Unit Price</TableHead>
+              <TableHead className="text-right">MRP (₹)</TableHead>
+              <TableHead className="text-right">Rate (₹)</TableHead>
               <TableHead>Expiry Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -73,7 +74,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>
                   {item.stock}
                 </TableCell>
-                <TableCell className="text-right">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{item.mrp.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{item.rate.toFixed(2)}</TableCell>
                 <TableCell>{item.expiryDate ? format(new Date(item.expiryDate), 'PPP') : 'N/A'}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => onEdit(item)} className="mr-2 hover:text-primary">

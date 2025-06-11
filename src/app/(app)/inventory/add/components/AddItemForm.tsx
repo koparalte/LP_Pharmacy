@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +21,8 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -32,7 +31,8 @@ const formSchema = z.object({
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
-  unitPrice: z.coerce.number().min(0.01, { message: "Price must be at least 0.01." }),
+  mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
+  rate: z.coerce.number().min(0.01, { message: "Rate must be at least 0.01." }),
   expiryDate: z.date().optional(),
 });
 
@@ -54,7 +54,8 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
       unit: "",
       stock: 0,
       lowStockThreshold: 10,
-      unitPrice: 0,
+      mrp: 0,
+      rate: 0,
     },
   });
 
@@ -164,7 +165,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <FormField
             control={form.control}
             name="stock"
@@ -193,13 +194,28 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           />
           <FormField
             control={form.control}
-            name="unitPrice"
+            name="mrp"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unit Price (INR ₹)</FormLabel>
+                <FormLabel>MRP (₹)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
+                <FormDescription>Maximum Retail Price.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rate (₹)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormDescription>Actual selling price.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

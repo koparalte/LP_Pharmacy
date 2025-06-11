@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/table";
 
 const fallbackInventoryItems: InventoryItem[] = [
-  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", unit: "strip", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
-  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", unit: "bottle", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
-  { id: "fb3", name: "Vitamin C 1000mg", unit: "tube", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, lastUpdated: new Date().toISOString() },
-  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", unit: "strip", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, lastUpdated: new Date().toISOString() },
+  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", unit: "strip", description: "Antibiotic", stock: 15, lowStockThreshold: 20, mrp: 55.00, rate: 50.50, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
+  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", unit: "bottle", description: "Pain reliever", stock: 50, lowStockThreshold: 30, mrp: 22.00, rate: 20.20, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
+  { id: "fb3", name: "Vitamin C 1000mg", unit: "tube", description: "Supplement", stock: 5, lowStockThreshold: 10, mrp: 15.00, rate: 10.10, lastUpdated: new Date().toISOString() },
+  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", unit: "strip", description: "Fever reducer", stock: 0, lowStockThreshold: 10, mrp: 18.00, rate: 15.00, lastUpdated: new Date().toISOString() },
 ];
 
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
@@ -91,6 +91,7 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
+        // When adding to bill, it becomes a BillItem, which includes all InventoryItem props + quantityInBill
         return [...prevBillItems, { ...itemToAdd, quantityInBill: 1 }];
       }
     });
@@ -141,11 +142,12 @@ export default function BillingPage() {
       return invItem;
     });
 
-    const grandTotal = billItems.reduce((total, item) => total + (item.unitPrice * item.quantityInBill), 0);
+    // BillItems already have mrp and rate from the inventory item at the time of adding to bill
+    const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
     const newFinalizedBill: FinalizedBill = {
       id: String(Date.now()), 
       date: new Date().toISOString(),
-      items: [...billItems],
+      items: [...billItems], // BillItems already contain mrp and rate
       grandTotal: grandTotal,
       customerName: "Walk-in Customer", 
       customerAddress: "N/A", 
@@ -200,7 +202,7 @@ export default function BillingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Rate (₹)</TableHead> {/* Changed from Price */}
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-center w-[120px]">Action</TableHead>
                 </TableRow>

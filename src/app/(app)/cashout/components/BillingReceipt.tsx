@@ -18,7 +18,7 @@ interface BillingReceiptProps {
 }
 
 export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFinalizeBill, isSubmitting }: BillingReceiptProps) {
-  const calculateSubtotal = (item: BillItem) => item.unitPrice * item.quantityInBill;
+  const calculateSubtotal = (item: BillItem) => item.rate * item.quantityInBill; // Use rate for subtotal
   const grandTotal = billItems.reduce((total, item) => total + calculateSubtotal(item), 0);
 
   const handleQuantityChange = (itemId: string, currentQuantity: number, change: number) => {
@@ -31,8 +31,7 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
     if (!isNaN(newQuantity) && newQuantity >= 1) {
       onUpdateQuantity(itemId, newQuantity);
     } else if (value === "") {
-      // Allow clearing input, but maybe default to 1 or handle validation elsewhere
-      onUpdateQuantity(itemId, 1); // Or some minimum
+      onUpdateQuantity(itemId, 1);
     }
   };
 
@@ -61,13 +60,13 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
         <CardDescription>Review items and finalize the transaction.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[calc(100vh-380px)] pr-3"> {/* Adjusted height */}
+        <ScrollArea className="h-[calc(100vh-380px)] pr-3">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40%]">Item</TableHead>
                 <TableHead className="text-center">Qty</TableHead>
-                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Rate</TableHead> {/* Changed from Price to Rate */}
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-center">Action</TableHead>
               </TableRow>
@@ -93,7 +92,7 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
                         onChange={(e) => handleDirectQuantityInput(item.id, e.target.value)}
                         className="h-7 w-12 text-center px-1"
                         min="1"
-                        max={item.stock} // Informative, actual check is done when adding
+                        max={item.stock}
                       />
                       <Button
                         variant="outline"
@@ -106,7 +105,7 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right py-2">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
+                  <TableCell className="text-right py-2">INR ₹{item.rate.toFixed(2)}</TableCell> {/* Use rate */}
                   <TableCell className="text-right py-2">INR ₹{calculateSubtotal(item).toFixed(2)}</TableCell>
                   <TableCell className="text-center py-2">
                     <Button variant="ghost" size="icon" onClick={() => onRemoveItem(item.id)} className="text-destructive hover:text-destructive/80 h-7 w-7">
