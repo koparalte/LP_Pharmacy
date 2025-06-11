@@ -3,12 +3,12 @@ export type InventoryItem = {
   id: string;
   name: string;
   description: string;
-  batchNo?: string; 
+  batchNo?: string;
+  unit?: string; // e.g., strips, bottle, pcs
   stock: number;
   lowStockThreshold: number;
   unitPrice: number;
   expiryDate?: string; // YYYY-MM-DD
-  // tags: string[]; // Removed tags
   lastUpdated: string; // ISO DateTime string
 };
 
@@ -40,3 +40,4 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
+

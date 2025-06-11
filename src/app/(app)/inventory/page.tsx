@@ -11,12 +11,12 @@ import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
 const initialInventoryItems: InventoryItem[] = [
-  { id: "1", name: "Amoxicillin 250mg", batchNo: "AMX250-001", description: "Broad-spectrum antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.50, expiryDate: "2024-12-31", lastUpdated: "2023-10-01T10:00:00Z" },
-  { id: "2", name: "Ibuprofen 200mg", batchNo: "IBU200-005", description: "Nonsteroidal anti-inflammatory drug", stock: 50, lowStockThreshold: 30, unitPrice: 0.20, expiryDate: "2025-06-30", lastUpdated: "2023-10-05T14:30:00Z" },
-  { id: "3", name: "Vitamin C 1000mg", batchNo: "VITC1K-010", description: "Ascorbic acid supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.10, lastUpdated: "2023-09-20T08:15:00Z" },
-  { id: "4", name: "Metformin 500mg", description: "Oral diabetes medicine", stock: 75, lowStockThreshold: 25, unitPrice: 0.30, expiryDate: "2026-01-31", lastUpdated: "2023-10-02T11:00:00Z" },
-  { id: "5", name: "Saline Solution 0.9%", batchNo: "SAL09-002", description: "Sterile sodium chloride solution", stock: 30, lowStockThreshold: 15, unitPrice: 2.50, expiryDate: "2025-08-15", lastUpdated: "2023-09-28T16:45:00Z" },
-  { id: "6", name: "Aspirin 81mg", description: "Low-dose aspirin", stock: 120, lowStockThreshold: 40, unitPrice: 0.05, expiryDate: "2025-02-28", lastUpdated: new Date().toISOString() },
+  { id: "1", name: "Amoxicillin 250mg", batchNo: "AMX250-001", unit: "strip of 10", description: "Broad-spectrum antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.50, expiryDate: "2024-12-31", lastUpdated: "2023-10-01T10:00:00Z" },
+  { id: "2", name: "Ibuprofen 200mg", batchNo: "IBU200-005", unit: "bottle of 50", description: "Nonsteroidal anti-inflammatory drug", stock: 50, lowStockThreshold: 30, unitPrice: 0.20, expiryDate: "2025-06-30", lastUpdated: "2023-10-05T14:30:00Z" },
+  { id: "3", name: "Vitamin C 1000mg", batchNo: "VITC1K-010", unit: "tube of 20", description: "Ascorbic acid supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.10, lastUpdated: "2023-09-20T08:15:00Z" },
+  { id: "4", name: "Metformin 500mg", unit: "box of 100", description: "Oral diabetes medicine", stock: 75, lowStockThreshold: 25, unitPrice: 0.30, expiryDate: "2026-01-31", lastUpdated: "2023-10-02T11:00:00Z" },
+  { id: "5", name: "Saline Solution 0.9%", batchNo: "SAL09-002", unit: "500ml bag", description: "Sterile sodium chloride solution", stock: 30, lowStockThreshold: 15, unitPrice: 2.50, expiryDate: "2025-08-15", lastUpdated: "2023-09-28T16:45:00Z" },
+  { id: "6", name: "Aspirin 81mg", unit: "bottle", description: "Low-dose aspirin", stock: 120, lowStockThreshold: 40, unitPrice: 0.05, expiryDate: "2025-02-28", lastUpdated: new Date().toISOString() },
 ];
 
 export default function InventoryPage() {
@@ -26,7 +26,9 @@ export default function InventoryPage() {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      const matchesSearchTerm = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.batchNo && item.batchNo.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearchTerm = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (item.batchNo && item.batchNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                (item.unit && item.unit.toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesSearchTerm;
     });
   }, [items, searchTerm]);
@@ -57,26 +59,21 @@ export default function InventoryPage() {
         if (Array.isArray(parsedItems) && parsedItems.length > 0) {
           setItems(parsedItems);
         } else if (Array.isArray(parsedItems) && parsedItems.length === 0) {
-           setItems(initialInventoryItems); // Initialize with default if local storage is empty array
+           setItems(initialInventoryItems); 
            localStorage.setItem('lpPharmacyInventory', JSON.stringify(initialInventoryItems));
         }
       } catch (error) {
         console.error("Failed to parse stored inventory items:", error);
-        setItems(initialInventoryItems); // Fallback to initial if parsing fails
+        setItems(initialInventoryItems); 
         localStorage.setItem('lpPharmacyInventory', JSON.stringify(initialInventoryItems));
       }
     } else {
-      // If nothing in local storage, initialize with default and save
       setItems(initialInventoryItems);
       localStorage.setItem('lpPharmacyInventory', JSON.stringify(initialInventoryItems));
     }
   }, []);
 
   useEffect(() => {
-    // Only save to localStorage if items state is not the initial default one by reference
-    // or if it's different from what was initially loaded from localStorage
-    // This basic check helps avoid overwriting good data with initial mock data on first load.
-    // A more robust check might compare content or use a 'loaded' flag.
     if(items !== initialInventoryItems){ 
       localStorage.setItem('lpPharmacyInventory', JSON.stringify(items));
     }

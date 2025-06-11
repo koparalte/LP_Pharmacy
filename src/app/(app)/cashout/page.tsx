@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/table";
 
 const fallbackInventoryItems: InventoryItem[] = [
-  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
-  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
-  { id: "fb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, lastUpdated: new Date().toISOString() },
-  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, lastUpdated: new Date().toISOString() },
+  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", unit: "strip", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
+  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", unit: "bottle", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
+  { id: "fb3", name: "Vitamin C 1000mg", unit: "tube", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, lastUpdated: new Date().toISOString() },
+  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", unit: "strip", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, lastUpdated: new Date().toISOString() },
 ];
 
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
@@ -40,7 +40,6 @@ export default function BillingPage() {
     if (storedInventory) {
       try {
         const tempParsed = JSON.parse(storedInventory);
-        // Ensure it's an array and not empty before setting, otherwise use fallback
         if (Array.isArray(tempParsed) && tempParsed.length > 0) {
           parsedInventory = tempParsed;
         } else {
@@ -176,7 +175,9 @@ export default function BillingPage() {
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.batchNo && item.batchNo.toLowerCase().includes(searchTerm.toLowerCase()))
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (item.batchNo && item.batchNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.unit && item.unit.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [inventory, searchTerm]);
 
@@ -187,7 +188,7 @@ export default function BillingPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="Search inventory by name or batch no..."
+            placeholder="Search inventory by name, batch no, or unit..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"

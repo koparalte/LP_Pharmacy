@@ -10,9 +10,9 @@ import Image from "next/image";
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
 
 const fallbackInventoryItemsForReport: InventoryItem[] = [
-    { id: "rfb1", name: "Amoxicillin 250mg", batchNo: "RFBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
-    { id: "rfb2", name: "Ibuprofen 200mg", batchNo: "RFBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
-    { id: "rfb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, lastUpdated: new Date().toISOString() },
+    { id: "rfb1", name: "Amoxicillin 250mg", batchNo: "RFBAMX001", unit: "strip", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
+    { id: "rfb2", name: "Ibuprofen 200mg", batchNo: "RFBIBU002", unit: "bottle", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
+    { id: "rfb3", name: "Vitamin C 1000mg", unit: "tube", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, lastUpdated: new Date().toISOString() },
 ];
 
 const getReportData = (): ReportData & { itemsExpiringSoon?: number } => {
@@ -26,8 +26,6 @@ const getReportData = (): ReportData & { itemsExpiringSoon?: number } => {
           itemsToUse = parsed;
         } else {
           itemsToUse = fallbackInventoryItemsForReport;
-          // Optionally save fallback to localStorage if it was empty or invalid
-          // localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse)); 
         }
       } catch (e) {
         console.error("Failed to parse inventory from localStorage for reports", e);
@@ -35,8 +33,6 @@ const getReportData = (): ReportData & { itemsExpiringSoon?: number } => {
       }
     } else {
       itemsToUse = fallbackInventoryItemsForReport;
-      // Optionally save fallback to localStorage if it didn't exist
-      // localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(itemsToUse));
     }
   
   const reportData: ReportData = {
@@ -53,7 +49,7 @@ const getReportData = (): ReportData & { itemsExpiringSoon?: number } => {
     try {
         const expiry = new Date(item.expiryDate);
         return expiry <= thirtyDaysFromNow && expiry >= new Date();
-    } catch (e) {
+    } catch (e)
         console.error("Invalid date format for item:", item.name, item.expiryDate);
         return false;
     }

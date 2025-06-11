@@ -7,8 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// Define the type for form data, excluding fields that are generated or no longer exist
-type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated' >; // Removed 'tags' if it was part of InventoryItem
+type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated' >;
 
 
 export default function AddInventoryItemPage() {
@@ -16,7 +15,6 @@ export default function AddInventoryItemPage() {
   const router = useRouter();
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
 
-  // Load items from localStorage to append new item
   useEffect(() => {
     const storedItems = localStorage.getItem('lpPharmacyInventory');
     if (storedItems) {
@@ -30,16 +28,15 @@ export default function AddInventoryItemPage() {
   }, []);
 
   const handleFormSubmit = async (data: AddItemFormData) => {
-    // In a real app, you would send this data to your backend API
     console.log("New item data:", data);
 
     const newItem: InventoryItem = {
       ...data, 
-      id: String(Date.now()), // Simple unique ID for mock
+      id: String(Date.now()), 
       lastUpdated: new Date().toISOString(),
-      expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined, // Format date correctly
-      batchNo: data.batchNo || undefined, 
-      // tags: data.tags || [], // Tags removed
+      expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
+      batchNo: data.batchNo || undefined,
+      unit: data.unit || undefined,
     };
 
     const updatedItems = [...inventoryItems, newItem];
