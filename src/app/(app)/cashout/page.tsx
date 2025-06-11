@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/table";
 
 const fallbackInventoryItems: InventoryItem[] = [
-  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
-  { id: "fb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
-  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, tags: ["otc", "fever"], lastUpdated: new Date().toISOString() },
+  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 50.50, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
+  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 20.20, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
+  { id: "fb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 10.10, lastUpdated: new Date().toISOString() },
+  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", description: "Fever reducer", stock: 0, lowStockThreshold: 10, unitPrice: 15.00, lastUpdated: new Date().toISOString() },
 ];
 
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';

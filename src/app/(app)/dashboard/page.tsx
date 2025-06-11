@@ -10,11 +10,11 @@ import { useEffect, useState } from "react";
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
 
 const fallbackMockInventoryItems: InventoryItem[] = [
-  { id: "1", name: "Amoxicillin 250mg", batchNo: "AMX250-D001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-  { id: "2", name: "Ibuprofen 200mg", batchNo: "IBU200-D002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
-  { id: "3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
-  { id: "4", name: "Paracetamol 500mg", batchNo: "PAR500-D003", description: "Pain and fever reducer", stock: 100, lowStockThreshold: 50, unitPrice: 0.15, expiryDate: "2026-01-31", tags: ["otc", "fever"], lastUpdated: new Date().toISOString()},
-  { id: "5", name: "Loratadine 10mg", description: "Antihistamine", stock: 25, lowStockThreshold: 15, unitPrice: 0.8, tags: ["otc", "allergy"], lastUpdated: new Date().toISOString() },
+  { id: "1", name: "Amoxicillin 250mg", batchNo: "AMX250-D001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
+  { id: "2", name: "Ibuprofen 200mg", batchNo: "IBU200-D002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
+  { id: "3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, lastUpdated: new Date().toISOString() },
+  { id: "4", name: "Paracetamol 500mg", batchNo: "PAR500-D003", description: "Pain and fever reducer", stock: 100, lowStockThreshold: 50, unitPrice: 0.15, expiryDate: "2026-01-31", lastUpdated: new Date().toISOString()},
+  { id: "5", name: "Loratadine 10mg", description: "Antihistamine", stock: 25, lowStockThreshold: 15, unitPrice: 0.8, lastUpdated: new Date().toISOString() },
 ];
 
 

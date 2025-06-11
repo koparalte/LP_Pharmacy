@@ -3,12 +3,12 @@ export type InventoryItem = {
   id: string;
   name: string;
   description: string;
-  batchNo?: string; // Added Batch No.
+  batchNo?: string; 
   stock: number;
   lowStockThreshold: number;
   unitPrice: number;
   expiryDate?: string; // YYYY-MM-DD
-  tags: string[];
+  // tags: string[]; // Removed tags
   lastUpdated: string; // ISO DateTime string
 };
 

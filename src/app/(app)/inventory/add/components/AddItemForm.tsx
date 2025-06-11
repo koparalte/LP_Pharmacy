@@ -17,25 +17,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react"; // Sparkles and Badge removed
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { tagNewInventory, type TagNewInventoryInput } from "@/ai/flows/tag-new-inventory";
-import { useState } from "react";
+// import { tagNewInventory, type TagNewInventoryInput } from "@/ai/flows/tag-new-inventory"; // AI Tagging removed
+import { useState } from "react"; // Removed useToast, useRouter
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge"; // Badge removed
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500),
-  batchNo: z.string().max(50).optional(), // Added Batch No.
+  batchNo: z.string().max(50).optional(),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
   unitPrice: z.coerce.number().min(0.01, { message: "Price must be at least 0.01." }),
   expiryDate: z.date().optional(),
-  tags: z.array(z.string()).optional(),
+  // tags: z.array(z.string()).optional(), // Tags removed from schema
 });
 
 type AddItemFormValues = z.infer<typeof formSchema>;
@@ -45,9 +45,9 @@ interface AddItemFormProps {
 }
 
 export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
-  const [isTagging, setIsTagging] = useState(false);
-  const [currentTags, setCurrentTags] = useState<string[]>([]);
-  const { toast } = useToast();
+  // const [isTagging, setIsTagging] = useState(false); // Tagging state removed
+  // const [currentTags, setCurrentTags] = useState<string[]>([]); // Tagging state removed
+  // const { toast } = useToast(); // Toast is still used for submission
   const router = useRouter();
 
   const form = useForm<AddItemFormValues>({
@@ -55,63 +55,18 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
     defaultValues: {
       name: "",
       description: "",
-      batchNo: "", // Added Batch No.
+      batchNo: "",
       stock: 0,
       lowStockThreshold: 10,
       unitPrice: 0,
-      tags: [],
+      // tags: [], // Tags removed
     },
   });
 
-  const handleSuggestTags = async () => {
-    const description = form.getValues("description");
-    if (!description || description.length < 10) {
-      toast({
-        title: "Error",
-        description: "Please provide a description of at least 10 characters to suggest tags.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsTagging(true);
-    try {
-      const input: TagNewInventoryInput = { itemDescription: description };
-      const result = await tagNewInventory(input);
-      if (result.tags && result.tags.length > 0) {
-        const newTags = Array.from(new Set([...currentTags, ...result.tags]));
-        setCurrentTags(newTags);
-        form.setValue("tags", newTags);
-        toast({
-          title: "Tags Suggested",
-          description: `${result.tags.length} new tags suggested and added.`,
-        });
-      } else {
-        toast({
-          title: "No Tags Suggested",
-          description: "The AI could not suggest any tags for this description.",
-        });
-      }
-    } catch (error) {
-      console.error("Error suggesting tags:", error);
-      toast({
-        title: "Tagging Error",
-        description: "Failed to suggest tags. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTagging(false);
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    const updatedTags = currentTags.filter(tag => tag !== tagToRemove);
-    setCurrentTags(updatedTags);
-    form.setValue("tags", updatedTags);
-  };
+  // handleSuggestTags and removeTag functions removed
 
   async function onSubmit(data: AddItemFormValues) {
-    await onFormSubmit({...data, tags: currentTags});
+    await onFormSubmit(data); // Removed tags from submitted data
   }
 
   return (
@@ -161,33 +116,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           )}
         />
         
-        <div className="space-y-2">
-          <FormLabel>Tags</FormLabel>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {currentTags.map(tag => (
-              <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                {tag}
-                <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-muted-foreground hover:text-foreground">
-                  <XIcon className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-             {currentTags.length === 0 && <p className="text-sm text-muted-foreground">No tags added yet. Use AI to suggest or add manually.</p>}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" onClick={handleSuggestTags} disabled={isTagging}>
-              {isTagging ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              Suggest Tags with AI
-            </Button>
-          </div>
-           <FormDescription>
-              Tags help categorize and search for items. AI suggestions are based on the description.
-            </FormDescription>
-        </div>
+        {/* Tags section removed */}
 
         <FormField
             control={form.control}
@@ -201,7 +130,7 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal md:w-1/2", // Adjusted width
+                          "w-full pl-3 text-left font-normal md:w-1/2", 
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -285,23 +214,4 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
   );
 }
 
-// Simple X icon for tag removal
-function XIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
+// XIcon removed as it was used for tag removal

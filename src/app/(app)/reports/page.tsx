@@ -10,9 +10,9 @@ import Image from "next/image";
 const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
 
 const fallbackInventoryItemsForReport: InventoryItem[] = [
-    { id: "rfb1", name: "Amoxicillin 250mg", batchNo: "RFBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", tags: ["antibiotic", "prescription"], lastUpdated: new Date().toISOString() },
-    { id: "rfb2", name: "Ibuprofen 200mg", batchNo: "RFBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", tags: ["otc", "painkiller"], lastUpdated: new Date().toISOString() },
-    { id: "rfb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, tags: ["supplement", "otc"], lastUpdated: new Date().toISOString() },
+    { id: "rfb1", name: "Amoxicillin 250mg", batchNo: "RFBAMX001", description: "Antibiotic", stock: 15, lowStockThreshold: 20, unitPrice: 0.5, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
+    { id: "rfb2", name: "Ibuprofen 200mg", batchNo: "RFBIBU002", description: "Pain reliever", stock: 50, lowStockThreshold: 30, unitPrice: 0.2, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
+    { id: "rfb3", name: "Vitamin C 1000mg", description: "Supplement", stock: 5, lowStockThreshold: 10, unitPrice: 0.1, lastUpdated: new Date().toISOString() },
 ];
 
 const getReportData = (): ReportData & { itemsExpiringSoon?: number } => {

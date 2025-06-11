@@ -3,7 +3,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge"; // Badge removed as tags are removed
 import type { InventoryItem } from "@/lib/types";
 import { Edit, Trash2, PackageSearch } from "lucide-react";
 import {
@@ -61,7 +61,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Unit Price</TableHead>
               <TableHead>Expiry Date</TableHead>
-              <TableHead>Tags</TableHead>
+              {/* <TableHead>Tags</TableHead> // Tags column removed */}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -75,12 +75,14 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                 </TableCell>
                 <TableCell className="text-right">INR ₹{item.unitPrice.toFixed(2)}</TableCell>
                 <TableCell>{item.expiryDate ? format(new Date(item.expiryDate), 'PPP') : 'N/A'}</TableCell>
+                {/* Tags cell removed 
                 <TableCell>
                   <div className="flex flex-wrap gap-1 max-w-xs">
                     {item.tags?.slice(0,3).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
                     {item.tags?.length > 3 && <Badge variant="outline">+{item.tags.length - 3}</Badge>}
                   </div>
                 </TableCell>
+                */}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => onEdit(item)} className="mr-2 hover:text-primary">
                     <Edit className="h-4 w-4" />

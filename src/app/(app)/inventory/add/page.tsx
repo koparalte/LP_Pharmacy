@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 // Define the type for form data, excluding fields that are generated or no longer exist
-type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated'>;
+type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated' >; // Removed 'tags' if it was part of InventoryItem
 
 
 export default function AddInventoryItemPage() {
@@ -38,7 +38,8 @@ export default function AddInventoryItemPage() {
       id: String(Date.now()), // Simple unique ID for mock
       lastUpdated: new Date().toISOString(),
       expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined, // Format date correctly
-      batchNo: data.batchNo || undefined, // Ensure batchNo is either string or undefined
+      batchNo: data.batchNo || undefined, 
+      // tags: data.tags || [], // Tags removed
     };
 
     const updatedItems = [...inventoryItems, newItem];
