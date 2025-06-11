@@ -31,8 +31,8 @@ const formSchema = z.object({
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
-  mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
   rate: z.coerce.number().min(0.01, { message: "Rate must be at least 0.01." }),
+  mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
   expiryDate: z.date().optional(),
 });
 
@@ -54,8 +54,8 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
       unit: "",
       stock: 0,
       lowStockThreshold: 10,
-      mrp: 0,
       rate: 0,
+      mrp: 0,
     },
   });
 
@@ -194,20 +194,6 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           />
           <FormField
             control={form.control}
-            name="mrp"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>MRP (₹)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormDescription>Maximum Retail Price.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="rate"
             render={({ field }) => (
               <FormItem>
@@ -216,6 +202,20 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
                 <FormDescription>Actual selling price.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="mrp"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>MRP (₹)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormDescription>Maximum Retail Price.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
