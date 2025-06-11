@@ -6,40 +6,49 @@ import type { FinalizedBill } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
 import { FileText } from "lucide-react";
-
-const FINALIZED_BILLS_STORAGE_KEY = 'lpPharmacyFinalizedBills';
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SalesReportPage() {
   const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const loadBills = useCallback(() => {
-    const storedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
-    let parsedBills: FinalizedBill[] = [];
-    if (storedBillsRaw) {
-      try {
-        parsedBills = JSON.parse(storedBillsRaw);
-        if (!Array.isArray(parsedBills)) { 
-          parsedBills = [];
-        }
-      } catch (e) {
-        console.error("Failed to parse finalized bills from localStorage", e);
-        parsedBills = []; 
-      }
+  const loadBills = useCallback(async () => {
+    setLoading(true);
+    try {
+      const billsCollection = collection(db, "finalizedBills");
+      const q = query(billsCollection, orderBy("date", "desc"));
+      const querySnapshot = await getDocs(q);
+      const billsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as FinalizedBill));
+      setFinalizedBills(billsList);
+    } catch (error) {
+      console.error("Failed to parse finalized bills from Firestore", error);
+      toast({
+        title: "Error Fetching Sales Data",
+        description: "Could not load sales transactions from the database.",
+        variant: "destructive",
+      });
+      setFinalizedBills([]);
+    } finally {
+      setLoading(false);
     }
-    // Sort bills by date, most recent first
-    parsedBills.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setFinalizedBills(parsedBills);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadBills();
-    setLoading(false);
   }, [loadBills]);
 
-  const handleBillUpdate = useCallback((updatedBills: FinalizedBill[]) => {
-    // The updatedBills from child is already sorted and from localStorage.
-    setFinalizedBills(updatedBills);
+  const handleBillUpdate = useCallback((updatedBill: FinalizedBill) => {
+    setFinalizedBills(prevBills => 
+      prevBills.map(bill => bill.id === updatedBill.id ? updatedBill : bill)
+                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    );
   }, []);
 
 
@@ -58,7 +67,11 @@ export default function SalesReportPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p>Loading sales data...</p>
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
           ) : (
             <FinalizedBillsTable bills={finalizedBills} onBillUpdate={handleBillUpdate} />
           )}

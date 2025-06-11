@@ -5,51 +5,47 @@ import { AddItemForm } from "./components/AddItemForm";
 import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-// AddItemFormData reflects the form structure including mrp and rate
 type AddItemFormData = Omit<InventoryItem, 'id' | 'lastUpdated' >;
 
 
 export default function AddInventoryItemPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-
-  useEffect(() => {
-    const storedItems = localStorage.getItem('lpPharmacyInventory');
-    if (storedItems) {
-      try {
-        setInventoryItems(JSON.parse(storedItems));
-      } catch (e) {
-        console.error("Failed to parse inventory from localStorage", e);
-        setInventoryItems([]);
-      }
-    }
-  }, []);
 
   const handleFormSubmit = async (data: AddItemFormData) => {
-    console.log("New item data:", data);
+    console.log("New item data for Firestore:", data);
 
-    const newItem: InventoryItem = {
-      ...data, 
-      id: String(Date.now()), 
-      lastUpdated: new Date().toISOString(),
-      expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
-      batchNo: data.batchNo || undefined,
-      unit: data.unit || undefined,
-      // mrp and rate are directly from form data
-    };
+    try {
+      const newItemPayload: Omit<InventoryItem, 'id'> = {
+        ...data,
+        expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
+        batchNo: data.batchNo || undefined,
+        unit: data.unit || undefined,
+        lastUpdated: new Date().toISOString(), // Or use serverTimestamp for Firestore native timestamp
+      };
 
-    const updatedItems = [...inventoryItems, newItem];
-    localStorage.setItem('lpPharmacyInventory', JSON.stringify(updatedItems));
-    setInventoryItems(updatedItems); 
+      const docRef = await addDoc(collection(db, "inventory"), {
+        ...newItemPayload,
+        // For Firestore native timestamp, you'd use:
+        // lastUpdated: serverTimestamp(), 
+      });
 
-    toast({
-      title: "Item Added Successfully!",
-      description: `${data.name} has been added to the inventory.`,
-    });
-    router.push("/inventory");
+      toast({
+        title: "Item Added Successfully!",
+        description: `${data.name} has been added to the inventory with ID: ${docRef.id}.`,
+      });
+      router.push("/inventory");
+    } catch (error) {
+      console.error("Error adding item to Firestore: ", error);
+      toast({
+        title: "Error Adding Item",
+        description: "There was an issue saving the item to the database. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
@@ -9,20 +9,44 @@ import { InventoryFilters } from "./components/InventoryFilters";
 import { InventoryTable } from "./components/InventoryTable";
 import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-
-const initialInventoryItems: InventoryItem[] = [
-  { id: "1", name: "Amoxicillin 250mg", batchNo: "AMX250-001", unit: "strip of 10", description: "Broad-spectrum antibiotic", stock: 15, lowStockThreshold: 20, mrp: 55.00, rate: 50.50, expiryDate: "2024-12-31", lastUpdated: "2023-10-01T10:00:00Z" },
-  { id: "2", name: "Ibuprofen 200mg", batchNo: "IBU200-005", unit: "bottle of 50", description: "Nonsteroidal anti-inflammatory drug", stock: 50, lowStockThreshold: 30, mrp: 25.00, rate: 20.20, expiryDate: "2025-06-30", lastUpdated: "2023-10-05T14:30:00Z" },
-  { id: "3", name: "Vitamin C 1000mg", batchNo: "VITC1K-010", unit: "tube of 20", description: "Ascorbic acid supplement", stock: 5, lowStockThreshold: 10, mrp: 12.00, rate: 10.10, lastUpdated: "2023-09-20T08:15:00Z" },
-  { id: "4", name: "Metformin 500mg", unit: "box of 100", description: "Oral diabetes medicine", stock: 75, lowStockThreshold: 25, mrp: 35.00, rate: 30.00, expiryDate: "2026-01-31", lastUpdated: "2023-10-02T11:00:00Z" },
-  { id: "5", name: "Saline Solution 0.9%", batchNo: "SAL09-002", unit: "500ml bag", description: "Sterile sodium chloride solution", stock: 30, lowStockThreshold: 15, mrp: 260.00, rate: 250.00, expiryDate: "2025-08-15", lastUpdated: "2023-09-28T16:45:00Z" },
-  { id: "6", name: "Aspirin 81mg", unit: "bottle", description: "Low-dose aspirin", stock: 120, lowStockThreshold: 40, mrp: 8.00, rate: 5.00, expiryDate: "2025-02-28", lastUpdated: new Date().toISOString() },
-];
+import { db } from "@/lib/firebase";
+import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>(initialInventoryItems);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const fetchInventoryItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const inventoryCollection = collection(db, "inventory");
+      // Consider adding orderBy if you want a default sort order, e.g., orderBy("name")
+      const q = query(inventoryCollection, orderBy("name")); 
+      const querySnapshot = await getDocs(q);
+      const inventoryList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as InventoryItem));
+      setItems(inventoryList);
+    } catch (error) {
+      console.error("Error fetching inventory items: ", error);
+      toast({
+        title: "Error Fetching Inventory",
+        description: "Could not load inventory data from the database.",
+        variant: "destructive",
+      });
+      setItems([]); // Set to empty array on error
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchInventoryItems();
+  }, [fetchInventoryItems]);
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -36,50 +60,33 @@ export default function InventoryPage() {
 
   const handleEditItem = (itemToEdit: InventoryItem) => {
     console.log("Editing item:", itemToEdit);
+    // Navigate to an edit page or open a modal
+    // For now, it shows a toast as per previous implementation
     toast({
       title: "Edit Item",
-      description: `Editing functionality for "${itemToEdit.name}" is not yet implemented.`,
+      description: `Editing functionality for "${itemToEdit.name}" is not yet implemented with Firestore.`,
     });
   };
 
-  const handleDeleteItem = (itemId: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== itemId));
-    toast({
-      title: "Item Deleted",
-      description: "The inventory item has been successfully deleted.",
-      variant: "destructive"
-    });
+  const handleDeleteItem = async (itemId: string) => {
+    try {
+      await deleteDoc(doc(db, "inventory", itemId));
+      setItems(prevItems => prevItems.filter(item => item.id !== itemId));
+      toast({
+        title: "Item Deleted",
+        description: "The inventory item has been successfully deleted from Firestore.",
+        variant: "destructive"
+      });
+    } catch (error) {
+      console.error("Error deleting item from Firestore: ", error);
+      toast({
+        title: "Error Deleting Item",
+        description: "Could not delete the item from the database. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
-  useEffect(() => {
-    const storedItems = localStorage.getItem('lpPharmacyInventory');
-    if (storedItems) {
-      try {
-        const parsedItems = JSON.parse(storedItems);
-        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
-          setItems(parsedItems);
-        } else if (Array.isArray(parsedItems) && parsedItems.length === 0) {
-           setItems(initialInventoryItems); 
-           localStorage.setItem('lpPharmacyInventory', JSON.stringify(initialInventoryItems));
-        }
-      } catch (error) {
-        console.error("Failed to parse stored inventory items:", error);
-        setItems(initialInventoryItems); 
-        localStorage.setItem('lpPharmacyInventory', JSON.stringify(initialInventoryItems));
-      }
-    } else {
-      setItems(initialInventoryItems);
-      localStorage.setItem('lpPharmacyInventory', JSON.stringify(initialInventoryItems));
-    }
-  }, []);
-
-  useEffect(() => {
-    if(items !== initialInventoryItems){ 
-      localStorage.setItem('lpPharmacyInventory', JSON.stringify(items));
-    }
-  }, [items]);
-
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -95,8 +102,16 @@ export default function InventoryPage() {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
       />
-
-      <InventoryTable items={filteredItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : (
+        <InventoryTable items={filteredItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+      )}
     </div>
   );
 }

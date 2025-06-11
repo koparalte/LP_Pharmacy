@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { InventoryItem, BillItem, FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -16,52 +16,48 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, doc, writeBatch, serverTimestamp, query, orderBy, runTransaction } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const fallbackInventoryItems: InventoryItem[] = [
-  { id: "fb1", name: "Amoxicillin 250mg", batchNo: "FBAMX001", unit: "strip", description: "Antibiotic", stock: 15, lowStockThreshold: 20, mrp: 55.00, rate: 50.50, expiryDate: "2024-12-31", lastUpdated: new Date().toISOString() },
-  { id: "fb2", name: "Ibuprofen 200mg", batchNo: "FBIBU002", unit: "bottle", description: "Pain reliever", stock: 50, lowStockThreshold: 30, mrp: 22.00, rate: 20.20, expiryDate: "2025-06-30", lastUpdated: new Date().toISOString() },
-  { id: "fb3", name: "Vitamin C 1000mg", unit: "tube", description: "Supplement", stock: 5, lowStockThreshold: 10, mrp: 15.00, rate: 10.10, lastUpdated: new Date().toISOString() },
-  { id: "fb4", name: "Paracetamol 500mg", batchNo: "FBPAR003", unit: "strip", description: "Fever reducer", stock: 0, lowStockThreshold: 10, mrp: 18.00, rate: 15.00, lastUpdated: new Date().toISOString() },
-];
-
-const INVENTORY_STORAGE_KEY = 'lpPharmacyInventory';
-const FINALIZED_BILLS_STORAGE_KEY = 'lpPharmacyFinalizedBills';
 
 export default function BillingPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSubmittingBill, setIsSubmittingBill] = useState(false);
+  const [loadingInventory, setLoadingInventory] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    let storedInventory = localStorage.getItem(INVENTORY_STORAGE_KEY);
-    let parsedInventory: InventoryItem[] = [];
-    if (storedInventory) {
-      try {
-        const tempParsed = JSON.parse(storedInventory);
-        if (Array.isArray(tempParsed) && tempParsed.length > 0) {
-          parsedInventory = tempParsed;
-        } else {
-          parsedInventory = fallbackInventoryItems;
-          localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); 
-        }
-      } catch (e) {
-        console.error("Failed to parse inventory from localStorage", e);
-        parsedInventory = fallbackInventoryItems; 
-        localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); 
-      }
-    } else {
-      parsedInventory = fallbackInventoryItems; 
-      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(parsedInventory)); 
+  const fetchInventoryForBilling = useCallback(async () => {
+    setLoadingInventory(true);
+    try {
+      const inventoryCollection = collection(db, "inventory");
+      // Optional: orderBy("name")
+      const q = query(inventoryCollection, orderBy("name"));
+      const querySnapshot = await getDocs(q);
+      const inventoryList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as InventoryItem));
+      setInventory(inventoryList);
+    } catch (error) {
+      console.error("Error fetching inventory for billing: ", error);
+      toast({
+        title: "Error Fetching Inventory",
+        description: "Could not load inventory for billing.",
+        variant: "destructive",
+      });
+      setInventory([]);
+    } finally {
+      setLoadingInventory(false);
     }
-    setInventory(parsedInventory);
-  }, []);
+  }, [toast]);
 
-  const updateInventoryInStorage = (updatedInventory: InventoryItem[]) => {
-    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(updatedInventory));
-    setInventory(updatedInventory);
-  };
+  useEffect(() => {
+    fetchInventoryForBilling();
+  }, [fetchInventoryForBilling]);
+
 
   const handleAddItemToBill = (itemToAdd: InventoryItem) => {
     if (itemToAdd.stock <= 0) {
@@ -91,7 +87,6 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
-        // When adding to bill, it becomes a BillItem, which includes all InventoryItem props + quantityInBill
         return [...prevBillItems, { ...itemToAdd, quantityInBill: 1 }];
       }
     });
@@ -132,47 +127,87 @@ export default function BillingPage() {
 
     setIsSubmittingBill(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Use a Firestore transaction to update stock and save the bill
+      await runTransaction(db, async (transaction) => {
+        const inventoryUpdates: { docRef: any, newStock: number }[] = [];
 
-    const updatedInventory = inventory.map(invItem => {
-      const billItem = billItems.find(bi => bi.id === invItem.id);
-      if (billItem) {
-        return { ...invItem, stock: Math.max(0, invItem.stock - billItem.quantityInBill) };
-      }
-      return invItem;
-    });
+        // Prepare inventory updates
+        for (const bItem of billItems) {
+          const itemDocRef = doc(db, "inventory", bItem.id);
+          const itemDoc = await transaction.get(itemDocRef);
 
-    // BillItems already have mrp and rate from the inventory item at the time of adding to bill
-    const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
-    const newFinalizedBill: FinalizedBill = {
-      id: String(Date.now()), 
-      date: new Date().toISOString(),
-      items: [...billItems], // BillItems already contain mrp and rate
-      grandTotal: grandTotal,
-      customerName: "Walk-in Customer", 
-      customerAddress: "N/A", 
-    };
+          if (!itemDoc.exists()) {
+            throw new Error(`Item ${bItem.name} (ID: ${bItem.id}) not found in inventory.`);
+          }
 
-    const existingFinalizedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
-    let existingFinalizedBills: FinalizedBill[] = [];
-    if (existingFinalizedBillsRaw) {
-      try {
-        existingFinalizedBills = JSON.parse(existingFinalizedBillsRaw);
-      } catch (e) {
-        console.error("Failed to parse finalized bills from localStorage", e);
-      }
+          const currentStock = itemDoc.data().stock;
+          if (bItem.quantityInBill > currentStock) {
+            throw new Error(`Not enough stock for ${bItem.name}. Available: ${currentStock}, Requested: ${bItem.quantityInBill}.`);
+          }
+          const newStock = currentStock - bItem.quantityInBill;
+          inventoryUpdates.push({ docRef: itemDocRef, newStock });
+        }
+
+        // Apply inventory updates
+        for (const update of inventoryUpdates) {
+          transaction.update(update.docRef, { stock: update.newStock, lastUpdated: new Date().toISOString() });
+        }
+        
+        // Create and save the finalized bill
+        const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
+        const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
+          date: new Date().toISOString(), // Or serverTimestamp()
+          items: billItems.map(bi => ({ // Ensure only necessary fields are saved
+            id: bi.id, // Firestore ID of the inventory item
+            name: bi.name,
+            batchNo: bi.batchNo,
+            unit: bi.unit,
+            mrp: bi.mrp,
+            rate: bi.rate, // Rate at the time of sale
+            quantityInBill: bi.quantityInBill,
+            // Exclude fields not relevant to a BillItem copy like stock, lowStockThreshold, description, expiryDate from root
+            description: bi.description, // keep if needed for bill details
+            expiryDate: bi.expiryDate, // keep if needed
+            stock: 0, // Not relevant for the bill copy
+            lowStockThreshold: 0, // Not relevant
+            lastUpdated: "" // Not relevant
+          })),
+          grandTotal: grandTotal,
+          customerName: "Walk-in Customer", 
+          customerAddress: "N/A", 
+        };
+        const finalizedBillCollection = collection(db, "finalizedBills");
+        transaction.set(doc(finalizedBillCollection), newFinalizedBillPayload); // Use set with a new doc to generate ID
+      });
+
+      // Update local inventory state to reflect stock changes
+      const updatedLocalInventory = inventory.map(invItem => {
+        const billItem = billItems.find(bi => bi.id === invItem.id);
+        if (billItem) {
+          return { ...invItem, stock: Math.max(0, invItem.stock - billItem.quantityInBill) };
+        }
+        return invItem;
+      });
+      setInventory(updatedLocalInventory);
+
+      setBillItems([]); 
+
+      toast({
+        title: "Bill Finalized!",
+        description: "The bill has been processed, inventory updated in Firestore, and sales record saved.",
+      });
+
+    } catch (error: any) {
+      console.error("Error finalizing bill: ", error);
+      toast({
+        title: "Error Finalizing Bill",
+        description: error.message || "Could not process the bill. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingBill(false);
     }
-    const updatedFinalizedBills = [...existingFinalizedBills, newFinalizedBill];
-    localStorage.setItem(FINALIZED_BILLS_STORAGE_KEY, JSON.stringify(updatedFinalizedBills));
-
-    updateInventoryInStorage(updatedInventory);
-    setBillItems([]); 
-
-    toast({
-      title: "Bill Finalized!",
-      description: "The bill has been processed, inventory updated, and sales record saved.",
-    });
-    setIsSubmittingBill(false);
   };
 
   const filteredInventory = useMemo(() => {
@@ -197,12 +232,18 @@ export default function BillingPage() {
           />
         </div>
         <ScrollArea className="flex-grow rounded-md border">
-          {filteredInventory.length > 0 ? (
+          {loadingInventory ? (
+            <div className="space-y-1 p-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : filteredInventory.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Rate (₹)</TableHead> {/* Changed from Price */}
+                  <TableHead className="text-right">Rate (₹)</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-center w-[120px]">Action</TableHead>
                 </TableRow>

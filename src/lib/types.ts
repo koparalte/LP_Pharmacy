@@ -1,21 +1,21 @@
 
 export type InventoryItem = {
-  id: string;
+  id: string; // Firestore document ID
   name: string;
   description: string;
   batchNo?: string;
-  unit?: string; // e.g., strips, bottle, pcs
+  unit?: string; 
   stock: number;
   lowStockThreshold: number;
-  mrp: number; // Renamed from unitPrice
-  rate: number; // New field for actual selling rate
+  mrp: number; 
+  rate: number; 
   expiryDate?: string; // YYYY-MM-DD
-  lastUpdated: string; // ISO DateTime string
+  lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
 
 export type ReportData = {
   totalItems: number;
-  totalValue: number; // Will be calculated using 'rate'
+  totalValue: number; 
   lowStockItemsCount: number;
   itemsExpiringSoon?: number;
 };
@@ -30,15 +30,28 @@ export type CashoutTransaction = {
 };
 
 // BillItem will inherit mrp and rate from InventoryItem
-export type BillItem = InventoryItem & {
+// When saving a finalized bill, BillItem copies these values.
+// The `id` in BillItem refers to the original inventory item's Firestore ID for reference.
+// It will *not* have stock, lowStockThreshold, etc. as those are inventory-specific.
+export type BillItem = {
+  id: string; // Corresponds to the InventoryItem's Firestore document ID
+  name: string;
+  batchNo?: string;
+  unit?: string;
+  mrp: number; // MRP at the time of sale
+  rate: number; // Rate at the time of sale
   quantityInBill: number;
+  description?: string; // Optional: if you want to store a snapshot of item description
+  expiryDate?: string; // Optional: if you want to store a snapshot of expiry
+  // Exclude: stock, lowStockThreshold, lastUpdated from the original InventoryItem type for the BillItem copy
 };
 
+
 export type FinalizedBill = {
-  id: string; // Unique ID for the bill
-  date: string; // ISO DateTime string when the bill was finalized
-  items: BillItem[]; // Array of items in the bill, each will have mrp and rate
-  grandTotal: number; // Total amount of the bill, calculated using 'rate'
+  id: string; // Firestore document ID for this bill
+  date: string; // ISO DateTime string (or Firestore Timestamp) when the bill was finalized
+  items: BillItem[]; 
+  grandTotal: number; 
   customerName: string;
   customerAddress?: string;
 };

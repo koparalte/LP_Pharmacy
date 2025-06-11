@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { FinalizedBill, BillItem } from "@/lib/types"; // BillItem needs to be imported if not already
+import type { FinalizedBill, BillItem } from "@/lib/types"; 
 import {
   Table,
   TableBody,
@@ -28,12 +28,12 @@ import {
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-
-const FINALIZED_BILLS_STORAGE_KEY = 'lpPharmacyFinalizedBills';
+import { db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 interface FinalizedBillsTableProps {
   bills: FinalizedBill[];
-  onBillUpdate: (updatedBills: FinalizedBill[]) => void;
+  onBillUpdate: (updatedBill: FinalizedBill) => void; // Callback to update a single bill in parent state
 }
 
 export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTableProps) {
@@ -54,43 +54,41 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch (e) {
+      return dateString; // Fallback if date is not valid
+    }
   };
 
   const calculateTotalItems = (bill: FinalizedBill) => {
     return bill.items.reduce((sum, item) => sum + item.quantityInBill, 0);
   };
 
-  const handleSaveChanges = () => {
-    if (!selectedBill) return;
+  const handleSaveChanges = async () => {
+    if (!selectedBill || !selectedBill.id) {
+      toast({ title: "Error", description: "No bill selected or bill ID is missing.", variant: "destructive" });
+      return;
+    }
 
-    const updatedBill: FinalizedBill = {
-      ...selectedBill,
+    const billDocRef = doc(db, "finalizedBills", selectedBill.id);
+    const updatedDetails = {
       customerName: editableCustomerName,
       customerAddress: editableCustomerAddress,
     };
 
-    const storedBillsRaw = localStorage.getItem(FINALIZED_BILLS_STORAGE_KEY);
-    let storedBills: FinalizedBill[] = [];
-    if (storedBillsRaw) {
-      try {
-        storedBills = JSON.parse(storedBillsRaw);
-      } catch (e) {
-        console.error("Failed to parse bills from localStorage for update", e);
-        toast({ title: "Error", description: "Could not load bills to save changes.", variant: "destructive" });
-        return;
-      }
-    }
-
-    const billIndex = storedBills.findIndex(b => b.id === selectedBill.id);
-    if (billIndex > -1) {
-      storedBills[billIndex] = updatedBill;
-      localStorage.setItem(FINALIZED_BILLS_STORAGE_KEY, JSON.stringify(storedBills));
-      onBillUpdate(storedBills.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      setSelectedBill(updatedBill); 
-      toast({ title: "Success", description: "Customer details updated." });
-    } else {
-      toast({ title: "Error", description: "Bill not found for update.", variant: "destructive" });
+    try {
+      await updateDoc(billDocRef, updatedDetails);
+      const updatedBill: FinalizedBill = {
+        ...selectedBill,
+        ...updatedDetails,
+      };
+      onBillUpdate(updatedBill); // Update parent state
+      setSelectedBill(updatedBill); // Update local dialog state
+      toast({ title: "Success", description: "Customer details updated in Firestore." });
+    } catch (error) {
+      console.error("Error updating bill in Firestore: ", error);
+      toast({ title: "Error", description: "Could not save changes to the database.", variant: "destructive" });
     }
   };
   
@@ -189,17 +187,17 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   <TableRow>
                     <TableHead>Item Name</TableHead>
                     <TableHead className="text-center">Qty</TableHead>
-                    <TableHead className="text-right">Rate (₹)</TableHead> {/* Was Unit Price */}
+                    <TableHead className="text-right">Rate (₹)</TableHead>
                     <TableHead className="text-right">Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedBill.items.map((item: BillItem) => ( // Explicitly type item as BillItem
-                    <TableRow key={item.id}>
+                  {selectedBill.items.map((item: BillItem, index: number) => ( 
+                    <TableRow key={item.id && item.name ? `${item.id}-${item.name}-${index}` : `bill-item-${index}`}>
                       <TableCell>{item.name}</TableCell>
                       <TableCell className="text-center">{item.quantityInBill}</TableCell>
-                      <TableCell className="text-right">INR ₹{item.rate.toFixed(2)}</TableCell> {/* Use item.rate */}
-                      <TableCell className="text-right">INR ₹{(item.rate * item.quantityInBill).toFixed(2)}</TableCell> {/* Use item.rate */}
+                      <TableCell className="text-right">INR ₹{item.rate.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">INR ₹{(item.rate * item.quantityInBill).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
