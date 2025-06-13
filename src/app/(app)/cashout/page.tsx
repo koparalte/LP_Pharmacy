@@ -86,9 +86,19 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
-        // Ensure all necessary fields, including costPrice, are copied
-        const { lastUpdated, lowStockThreshold, ...itemDetailsForBill } = itemToAdd;
-        return [...prevBillItems, { ...itemDetailsForBill, quantityInBill: 1 } as BillItem];
+        // Explicitly construct BillItem to avoid carrying over unnecessary fields
+        const newBillItem: BillItem = {
+          id: itemToAdd.id,
+          name: itemToAdd.name,
+          batchNo: itemToAdd.batchNo,
+          unit: itemToAdd.unit,
+          costPrice: itemToAdd.costPrice,
+          mrp: itemToAdd.mrp,
+          rate: itemToAdd.rate,
+          expiryDate: itemToAdd.expiryDate,
+          quantityInBill: 1,
+        };
+        return [...prevBillItems, newBillItem];
       }
     });
   };
@@ -100,9 +110,8 @@ export default function BillingPage() {
   const handleUpdateItemQuantity = (itemId: string, newQuantity: number) => {
     setBillItems((prevBillItems) =>
       prevBillItems.map((item) => {
-        // Find the original inventory item to check stock
         const originalInventoryItem = inventory.find(invItem => invItem.id === itemId);
-        const maxStock = originalInventoryItem ? originalInventoryItem.stock : item.stock; // item.stock might be stale if from BillItem
+        const maxStock = originalInventoryItem ? originalInventoryItem.stock : item.quantityInBill; // Fallback to current quantity in bill if original item not found
 
         if (item.id === itemId) {
           if (newQuantity > maxStock) {
@@ -111,9 +120,9 @@ export default function BillingPage() {
               description: `Cannot set quantity for ${item.name} to ${newQuantity}. Available stock: ${maxStock}.`,
               variant: "destructive",
             });
-            return { ...item, quantityInBill: maxStock }; 
+            return { ...item, quantityInBill: maxStock };
           }
-          return { ...item, quantityInBill: Math.max(1, newQuantity) }; 
+          return { ...item, quantityInBill: Math.max(1, newQuantity) };
         }
         return item;
       })
@@ -131,7 +140,7 @@ export default function BillingPage() {
     }
 
     setIsSubmittingBill(true);
-    
+
     try {
       await runTransaction(db, async (transaction) => {
         const inventoryUpdates: { docRef: any, newStock: number }[] = [];
@@ -155,34 +164,30 @@ export default function BillingPage() {
         for (const update of inventoryUpdates) {
           transaction.update(update.docRef, { stock: update.newStock, lastUpdated: new Date().toISOString() });
         }
-        
+
         const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
-        
-        const billItemsForPayload: BillItem[] = billItems.map(bi => {
-            const originalInventoryItem = inventory.find(inv => inv.id === bi.id);
-            if (!originalInventoryItem) {
-                // This case should ideally not happen if UI is consistent with backend
-                throw new Error(`Original inventory item for ${bi.name} not found locally during bill finalization.`);
-            }
-            return {
-              id: bi.id,
-              name: bi.name,
-              batchNo: bi.batchNo,
-              unit: bi.unit,
-              costPrice: originalInventoryItem.costPrice, // Get fresh cost price
-              mrp: bi.mrp,
-              rate: bi.rate,
-              quantityInBill: bi.quantityInBill,
-              expiryDate: bi.expiryDate,
-            };
-          });
+
+        // BillItem already has all the necessary fields (id, name, batchNo, unit, costPrice, mrp, rate, quantityInBill, expiryDate)
+        // as structured when added via handleAddItemToBill and stored in billItems state.
+        const billItemsForPayload: BillItem[] = billItems.map(bi => ({
+          id: bi.id,
+          name: bi.name,
+          batchNo: bi.batchNo,
+          unit: bi.unit,
+          costPrice: bi.costPrice,
+          mrp: bi.mrp,
+          rate: bi.rate,
+          quantityInBill: bi.quantityInBill,
+          expiryDate: bi.expiryDate,
+        }));
+
 
         const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
-          date: new Date().toISOString(), 
+          date: new Date().toISOString(),
           items: billItemsForPayload,
           grandTotal: grandTotal,
-          customerName: "Walk-in Customer", 
-          customerAddress: "N/A", 
+          customerName: "Walk-in Customer",
+          customerAddress: "N/A",
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
         transaction.set(doc(finalizedBillCollection), newFinalizedBillPayload);
@@ -197,7 +202,7 @@ export default function BillingPage() {
       });
       setInventory(updatedLocalInventory);
 
-      setBillItems([]); 
+      setBillItems([]);
 
       toast({
         title: "Bill Finalized!",
@@ -218,7 +223,7 @@ export default function BillingPage() {
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.batchNo && item.batchNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (item.unit && item.unit.toLowerCase().includes(searchTerm.toLowerCase()))
     );
