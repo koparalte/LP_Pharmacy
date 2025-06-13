@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 
 interface InventoryTableProps {
   items: InventoryItem[];
-  onEdit: (item: InventoryItem) => void;
+  onEdit: (item: InventoryItem) => void; // Changed to pass the full item
   onDelete: (itemId: string) => void;
 }
 

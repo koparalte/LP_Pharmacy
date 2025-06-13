@@ -22,7 +22,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import type { InventoryItem } from "@/lib/types";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -34,15 +35,19 @@ const formSchema = z.object({
   rate: z.coerce.number().min(0.01, { message: "Rate must be at least 0.01." }),
   mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
   expiryDate: z.date().optional(),
+  stockAdjustment: z.coerce.number().int().optional(), // For adjusting stock in edit mode
 });
 
-type AddItemFormValues = z.infer<typeof formSchema>;
+export type AddItemFormValues = z.infer<typeof formSchema>;
 
 interface AddItemFormProps {
-  onFormSubmit: (data: AddItemFormValues) => Promise<void>;
+  initialData?: InventoryItem;
+  isEditMode?: boolean;
+  onFormSubmit: (data: AddItemFormValues, originalItem?: InventoryItem) => Promise<void>;
+  isLoading?: boolean;
 }
 
-export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
+export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isLoading = false }: AddItemFormProps) {
   const router = useRouter();
 
   const form = useForm<AddItemFormValues>({
@@ -56,11 +61,23 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
       lowStockThreshold: 10,
       rate: 0,
       mrp: 0,
+      expiryDate: undefined,
+      stockAdjustment: 0,
     },
   });
 
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      form.reset({
+        ...initialData,
+        expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate) : undefined,
+        stockAdjustment: 0, // Reset adjustment field
+      });
+    }
+  }, [form, isEditMode, initialData]);
+
   async function onSubmit(data: AddItemFormValues) {
-    await onFormSubmit(data);
+    await onFormSubmit(data, initialData);
   }
 
   return (
@@ -165,20 +182,36 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
           <FormField
             control={form.control}
             name="stock"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Initial Stock Quantity</FormLabel>
+                <FormLabel>{isEditMode ? "Current Stock" : "Initial Stock Quantity"}</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0" {...field} />
+                  <Input type="number" placeholder="0" {...field} readOnly={isEditMode} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          {isEditMode && (
+             <FormField
+                control={form.control}
+                name="stockAdjustment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adjust Stock By (+/-)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="0" {...field} />
+                    </FormControl>
+                    <FormDescription>Enter positive to add, negative to subtract.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+          )}
           <FormField
             control={form.control}
             name="lowStockThreshold"
@@ -226,9 +259,9 @@ export function AddItemForm({ onFormSubmit }: AddItemFormProps) {
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add Item
+          <Button type="submit" disabled={form.formState.isSubmitting || isLoading}>
+            {(form.formState.isSubmitting || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditMode ? "Update Item" : "Add Item"}
           </Button>
         </div>
       </form>

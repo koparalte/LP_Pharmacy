@@ -12,18 +12,19 @@ import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
 
   const fetchInventoryItems = useCallback(async () => {
     setLoading(true);
     try {
       const inventoryCollection = collection(db, "inventory");
-      // Consider adding orderBy if you want a default sort order, e.g., orderBy("name")
       const q = query(inventoryCollection, orderBy("name")); 
       const querySnapshot = await getDocs(q);
       const inventoryList = querySnapshot.docs.map(doc => ({
@@ -38,7 +39,7 @@ export default function InventoryPage() {
         description: "Could not load inventory data from the database.",
         variant: "destructive",
       });
-      setItems([]); // Set to empty array on error
+      setItems([]); 
     } finally {
       setLoading(false);
     }
@@ -59,13 +60,7 @@ export default function InventoryPage() {
 
 
   const handleEditItem = (itemToEdit: InventoryItem) => {
-    console.log("Editing item:", itemToEdit);
-    // Navigate to an edit page or open a modal
-    // For now, it shows a toast as per previous implementation
-    toast({
-      title: "Edit Item",
-      description: `Editing functionality for "${itemToEdit.name}" is not yet implemented with Firestore.`,
-    });
+    router.push(`/inventory/edit/${itemToEdit.id}`);
   };
 
   const handleDeleteItem = async (itemId: string) => {
@@ -75,7 +70,6 @@ export default function InventoryPage() {
       toast({
         title: "Item Deleted",
         description: "The inventory item has been successfully deleted from Firestore.",
-        variant: "destructive"
       });
     } catch (error) {
       console.error("Error deleting item from Firestore: ", error);
