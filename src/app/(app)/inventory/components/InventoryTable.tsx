@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 
 interface InventoryTableProps {
   items: InventoryItem[];
-  onEdit: (item: InventoryItem) => void; // Changed to pass the full item
+  onEdit: (item: InventoryItem) => void;
   onDelete: (itemId: string) => void;
 }
 
@@ -59,6 +59,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
               <TableHead>Batch No.</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Stock</TableHead>
+              <TableHead className="text-right">Cost Price (₹)</TableHead>
               <TableHead className="text-right">Rate (₹)</TableHead>
               <TableHead className="text-right">MRP (₹)</TableHead>
               <TableHead>Expiry Date</TableHead>
@@ -74,6 +75,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>
                   {item.stock}
                 </TableCell>
+                <TableCell className="text-right">₹{(item.costPrice || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">₹{(item.rate || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">₹{(item.mrp || 0).toFixed(2)}</TableCell>
                 <TableCell>{item.expiryDate ? format(new Date(item.expiryDate), 'PPP') : 'N/A'}</TableCell>

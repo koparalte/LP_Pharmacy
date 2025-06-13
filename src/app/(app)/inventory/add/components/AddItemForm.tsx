@@ -15,7 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea"; // Removed
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,15 +26,21 @@ import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
-  // description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500), // Removed
   batchNo: z.string().max(50).optional(),
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
+  costPrice: z.coerce.number().min(0.01, { message: "Cost price must be at least 0.01."}),
   rate: z.coerce.number().min(0.01, { message: "Rate must be at least 0.01." }),
   mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
   expiryDate: z.date().optional(),
-  stockAdjustment: z.coerce.number().int().optional(), // For adjusting stock in edit mode
+  stockAdjustment: z.coerce.number().int().optional(), 
+}).refine(data => data.mrp >= data.rate, {
+  message: "MRP should be greater than or equal to Rate.",
+  path: ["mrp"],
+}).refine(data => data.rate >= data.costPrice, {
+  message: "Rate should be greater than or equal to Cost Price.",
+  path: ["rate"],
 });
 
 export type AddItemFormValues = z.infer<typeof formSchema>;
@@ -54,11 +59,11 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      // description: "", // Removed
       batchNo: "",
       unit: "",
       stock: 0,
       lowStockThreshold: 10,
+      costPrice: 0,
       rate: 0,
       mrp: 0,
       expiryDate: undefined,
@@ -68,11 +73,10 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
 
   useEffect(() => {
     if (isEditMode && initialData) {
-      const { description, ...restOfInitialData } = initialData; // Destructure to exclude description
       form.reset({
-        ...restOfInitialData,
+        ...initialData,
         expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate) : undefined,
-        stockAdjustment: 0, // Reset adjustment field
+        stockAdjustment: 0, 
       });
     }
   }, [form, isEditMode, initialData]);
@@ -169,21 +173,50 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
             />
         </div>
 
-        {/* Description Field Removed
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Detailed description of the item" {...field} rows={4} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+           <FormField
+            control={form.control}
+            name="costPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cost Price (₹)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormDescription>The purchase price of the item.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rate (₹)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormDescription>Actual selling price.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="mrp"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>MRP (₹)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormDescription>Maximum Retail Price.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
           <FormField
@@ -228,34 +261,6 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="rate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Rate (₹)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormDescription>Actual selling price.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="mrp"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>MRP (₹)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormDescription>Maximum Retail Price.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
         
         <div className="flex justify-end gap-2">
@@ -271,4 +276,3 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     </Form>
   );
 }
-

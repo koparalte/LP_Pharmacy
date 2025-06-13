@@ -79,14 +79,13 @@ export default function EditInventoryItemPage() {
       
       const { stockAdjustment: _, ...updatePayloadBase } = data;
 
-
-      // Explicitly construct payload to ensure description is not included if it was in 'data' accidentally
-      const updatePayload: Omit<Partial<InventoryItem>, 'description'> = {
+      const updatePayload: Partial<InventoryItem> = {
         name: updatePayloadBase.name,
         batchNo: updatePayloadBase.batchNo || undefined,
         unit: updatePayloadBase.unit || undefined,
         stock: newStock,
         lowStockThreshold: updatePayloadBase.lowStockThreshold,
+        costPrice: updatePayloadBase.costPrice,
         rate: updatePayloadBase.rate,
         mrp: updatePayloadBase.mrp,
         expiryDate: updatePayloadBase.expiryDate ? updatePayloadBase.expiryDate.toISOString().split('T')[0] : undefined,
@@ -121,7 +120,6 @@ export default function EditInventoryItemPage() {
           <Skeleton className="h-8 w-1/4" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
-          {/* <Skeleton className="h-20 w-full" /> Description Skeleton Removed */}
           <Skeleton className="h-10 w-full" />
           <div className="flex justify-end gap-2">
             <Skeleton className="h-10 w-24" />
@@ -133,7 +131,6 @@ export default function EditInventoryItemPage() {
   }
 
   if (!itemData) {
-    // Should be handled by useEffect redirect, but as a fallback
     return <p>Item not found or error loading data.</p>;
   }
 

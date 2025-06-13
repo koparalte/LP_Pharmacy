@@ -2,11 +2,11 @@
 export type InventoryItem = {
   id: string; // Firestore document ID
   name: string;
-  // description: string; // Removed
   batchNo?: string;
   unit?: string; 
   stock: number;
   lowStockThreshold: number;
+  costPrice: number; // Cost price of the item
   rate: number; 
   mrp: number; 
   expiryDate?: string; // YYYY-MM-DD
@@ -29,21 +29,16 @@ export type CashoutTransaction = {
   notes?: string;
 };
 
-// BillItem will inherit mrp and rate from InventoryItem
-// When saving a finalized bill, BillItem copies these values.
-// The `id` in BillItem refers to the original inventory item's Firestore ID for reference.
-// It will *not* have stock, lowStockThreshold, etc. as those are inventory-specific.
 export type BillItem = {
   id: string; // Corresponds to the InventoryItem's Firestore document ID
   name: string;
   batchNo?: string;
   unit?: string;
+  costPrice: number; // Cost price at the time of sale
   mrp: number; // MRP at the time of sale
   rate: number; // Rate at the time of sale
   quantityInBill: number;
-  // description?: string; // Removed: Optional: if you want to store a snapshot of item description
   expiryDate?: string; // Optional: if you want to store a snapshot of expiry
-  // Exclude: stock, lowStockThreshold, lastUpdated from the original InventoryItem type for the BillItem copy
 };
 
 
@@ -55,4 +50,3 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
-

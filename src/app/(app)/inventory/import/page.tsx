@@ -13,8 +13,7 @@ import { collection, doc, writeBatch } from "firebase/firestore";
 import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
 import type { InventoryItem } from "@/lib/types";
 
-// Type for the parsed CSV record, preparing for Firestore (ID will be auto-generated)
-type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated' | 'description'>;
+type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated'>;
 
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,19 +49,18 @@ export default function ImportInventoryPage() {
     }
 
     const headerLine = lines[0].toLowerCase();
-    const headers = headerLine.split(',').map(h => h.trim());
+    const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
     
-    // Define expected headers (lowercase for case-insensitive matching)
     const expectedHeaders = {
       name: "name",
-      // description: "description", // Removed
       batchNo: "batchno",
       unit: "unit",
       stock: "stock",
       lowStockThreshold: "lowstockthreshold",
+      costPrice: "costprice",
       rate: "rate",
       mrp: "mrp",
-      expiryDate: "expirydate", // Expected format YYYY-MM-DD
+      expiryDate: "expirydate", 
     };
 
     const headerIndices: { [key: string]: number } = {};
@@ -71,8 +69,7 @@ export default function ImportInventoryPage() {
       headerIndices[key] = index;
     }
 
-    // Check for required headers
-    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "stock", "lowStockThreshold", "rate", "mrp"];
+    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "stock", "lowStockThreshold", "costPrice", "rate", "mrp"];
     for (const field of requiredFields) {
       if (headerIndices[field] === -1) {
         throw new Error(`CSV header must contain '${expectedHeaders[field]}' column (case-insensitive).`);
@@ -83,46 +80,49 @@ export default function ImportInventoryPage() {
       const line = lines[i];
       if (line.trim() === "") continue;
 
-      const values = line.split(',');
+      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
       let validRow = true;
-      const itemData: any = {}; // Use any temporarily, will be cast
+      const itemData: any = {}; 
 
-      const name = values[headerIndices.name]?.trim();
+      const name = values[headerIndices.name];
       if (!name) { validRow = false; console.warn(`Skipping row ${i+1}: Name is required.`); }
       itemData.name = name;
-
-      // itemData.description removed
       
-      itemData.batchNo = headerIndices.batchNo !== -1 ? values[headerIndices.batchNo]?.trim() || undefined : undefined;
-      itemData.unit = headerIndices.unit !== -1 ? values[headerIndices.unit]?.trim() || undefined : undefined;
+      itemData.batchNo = headerIndices.batchNo !== -1 ? values[headerIndices.batchNo] || undefined : undefined;
+      itemData.unit = headerIndices.unit !== -1 ? values[headerIndices.unit] || undefined : undefined;
 
-      const stockStr = values[headerIndices.stock]?.trim();
+      const stockStr = values[headerIndices.stock];
       const stock = parseInt(stockStr, 10);
-      if (isNaN(stock) || stock < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Stock must be a non-negative number. Found: '${stockStr}'`);}
+      if (isNaN(stock) || stock < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Stock must be a non-negative number. Found: '${stockStr}' for item '${name}'`);}
       itemData.stock = stock;
 
-      const lowStockThresholdStr = values[headerIndices.lowStockThreshold]?.trim();
+      const lowStockThresholdStr = values[headerIndices.lowStockThreshold];
       const lowStockThreshold = parseInt(lowStockThresholdStr, 10);
-      if (isNaN(lowStockThreshold) || lowStockThreshold < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Low Stock Threshold must be a non-negative number. Found: '${lowStockThresholdStr}'`);}
+      if (isNaN(lowStockThreshold) || lowStockThreshold < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Low Stock Threshold must be a non-negative number. Found: '${lowStockThresholdStr}' for item '${name}'`);}
       itemData.lowStockThreshold = lowStockThreshold;
       
-      const rateStr = values[headerIndices.rate]?.trim();
+      const costPriceStr = values[headerIndices.costPrice];
+      const costPrice = parseFloat(costPriceStr);
+      if (isNaN(costPrice) || costPrice <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Cost Price must be a positive number. Found: '${costPriceStr}' for item '${name}'`);}
+      itemData.costPrice = costPrice;
+
+      const rateStr = values[headerIndices.rate];
       const rate = parseFloat(rateStr);
-      if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate must be a positive number. Found: '${rateStr}'`);}
+      if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate must be a positive number. Found: '${rateStr}' for item '${name}'`);}
       itemData.rate = rate;
 
-      const mrpStr = values[headerIndices.mrp]?.trim();
+      const mrpStr = values[headerIndices.mrp];
       const mrp = parseFloat(mrpStr);
-      if (isNaN(mrp) || mrp <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: MRP must be a positive number. Found: '${mrpStr}'`);}
+      if (isNaN(mrp) || mrp <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: MRP must be a positive number. Found: '${mrpStr}' for item '${name}'`);}
       itemData.mrp = mrp;
 
       if (headerIndices.expiryDate !== -1) {
-        const expiryDateStr = values[headerIndices.expiryDate]?.trim();
+        const expiryDateStr = values[headerIndices.expiryDate];
         if (expiryDateStr) {
           if (/^\d{4}-\d{2}-\d{2}$/.test(expiryDateStr)) {
             itemData.expiryDate = expiryDateStr;
           } else {
-            console.warn(`Skipping expiry date for row ${i+1}: Invalid format. Expected YYYY-MM-DD. Found: '${expiryDateStr}'`);
+            console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected YYYY-MM-DD. Found: '${expiryDateStr}'`);
             itemData.expiryDate = undefined;
           }
         } else {
@@ -130,6 +130,15 @@ export default function ImportInventoryPage() {
         }
       } else {
         itemData.expiryDate = undefined;
+      }
+
+      if (validRow && itemData.mrp < itemData.rate) {
+        console.warn(`Skipping row ${i+1} (item '${name}'): MRP (${itemData.mrp}) cannot be less than Rate (${itemData.rate}).`);
+        validRow = false;
+      }
+      if (validRow && itemData.rate < itemData.costPrice) {
+         console.warn(`Skipping row ${i+1} (item '${name}'): Rate (${itemData.rate}) cannot be less than Cost Price (${itemData.costPrice}).`);
+         validRow = false;
       }
       
       if (validRow) {
@@ -156,7 +165,7 @@ export default function ImportInventoryPage() {
       try {
         parseResult = parseCSV(csvText);
         if (parseResult.newItems.length === 0 && parseResult.skippedRows > 0) {
-           toast({ title: "No Valid Data", description: `All ${parseResult.skippedRows} data rows were invalid or skipped. Please check CSV format and data.`, variant: "destructive" });
+           toast({ title: "No Valid Data", description: `All ${parseResult.skippedRows} data rows were invalid or skipped. Please check CSV format and data. See console for details.`, variant: "destructive" });
            setIsProcessing(false);
            return;
         }
@@ -180,7 +189,7 @@ export default function ImportInventoryPage() {
         const chunk = parseResult.newItems.slice(i, i + batchLimit);
 
         chunk.forEach(newItemPayload => {
-          const newDocRef = doc(inventoryCollectionRef); // Firestore auto-generates ID
+          const newDocRef = doc(inventoryCollectionRef); 
           batch.set(newDocRef, {
             ...newItemPayload,
             lastUpdated: new Date().toISOString(),
@@ -192,7 +201,6 @@ export default function ImportInventoryPage() {
           itemsAddedSuccessfully += chunk.length;
         } catch (batchError: any) {
           console.error("Error committing batch: ", batchError);
-          // Assuming all in a failed batch failed to add for this simplified feedback
           toast({
             title: "Batch Add Error",
             description: `A batch of ${chunk.length} items failed to be added. Check console for details. Error: ${batchError.message}`,
@@ -211,7 +219,7 @@ export default function ImportInventoryPage() {
         feedbackMessage += `${itemsAddedSuccessfully} new item(s) added successfully. `;
       }
       if (parseResult.skippedRows > 0) {
-        feedbackMessage += `${parseResult.skippedRows} row(s) were skipped due to invalid data.`;
+        feedbackMessage += `${parseResult.skippedRows} row(s) were skipped due to invalid data (check console for details).`;
       }
 
       if (itemsAddedSuccessfully === 0 && parseResult.skippedRows > 0) {
@@ -226,15 +234,12 @@ export default function ImportInventoryPage() {
           description: feedbackMessage || "Items processed.",
         });
       } else if (parseResult.newItems.length > 0 && itemsAddedSuccessfully === 0 && parseResult.skippedRows === 0) {
-         // Should not happen if parsing was successful and items were present, but as a fallback
          toast({
           title: "Import Failed",
           description: "No items were added. An unexpected error occurred.",
           variant: "destructive",
         });
       }
-      
-      // router.push("/inventory"); // Optionally navigate
     };
 
     reader.onerror = () => {
@@ -259,18 +264,19 @@ export default function ImportInventoryPage() {
           <CardTitle>Upload CSV File to Add New Items</CardTitle>
           <CardDescription>
             Upload a CSV file to add new items to your inventory. Firestore will auto-generate IDs.
-            The CSV file must contain a header row with the following columns (case-insensitive):
+            The CSV file must contain a header row with the following columns (case-insensitive, quotes in headers/values will be removed):
             <ul className="list-disc list-inside mt-2 text-xs">
               <li><code className="font-semibold">name</code> (Required, Text)</li>
-              {/* <li><code className="font-semibold">description</code> (Required, Text)</li> Removed */}
               <li><code className="font-semibold">batchNo</code> (Optional, Text)</li>
               <li><code className="font-semibold">unit</code> (Optional, Text - e.g., strips, bottle)</li>
               <li><code className="font-semibold">stock</code> (Required, Number - initial stock quantity)</li>
               <li><code className="font-semibold">lowStockThreshold</code> (Required, Number)</li>
+              <li><code className="font-semibold">costPrice</code> (Required, Number - purchase price)</li>
               <li><code className="font-semibold">rate</code> (Required, Number - selling price)</li>
               <li><code className="font-semibold">mrp</code> (Required, Number - Maximum Retail Price)</li>
               <li><code className="font-semibold">expiryDate</code> (Optional, Text - format YYYY-MM-DD)</li>
             </ul>
+             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Rate, or Rate is less than Cost Price will be skipped.</p>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -288,9 +294,9 @@ export default function ImportInventoryPage() {
               Example CSV format (ensure headers are exactly as listed above, case-insensitive):
             </p>
             <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
-name,batchNo,unit,stock,lowStockThreshold,rate,mrp,expiryDate<br/>
-Amoxicillin 250mg,BATCH001,strips,100,20,50.00,55.00,2025-12-31<br/>
-Paracetamol 500mg,,pcs,200,50,25.50,30.00,
+name,batchNo,unit,stock,lowStockThreshold,costPrice,rate,mrp,expiryDate<br/>
+Amoxicillin 250mg,BATCH001,strips,100,20,40.00,50.00,55.00,2025-12-31<br/>
+Paracetamol 500mg,,pcs,200,50,20.00,25.50,30.00,
             </pre>
           </div>
         </CardContent>
@@ -313,4 +319,3 @@ Paracetamol 500mg,,pcs,200,50,25.50,30.00,
     </div>
   );
 }
-    

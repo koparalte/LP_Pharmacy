@@ -33,7 +33,6 @@ export default function BillingPage() {
     setLoadingInventory(true);
     try {
       const inventoryCollection = collection(db, "inventory");
-      // Optional: orderBy("name")
       const q = query(inventoryCollection, orderBy("name"));
       const querySnapshot = await getDocs(q);
       const inventoryList = querySnapshot.docs.map(doc => ({
@@ -87,9 +86,9 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
-        // Exclude description when adding to bill
-        const { description, ...itemDetails } = itemToAdd;
-        return [...prevBillItems, { ...itemDetails, quantityInBill: 1 }];
+        // Ensure all necessary fields, including costPrice, are copied
+        const { lastUpdated, lowStockThreshold, ...itemDetailsForBill } = itemToAdd;
+        return [...prevBillItems, { ...itemDetailsForBill, quantityInBill: 1 } as BillItem];
       }
     });
   };
@@ -101,14 +100,18 @@ export default function BillingPage() {
   const handleUpdateItemQuantity = (itemId: string, newQuantity: number) => {
     setBillItems((prevBillItems) =>
       prevBillItems.map((item) => {
+        // Find the original inventory item to check stock
+        const originalInventoryItem = inventory.find(invItem => invItem.id === itemId);
+        const maxStock = originalInventoryItem ? originalInventoryItem.stock : item.stock; // item.stock might be stale if from BillItem
+
         if (item.id === itemId) {
-          if (newQuantity > item.stock) {
+          if (newQuantity > maxStock) {
             toast({
               title: "Stock Limit Exceeded",
-              description: `Cannot set quantity for ${item.name} to ${newQuantity}. Available stock: ${item.stock}.`,
+              description: `Cannot set quantity for ${item.name} to ${newQuantity}. Available stock: ${maxStock}.`,
               variant: "destructive",
             });
-            return { ...item, quantityInBill: item.stock }; 
+            return { ...item, quantityInBill: maxStock }; 
           }
           return { ...item, quantityInBill: Math.max(1, newQuantity) }; 
         }
@@ -130,11 +133,9 @@ export default function BillingPage() {
     setIsSubmittingBill(true);
     
     try {
-      // Use a Firestore transaction to update stock and save the bill
       await runTransaction(db, async (transaction) => {
         const inventoryUpdates: { docRef: any, newStock: number }[] = [];
 
-        // Prepare inventory updates
         for (const bItem of billItems) {
           const itemDocRef = doc(db, "inventory", bItem.id);
           const itemDoc = await transaction.get(itemDocRef);
@@ -142,49 +143,51 @@ export default function BillingPage() {
           if (!itemDoc.exists()) {
             throw new Error(`Item ${bItem.name} (ID: ${bItem.id}) not found in inventory.`);
           }
+          const inventoryItemData = itemDoc.data() as InventoryItem;
 
-          const currentStock = itemDoc.data().stock;
-          if (bItem.quantityInBill > currentStock) {
-            throw new Error(`Not enough stock for ${bItem.name}. Available: ${currentStock}, Requested: ${bItem.quantityInBill}.`);
+          if (bItem.quantityInBill > inventoryItemData.stock) {
+            throw new Error(`Not enough stock for ${bItem.name}. Available: ${inventoryItemData.stock}, Requested: ${bItem.quantityInBill}.`);
           }
-          const newStock = currentStock - bItem.quantityInBill;
+          const newStock = inventoryItemData.stock - bItem.quantityInBill;
           inventoryUpdates.push({ docRef: itemDocRef, newStock });
         }
 
-        // Apply inventory updates
         for (const update of inventoryUpdates) {
           transaction.update(update.docRef, { stock: update.newStock, lastUpdated: new Date().toISOString() });
         }
         
-        // Create and save the finalized bill
         const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
-        const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
-          date: new Date().toISOString(), // Or serverTimestamp()
-          items: billItems.map(bi => {
-            // Ensure only necessary fields are saved, and description is excluded
-            const { description, stock, lowStockThreshold, lastUpdated, ...billItemData } = bi;
+        
+        const billItemsForPayload: BillItem[] = billItems.map(bi => {
+            const originalInventoryItem = inventory.find(inv => inv.id === bi.id);
+            if (!originalInventoryItem) {
+                // This case should ideally not happen if UI is consistent with backend
+                throw new Error(`Original inventory item for ${bi.name} not found locally during bill finalization.`);
+            }
             return {
-              ...billItemData,
-              // Explicitly list fields to ensure correct typing and exclusion
               id: bi.id,
               name: bi.name,
               batchNo: bi.batchNo,
               unit: bi.unit,
+              costPrice: originalInventoryItem.costPrice, // Get fresh cost price
               mrp: bi.mrp,
               rate: bi.rate,
               quantityInBill: bi.quantityInBill,
               expiryDate: bi.expiryDate,
             };
-          }),
+          });
+
+        const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
+          date: new Date().toISOString(), 
+          items: billItemsForPayload,
           grandTotal: grandTotal,
           customerName: "Walk-in Customer", 
           customerAddress: "N/A", 
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
-        transaction.set(doc(finalizedBillCollection), newFinalizedBillPayload); // Use set with a new doc to generate ID
+        transaction.set(doc(finalizedBillCollection), newFinalizedBillPayload);
       });
 
-      // Update local inventory state to reflect stock changes
       const updatedLocalInventory = inventory.map(invItem => {
         const billItem = billItems.find(bi => bi.id === invItem.id);
         if (billItem) {
@@ -198,7 +201,7 @@ export default function BillingPage() {
 
       toast({
         title: "Bill Finalized!",
-        description: "The bill has been processed, inventory updated in Firestore, and sales record saved.",
+        description: "The bill has been processed, inventory updated, and sales record saved.",
       });
 
     } catch (error: any) {

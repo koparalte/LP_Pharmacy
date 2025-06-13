@@ -14,15 +14,16 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, BarChart3, Settings, HelpCircle, Receipt, LineChart } from "lucide-react";
+import { LayoutDashboard, Boxes, BarChart3, Settings, HelpCircle, Receipt, LineChart, CalendarStats } from "lucide-react";
 import type { ReactNode } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/cashout", label: "Billing", icon: Receipt },
   { href: "/sales-report", label: "Sales Report", icon: LineChart },
+  { href: "/sales-analytics", label: "Sales Analytics", icon: CalendarStats },
+  { href: "/reports", label: "Old Reports", icon: BarChart3 },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -39,7 +40,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <Link href={item.href} passHref legacyBehavior={false}>
                   <SidebarMenuButton
                     tooltip={item.label}
-                    // isActive={pathname === item.href} // Add this if you implement active state based on pathname
                   >
                     <item.icon />
                     <span>{item.label}</span>
@@ -74,7 +74,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 no-print">
           <SidebarTrigger className="md:hidden" />
           <div className="flex items-center gap-4">
-            {/* Can add breadcrumbs or page title here */}
           </div>
           <UserNav />
         </header>

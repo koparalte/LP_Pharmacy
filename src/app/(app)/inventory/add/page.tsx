@@ -16,17 +16,15 @@ export default function AddInventoryItemPage() {
 
   const handleFormSubmit = async (data: AddItemFormValues) => {
     setIsSubmitting(true);
-    console.log("New item data for Firestore:", data);
 
     try {
-      // For adding, stockAdjustment is not used. data.stock is the initial stock.
       const newItemPayload: Omit<InventoryItem, 'id'> = {
         name: data.name,
-        // description: data.description, // Removed
         batchNo: data.batchNo || undefined,
         unit: data.unit || undefined,
-        stock: data.stock, // This is the initial stock from the form
+        stock: data.stock,
         lowStockThreshold: data.lowStockThreshold,
+        costPrice: data.costPrice,
         rate: data.rate,
         mrp: data.mrp,
         expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
