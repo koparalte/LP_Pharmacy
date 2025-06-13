@@ -50,3 +50,14 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
+
+export type InventoryMovement = {
+  id: string; // Firestore document ID
+  itemId: string;
+  itemName: string; // Denormalized for easier display
+  type: 'in' | 'out';
+  quantity: number;
+  movementDate: string; // YYYY-MM-DD format (from calendar picker)
+  reason?: string;
+  recordedAt: string; // ISO DateTime string of when the record was made
+};
