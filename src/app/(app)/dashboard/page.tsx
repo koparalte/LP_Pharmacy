@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [reportData, setReportData] = useState<ReportData>({
     totalUniqueItems: 0,
-    totalValue: 0,
+    totalValue: 0, // This will be total cost value
     lowStockItemsCount: 0,
     itemsInStockCount: 0,
     itemsOutOfStockCount: 0,
@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
       const newReportData: ReportData = {
         totalUniqueItems: itemsToUse.length,
-        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0),
+        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0), // item.rate is now cost price
         lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
         itemsInStockCount: itemsToUse.filter(item => item.stock > 0).length,
         itemsOutOfStockCount: itemsToUse.filter(item => item.stock === 0).length,
@@ -127,3 +127,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

@@ -24,8 +24,8 @@ export default function AddInventoryItemPage() {
         unit: data.unit || undefined,
         stock: data.stock,
         lowStockThreshold: data.lowStockThreshold,
-        costPrice: data.costPrice,
-        rate: data.rate,
+        rate: data.rate, // This is now cost price
+        sellingPrice: data.sellingPrice, // This is the new selling price
         mrp: data.mrp,
         expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
         lastUpdated: new Date().toISOString(),
@@ -63,3 +63,4 @@ export default function AddInventoryItemPage() {
     </div>
   );
 }
+

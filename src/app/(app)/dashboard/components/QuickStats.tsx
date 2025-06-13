@@ -12,7 +12,7 @@ export function QuickStats({ data }: QuickStatsProps) {
     { title: "Total Unique Items", value: data.totalUniqueItems, icon: Package, color: "text-primary" },
     { title: "Items In Stock", value: data.itemsInStockCount, icon: PackageCheck, color: "text-green-600" },
     { title: "Items Out of Stock", value: data.itemsOutOfStockCount, icon: PackageX, color: "text-red-500" },
-    { title: "Total Inventory Value (at Rate)", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
+    { title: "Total Inventory Value (at Cost)", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" }, // Changed label
     { title: "Low Stock Alerts", value: data.lowStockItemsCount, icon: AlertTriangle, color: "text-destructive" },
   ];
 
@@ -32,3 +32,4 @@ export function QuickStats({ data }: QuickStatsProps) {
     </div>
   );
 }
+

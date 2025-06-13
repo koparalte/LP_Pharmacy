@@ -30,17 +30,17 @@ const formSchema = z.object({
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
-  costPrice: z.coerce.number().min(0.01, { message: "Cost price must be at least 0.01."}),
-  rate: z.coerce.number().min(0.01, { message: "Rate must be at least 0.01." }),
+  rate: z.coerce.number().min(0.01, { message: "Rate (Cost Price) must be at least 0.01."}), // Renamed from costPrice
+  sellingPrice: z.coerce.number().min(0.01, { message: "Selling Price must be at least 0.01." }), // New field, was rate
   mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
   expiryDate: z.date().optional(),
   stockAdjustment: z.coerce.number().int().optional(), 
-}).refine(data => data.mrp >= data.rate, {
-  message: "MRP should be greater than or equal to Rate.",
+}).refine(data => data.mrp >= data.sellingPrice, {
+  message: "MRP should be greater than or equal to Selling Price.",
   path: ["mrp"],
-}).refine(data => data.rate >= data.costPrice, {
-  message: "Rate should be greater than or equal to Cost Price.",
-  path: ["rate"],
+}).refine(data => data.sellingPrice >= data.rate, { // sellingPrice >= rate (cost price)
+  message: "Selling Price should be greater than or equal to Rate (Cost Price).",
+  path: ["sellingPrice"],
 });
 
 export type AddItemFormValues = z.infer<typeof formSchema>;
@@ -63,8 +63,8 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
       unit: "",
       stock: 0,
       lowStockThreshold: 10,
-      costPrice: 0,
-      rate: 0,
+      rate: 0, // This is now cost price
+      sellingPrice: 0, // This is the new selling price
       mrp: 0,
       expiryDate: undefined,
       stockAdjustment: 0,
@@ -75,6 +75,10 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     if (isEditMode && initialData) {
       form.reset({
         ...initialData,
+        // rate is already costPrice in initialData if it's new model, or it's the old rate.
+        // sellingPrice might not exist if it's old data.
+        sellingPrice: initialData.sellingPrice || initialData.rate, // Fallback for old data where rate was sellingPrice
+        rate: initialData.rate, // This should be cost price if new model, or old rate if old model
         expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate) : undefined,
         stockAdjustment: 0, 
       });
@@ -176,10 +180,10 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
            <FormField
             control={form.control}
-            name="costPrice"
+            name="rate" 
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cost Price (₹)</FormLabel>
+                <FormLabel>Rate (Cost Price) (₹)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
@@ -190,10 +194,10 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
           />
           <FormField
             control={form.control}
-            name="rate"
+            name="sellingPrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Rate (₹)</FormLabel>
+                <FormLabel>Selling Price (₹)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
@@ -276,3 +280,4 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     </Form>
   );
 }
+

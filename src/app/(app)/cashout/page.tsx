@@ -91,9 +91,9 @@ export default function BillingPage() {
           name: itemToAdd.name,
           batchNo: itemToAdd.batchNo,
           unit: itemToAdd.unit,
-          costPrice: itemToAdd.costPrice,
+          rate: itemToAdd.rate, // This is cost price
+          sellingPrice: itemToAdd.sellingPrice, // This is selling price
           mrp: itemToAdd.mrp,
-          rate: itemToAdd.rate,
           expiryDate: itemToAdd.expiryDate,
           quantityInBill: 1,
         };
@@ -164,21 +164,20 @@ export default function BillingPage() {
           transaction.update(update.docRef, { stock: update.newStock, lastUpdated: new Date().toISOString() });
         }
 
-        const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
+        const grandTotal = billItems.reduce((total, item) => total + (item.sellingPrice * item.quantityInBill), 0); // Use sellingPrice for grandTotal
 
         const billItemsForPayload: BillItem[] = billItems.map(bi => ({
           id: bi.id,
           name: bi.name,
           batchNo: bi.batchNo,
           unit: bi.unit,
-          costPrice: bi.costPrice,
+          rate: bi.rate, // cost price
+          sellingPrice: bi.sellingPrice, // selling price
           mrp: bi.mrp,
-          rate: bi.rate,
           quantityInBill: bi.quantityInBill,
           expiryDate: bi.expiryDate,
         }));
         
-        // Generate a shorter, custom Bill ID
         const customBillId = `LP${new Date().getTime().toString().slice(-7)}`;
 
         const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
@@ -189,7 +188,6 @@ export default function BillingPage() {
           customerAddress: "N/A",
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
-        // Use the customBillId when creating the document for the finalized bill
         transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
       });
 
@@ -254,7 +252,7 @@ export default function BillingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Rate (₹)</TableHead>
+                  <TableHead className="text-right">Selling Price (₹)</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-center w-[120px]">Action</TableHead>
                 </TableRow>
@@ -301,3 +299,4 @@ export default function BillingPage() {
     </div>
   );
 }
+

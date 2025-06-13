@@ -24,9 +24,12 @@ export function InventoryBillingTableRow({ item, onAddItemToBill, isOutOfStock, 
 
   return (
     <TableRow key={item.id} className={item.stock === 0 ? "opacity-50" : item.stock <= item.lowStockThreshold && item.stock > 0 ? "bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50" : ""}>
-      <TableCell className="font-medium py-2">{item.name}</TableCell><TableCell className="text-right py-2">INR ₹{item.rate.toFixed(2)}</TableCell><TableCell className={`text-right py-2 ${item.stock <= item.lowStockThreshold && item.stock > 0 ? 'text-orange-600 font-semibold' : item.stock === 0 ? 'text-destructive font-semibold' : ''}`}>
+      <TableCell className="font-medium py-2">{item.name}</TableCell>
+      <TableCell className="text-right py-2">INR ₹{item.sellingPrice.toFixed(2)}</TableCell>
+      <TableCell className={`text-right py-2 ${item.stock <= item.lowStockThreshold && item.stock > 0 ? 'text-orange-600 font-semibold' : item.stock === 0 ? 'text-destructive font-semibold' : ''}`}>
         {item.stock}
-      </TableCell><TableCell className="text-center py-2">
+      </TableCell>
+      <TableCell className="text-center py-2">
         <Button
           onClick={() => onAddItemToBill(item)}
           size="sm"
@@ -41,3 +44,4 @@ export function InventoryBillingTableRow({ item, onAddItemToBill, isOutOfStock, 
     </TableRow>
   );
 }
+

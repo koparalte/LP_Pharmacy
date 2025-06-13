@@ -6,19 +6,19 @@ export type InventoryItem = {
   unit?: string;
   stock: number;
   lowStockThreshold: number;
-  costPrice: number; // Cost price of the item
-  rate: number;
+  rate: number; // Cost price of the item
+  sellingPrice: number; // Actual selling price
   mrp: number;
   expiryDate?: string; // YYYY-MM-DD
   lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
 
 export type ReportData = {
-  totalUniqueItems: number; // Renamed from totalItems
-  totalValue: number;
+  totalUniqueItems: number;
+  totalValue: number; // This will now be based on cost price (rate)
   lowStockItemsCount: number;
-  itemsInStockCount: number; // New
-  itemsOutOfStockCount: number; // New
+  itemsInStockCount: number;
+  itemsOutOfStockCount: number;
   itemsExpiringSoon?: number;
 };
 
@@ -36,9 +36,9 @@ export type BillItem = {
   name: string;
   batchNo?: string;
   unit?: string;
-  costPrice: number; // Cost price at the time of sale
+  rate: number; // Cost price at the time of sale
+  sellingPrice: number; // Selling price at the time of sale
   mrp: number; // MRP at the time of sale
-  rate: number; // Rate at the time of sale
   quantityInBill: number;
   expiryDate?: string; // Optional: if you want to store a snapshot of expiry
 };
@@ -52,3 +52,4 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
+

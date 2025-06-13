@@ -18,7 +18,7 @@ interface BillingReceiptProps {
 }
 
 export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFinalizeBill, isSubmitting }: BillingReceiptProps) {
-  const calculateSubtotal = (item: BillItem) => item.rate * item.quantityInBill; // Use rate for subtotal
+  const calculateSubtotal = (item: BillItem) => item.sellingPrice * item.quantityInBill; // Use sellingPrice for subtotal
   const grandTotal = billItems.reduce((total, item) => total + calculateSubtotal(item), 0);
 
   const handleQuantityChange = (itemId: string, currentQuantity: number, change: number) => {
@@ -28,10 +28,10 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
   
   const handleDirectQuantityInput = (itemId: string, value: string) => {
     const newQuantity = parseInt(value, 10);
+    // Assuming item.stock is not directly available here, validation against stock is done in parent
     if (!isNaN(newQuantity) && newQuantity >= 1) {
       onUpdateQuantity(itemId, newQuantity);
     } else if (value === "") {
-      // If input is cleared, default to 1 or handle as per business logic
       onUpdateQuantity(itemId, 1);
     }
   };
@@ -64,11 +64,19 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
         <ScrollArea className="h-[calc(100vh-380px)] pr-3">
           <Table>
             <TableHeader>
-              <TableRow><TableHead className="w-[40%]">Item</TableHead><TableHead className="text-center">Qty</TableHead><TableHead className="text-right">Rate</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-center">Action</TableHead></TableRow>
+              <TableRow>
+                <TableHead className="w-[40%]">Item</TableHead>
+                <TableHead className="text-center">Qty</TableHead>
+                <TableHead className="text-right">Price (₹)</TableHead>
+                <TableHead className="text-right">Total (₹)</TableHead>
+                <TableHead className="text-center">Action</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
               {billItems.map((item) => (
-                <TableRow key={item.id}><TableCell className="font-medium text-sm py-2">{item.name}</TableCell><TableCell className="text-center py-2">
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium text-sm py-2">{item.name}</TableCell>
+                  <TableCell className="text-center py-2">
                     <div className="flex items-center justify-center space-x-1">
                       <Button
                         variant="outline"
@@ -85,23 +93,27 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
                         onChange={(e) => handleDirectQuantityInput(item.id, e.target.value)}
                         className="h-7 w-12 text-center px-1"
                         min="1"
-                        max={item.stock} // Assuming item.stock is the original stock from inventory item
+                        // max={item.stock} // Stock check handled in parent `handleUpdateItemQuantity`
                       />
                       <Button
                         variant="outline"
                         size="icon"
                         className="h-6 w-6"
                         onClick={() => handleQuantityChange(item.id, item.quantityInBill, 1)}
-                        disabled={item.quantityInBill >= item.stock} // Assuming item.stock
+                        // disabled={item.quantityInBill >= item.stock} // Stock check handled in parent
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
-                  </TableCell><TableCell className="text-right py-2">INR ₹{item.rate.toFixed(2)}</TableCell><TableCell className="text-right py-2">INR ₹{calculateSubtotal(item).toFixed(2)}</TableCell><TableCell className="text-center py-2">
+                  </TableCell>
+                  <TableCell className="text-right py-2">INR ₹{item.sellingPrice.toFixed(2)}</TableCell>
+                  <TableCell className="text-right py-2">INR ₹{calculateSubtotal(item).toFixed(2)}</TableCell>
+                  <TableCell className="text-center py-2">
                     <Button variant="ghost" size="icon" onClick={() => onRemoveItem(item.id)} className="text-destructive hover:text-destructive/80 h-7 w-7">
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </TableCell></TableRow>
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
@@ -119,3 +131,4 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
     </Card>
   );
 }
+

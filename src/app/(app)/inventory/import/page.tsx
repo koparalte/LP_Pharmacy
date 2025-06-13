@@ -51,14 +51,15 @@ export default function ImportInventoryPage() {
     const headerLine = lines[0].toLowerCase();
     const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
     
+    // Updated headers: rate is cost price, sellingprice is the new selling price
     const expectedHeaders = {
       name: "name",
       batchNo: "batchno",
       unit: "unit",
       stock: "stock",
       lowStockThreshold: "lowstockthreshold",
-      costPrice: "costprice",
-      rate: "rate",
+      rate: "rate", // This will map to inventoryItem.rate (cost price)
+      sellingPrice: "sellingprice", // This will map to inventoryItem.sellingPrice
       mrp: "mrp",
       expiryDate: "expirydate", 
     };
@@ -69,7 +70,7 @@ export default function ImportInventoryPage() {
       headerIndices[key] = index;
     }
 
-    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "stock", "lowStockThreshold", "costPrice", "rate", "mrp"];
+    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "stock", "lowStockThreshold", "rate", "sellingPrice", "mrp"];
     for (const field of requiredFields) {
       if (headerIndices[field] === -1) {
         throw new Error(`CSV header must contain '${expectedHeaders[field]}' column (case-insensitive).`);
@@ -101,15 +102,15 @@ export default function ImportInventoryPage() {
       if (isNaN(lowStockThreshold) || lowStockThreshold < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Low Stock Threshold must be a non-negative number. Found: '${lowStockThresholdStr}' for item '${name}'`);}
       itemData.lowStockThreshold = lowStockThreshold;
       
-      const costPriceStr = values[headerIndices.costPrice];
-      const costPrice = parseFloat(costPriceStr);
-      if (isNaN(costPrice) || costPrice <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Cost Price must be a positive number. Found: '${costPriceStr}' for item '${name}'`);}
-      itemData.costPrice = costPrice;
-
-      const rateStr = values[headerIndices.rate];
+      const rateStr = values[headerIndices.rate]; // This is cost price from CSV
       const rate = parseFloat(rateStr);
-      if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate must be a positive number. Found: '${rateStr}' for item '${name}'`);}
+      if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate (Cost Price) must be a positive number. Found: '${rateStr}' for item '${name}'`);}
       itemData.rate = rate;
+
+      const sellingPriceStr = values[headerIndices.sellingPrice]; // This is selling price from CSV
+      const sellingPrice = parseFloat(sellingPriceStr);
+      if (isNaN(sellingPrice) || sellingPrice <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Selling Price must be a positive number. Found: '${sellingPriceStr}' for item '${name}'`);}
+      itemData.sellingPrice = sellingPrice;
 
       const mrpStr = values[headerIndices.mrp];
       const mrp = parseFloat(mrpStr);
@@ -132,12 +133,12 @@ export default function ImportInventoryPage() {
         itemData.expiryDate = undefined;
       }
 
-      if (validRow && itemData.mrp < itemData.rate) {
-        console.warn(`Skipping row ${i+1} (item '${name}'): MRP (${itemData.mrp}) cannot be less than Rate (${itemData.rate}).`);
+      if (validRow && itemData.mrp < itemData.sellingPrice) {
+        console.warn(`Skipping row ${i+1} (item '${name}'): MRP (${itemData.mrp}) cannot be less than Selling Price (${itemData.sellingPrice}).`);
         validRow = false;
       }
-      if (validRow && itemData.rate < itemData.costPrice) {
-         console.warn(`Skipping row ${i+1} (item '${name}'): Rate (${itemData.rate}) cannot be less than Cost Price (${itemData.costPrice}).`);
+      if (validRow && itemData.sellingPrice < itemData.rate) { // sellingPrice < rate (cost price)
+         console.warn(`Skipping row ${i+1} (item '${name}'): Selling Price (${itemData.sellingPrice}) cannot be less than Rate (Cost Price) (${itemData.rate}).`);
          validRow = false;
       }
       
@@ -191,7 +192,7 @@ export default function ImportInventoryPage() {
         chunk.forEach(newItemPayload => {
           const newDocRef = doc(inventoryCollectionRef); 
           batch.set(newDocRef, {
-            ...newItemPayload,
+            ...newItemPayload, // contains rate (cost) and sellingPrice
             lastUpdated: new Date().toISOString(),
           });
         });
@@ -271,12 +272,12 @@ export default function ImportInventoryPage() {
               <li><code className="font-semibold">unit</code> (Optional, Text - e.g., strips, bottle)</li>
               <li><code className="font-semibold">stock</code> (Required, Number - initial stock quantity)</li>
               <li><code className="font-semibold">lowStockThreshold</code> (Required, Number)</li>
-              <li><code className="font-semibold">costPrice</code> (Required, Number - purchase price)</li>
-              <li><code className="font-semibold">rate</code> (Required, Number - selling price)</li>
+              <li><code className="font-semibold">rate</code> (Required, Number - cost price of the item)</li>
+              <li><code className="font-semibold">sellingPrice</code> (Required, Number - actual selling price)</li>
               <li><code className="font-semibold">mrp</code> (Required, Number - Maximum Retail Price)</li>
               <li><code className="font-semibold">expiryDate</code> (Optional, Text - format YYYY-MM-DD)</li>
             </ul>
-             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Rate, or Rate is less than Cost Price will be skipped.</p>
+             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Selling Price, or Selling Price is less than Rate (Cost Price) will be skipped.</p>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -294,9 +295,9 @@ export default function ImportInventoryPage() {
               Example CSV format (ensure headers are exactly as listed above, case-insensitive):
             </p>
             <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
-name,batchNo,unit,stock,lowStockThreshold,costPrice,rate,mrp,expiryDate<br/>
-Amoxicillin 250mg,BATCH001,strips,100,20,40.00,50.00,55.00,2025-12-31<br/>
-Paracetamol 500mg,,pcs,200,50,20.00,25.50,30.00,
+name,batchNo,unit,stock,lowStockThreshold,rate,sellingPrice,mrp,expiryDate<br/>
+Amoxicillin 250mg,BATCH001,strips,100,20,35.00,50.00,55.00,2025-12-31<br/>
+Paracetamol 500mg,,pcs,200,50,18.00,25.50,30.00,
             </pre>
           </div>
         </CardContent>
@@ -319,3 +320,4 @@ Paracetamol 500mg,,pcs,200,50,20.00,25.50,30.00,
     </div>
   );
 }
+

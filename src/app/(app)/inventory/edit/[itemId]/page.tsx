@@ -31,7 +31,17 @@ export default function EditInventoryItemPage() {
           const itemDocSnap = await getDoc(itemDocRef);
 
           if (itemDocSnap.exists()) {
-            setItemData({ id: itemDocSnap.id, ...itemDocSnap.data() } as InventoryItem);
+            const fetchedData = itemDocSnap.data() as Omit<InventoryItem, 'id'>;
+             // Handle potential legacy data where sellingPrice might not exist
+            const sellingPrice = fetchedData.sellingPrice !== undefined ? fetchedData.sellingPrice : (fetchedData as any).rate;
+
+            setItemData({ 
+              id: itemDocSnap.id, 
+              ...fetchedData,
+              sellingPrice: sellingPrice, // Ensure sellingPrice is set
+              rate: fetchedData.rate // This is now cost price
+            } as InventoryItem);
+
           } else {
             toast({
               title: "Error",
@@ -85,8 +95,8 @@ export default function EditInventoryItemPage() {
         unit: updatePayloadBase.unit || undefined,
         stock: newStock,
         lowStockThreshold: updatePayloadBase.lowStockThreshold,
-        costPrice: updatePayloadBase.costPrice,
-        rate: updatePayloadBase.rate,
+        rate: updatePayloadBase.rate, // This is now cost price
+        sellingPrice: updatePayloadBase.sellingPrice, // This is the new selling price
         mrp: updatePayloadBase.mrp,
         expiryDate: updatePayloadBase.expiryDate ? updatePayloadBase.expiryDate.toISOString().split('T')[0] : undefined,
         lastUpdated: new Date().toISOString(),
@@ -153,3 +163,4 @@ export default function EditInventoryItemPage() {
     </div>
   );
 }
+

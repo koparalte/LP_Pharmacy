@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData & { itemsExpiringSoon?: number }>({
-    totalItems: 0, totalValue: 0, lowStockItemsCount: 0, itemsExpiringSoon: 0
+    totalUniqueItems: 0, totalValue: 0, lowStockItemsCount: 0, itemsExpiringSoon: 0, itemsInStockCount: 0, itemsOutOfStockCount: 0
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -31,9 +31,11 @@ export default function ReportsPage() {
       } as InventoryItem));
 
       const newReportData: ReportData = {
-        totalItems: itemsToUse.length,
-        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0),
+        totalUniqueItems: itemsToUse.length,
+        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0), // item.rate is cost price
         lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
+        itemsInStockCount: itemsToUse.filter(item => item.stock > 0).length,
+        itemsOutOfStockCount: itemsToUse.filter(item => item.stock === 0).length,
       };
       
       const thirtyDaysFromNow = new Date();
@@ -59,7 +61,7 @@ export default function ReportsPage() {
         description: "Could not load report data from the database.",
         variant: "destructive",
       });
-      setReportData({ totalItems: 0, totalValue: 0, lowStockItemsCount: 0, itemsExpiringSoon: 0 });
+      setReportData({ totalUniqueItems: 0, totalValue: 0, lowStockItemsCount: 0, itemsExpiringSoon: 0, itemsInStockCount: 0, itemsOutOfStockCount: 0 });
     } finally {
       setLoading(false);
     }
@@ -112,3 +114,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

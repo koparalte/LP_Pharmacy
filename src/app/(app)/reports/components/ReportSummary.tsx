@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, DollarSign, AlertTriangle, CalendarClock } from "lucide-react";
 import type { ReportData } from "@/lib/types";
 
+// ReportData totalValue is now based on cost price (rate)
 interface ExtendedReportData extends ReportData {
   itemsExpiringSoon?: number;
 }
@@ -13,9 +14,8 @@ interface ReportSummaryProps {
 
 export function ReportSummary({ data }: ReportSummaryProps) {
   const summaries = [
-    { title: "Total Unique Items", value: data.totalItems, icon: Package, details: "Count of distinct products." },
-    // Total Inventory Value will now be calculated using 'rate' by the data source
-    { title: "Total Inventory Value (at Rate)", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, details: "Estimated value of all stock at selling rate." },
+    { title: "Total Unique Items", value: data.totalUniqueItems, icon: Package, details: "Count of distinct products." },
+    { title: "Total Inventory Value (at Cost)", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, details: "Estimated value of all stock at cost price." },
     { title: "Low Stock Alerts", value: data.lowStockItemsCount, icon: AlertTriangle, details: "Items below reorder threshold." },
     { title: "Items Expiring Soon", value: data.itemsExpiringSoon ?? 0, icon: CalendarClock, details: "Items expiring in next 30 days." },
   ];
@@ -37,3 +37,4 @@ export function ReportSummary({ data }: ReportSummaryProps) {
     </div>
   );
 }
+
