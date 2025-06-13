@@ -9,13 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { doc, writeBatch } from "firebase/firestore";
+import { collection, doc, writeBatch } from "firebase/firestore";
 import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
+import type { InventoryItem } from "@/lib/types";
 
-interface CSVRecord {
-  id: string;
-  newStock: number;
-}
+// Type for the parsed CSV record, preparing for Firestore (ID will be auto-generated)
+type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated'>;
 
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -33,7 +32,7 @@ export default function ImportInventoryPage() {
           description: "Please upload a CSV file.",
           variant: "destructive",
         });
-        event.target.value = ""; // Reset file input
+        event.target.value = ""; 
         setFile(null);
       }
     } else {
@@ -41,9 +40,10 @@ export default function ImportInventoryPage() {
     }
   };
 
-  const parseCSV = (csvText: string): CSVRecord[] => {
-    const records: CSVRecord[] = [];
-    const lines = csvText.trim().split(/\r\n|\n/); // Handles both Windows and Unix line endings
+  const parseCSV = (csvText: string): { newItems: NewInventoryItemCSVRecord[], skippedRows: number } => {
+    const newItems: NewInventoryItemCSVRecord[] = [];
+    let skippedRows = 0;
+    const lines = csvText.trim().split(/\r\n|\n/);
 
     if (lines.length < 2) {
       throw new Error("CSV must have a header row and at least one data row.");
@@ -52,30 +52,95 @@ export default function ImportInventoryPage() {
     const headerLine = lines[0].toLowerCase();
     const headers = headerLine.split(',').map(h => h.trim());
     
-    const idIndex = headers.indexOf('id');
-    const newStockIndex = headers.indexOf('newstock');
+    // Define expected headers (lowercase for case-insensitive matching)
+    const expectedHeaders = {
+      name: "name",
+      description: "description",
+      batchNo: "batchno",
+      unit: "unit",
+      stock: "stock",
+      lowStockThreshold: "lowstockthreshold",
+      rate: "rate",
+      mrp: "mrp",
+      expiryDate: "expirydate", // Expected format YYYY-MM-DD
+    };
 
-    if (idIndex === -1 || newStockIndex === -1) {
-      throw new Error("CSV header must contain 'id' and 'newStock' columns (case-insensitive). Example: id,newStock");
+    const headerIndices: { [key: string]: number } = {};
+    for (const key in expectedHeaders) {
+      const index = headers.indexOf(expectedHeaders[key as keyof typeof expectedHeaders]);
+      headerIndices[key] = index;
+    }
+
+    // Check for required headers
+    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "description", "stock", "lowStockThreshold", "rate", "mrp"];
+    for (const field of requiredFields) {
+      if (headerIndices[field] === -1) {
+        throw new Error(`CSV header must contain '${expectedHeaders[field]}' column (case-insensitive).`);
+      }
     }
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      if (line.trim() === "") continue; // Skip empty lines
+      if (line.trim() === "") continue;
 
       const values = line.split(',');
-      const id = values[idIndex]?.trim();
-      const newStockStr = values[newStockIndex]?.trim();
-      const newStock = parseInt(newStockStr, 10);
+      let validRow = true;
+      const itemData: any = {}; // Use any temporarily, will be cast
 
-      if (id && id.length > 0 && !isNaN(newStock) && newStock >= 0) {
-        records.push({ id, newStock });
+      const name = values[headerIndices.name]?.trim();
+      if (!name) { validRow = false; console.warn(`Skipping row ${i+1}: Name is required.`); }
+      itemData.name = name;
+
+      const description = values[headerIndices.description]?.trim();
+      if (!description) { validRow = false; console.warn(`Skipping row ${i+1}: Description is required.`); }
+      itemData.description = description;
+      
+      itemData.batchNo = headerIndices.batchNo !== -1 ? values[headerIndices.batchNo]?.trim() || undefined : undefined;
+      itemData.unit = headerIndices.unit !== -1 ? values[headerIndices.unit]?.trim() || undefined : undefined;
+
+      const stockStr = values[headerIndices.stock]?.trim();
+      const stock = parseInt(stockStr, 10);
+      if (isNaN(stock) || stock < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Stock must be a non-negative number. Found: '${stockStr}'`);}
+      itemData.stock = stock;
+
+      const lowStockThresholdStr = values[headerIndices.lowStockThreshold]?.trim();
+      const lowStockThreshold = parseInt(lowStockThresholdStr, 10);
+      if (isNaN(lowStockThreshold) || lowStockThreshold < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Low Stock Threshold must be a non-negative number. Found: '${lowStockThresholdStr}'`);}
+      itemData.lowStockThreshold = lowStockThreshold;
+      
+      const rateStr = values[headerIndices.rate]?.trim();
+      const rate = parseFloat(rateStr);
+      if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate must be a positive number. Found: '${rateStr}'`);}
+      itemData.rate = rate;
+
+      const mrpStr = values[headerIndices.mrp]?.trim();
+      const mrp = parseFloat(mrpStr);
+      if (isNaN(mrp) || mrp <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: MRP must be a positive number. Found: '${mrpStr}'`);}
+      itemData.mrp = mrp;
+
+      if (headerIndices.expiryDate !== -1) {
+        const expiryDateStr = values[headerIndices.expiryDate]?.trim();
+        if (expiryDateStr) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(expiryDateStr)) {
+            itemData.expiryDate = expiryDateStr;
+          } else {
+            console.warn(`Skipping expiry date for row ${i+1}: Invalid format. Expected YYYY-MM-DD. Found: '${expiryDateStr}'`);
+            itemData.expiryDate = undefined;
+          }
+        } else {
+            itemData.expiryDate = undefined;
+        }
       } else {
-        console.warn(`Skipping invalid data row: "${line}". Ensure ID is present and newStock is a non-negative number.`);
-        // Optionally, collect these warnings to show to the user later
+        itemData.expiryDate = undefined;
+      }
+      
+      if (validRow) {
+        newItems.push(itemData as NewInventoryItemCSVRecord);
+      } else {
+        skippedRows++;
       }
     }
-    return records;
+    return { newItems, skippedRows };
   };
 
   const handleImport = async () => {
@@ -89,11 +154,16 @@ export default function ImportInventoryPage() {
 
     reader.onload = async (e) => {
       const csvText = e.target?.result as string;
-      let parsedRecords: CSVRecord[];
+      let parseResult: { newItems: NewInventoryItemCSVRecord[], skippedRows: number };
       try {
-        parsedRecords = parseCSV(csvText);
-        if (parsedRecords.length === 0) {
-          toast({ title: "No Valid Data", description: "The CSV file does not contain any valid data rows or is improperly formatted.", variant: "destructive" });
+        parseResult = parseCSV(csvText);
+        if (parseResult.newItems.length === 0 && parseResult.skippedRows > 0) {
+           toast({ title: "No Valid Data", description: `All ${parseResult.skippedRows} data rows were invalid or skipped. Please check CSV format and data.`, variant: "destructive" });
+           setIsProcessing(false);
+           return;
+        }
+        if (parseResult.newItems.length === 0) {
+          toast({ title: "No Data to Import", description: "The CSV file does not contain any valid items to add.", variant: "destructive" });
           setIsProcessing(false);
           return;
         }
@@ -103,69 +173,70 @@ export default function ImportInventoryPage() {
         return;
       }
 
-      const batchLimit = 500; // Firestore batch limit
-      let totalProcessed = 0;
-      let totalFailed = 0;
-      let successfulUpdates = 0;
+      const batchLimit = 500; 
+      let itemsAddedSuccessfully = 0;
+      const inventoryCollectionRef = collection(db, "inventory");
 
-      for (let i = 0; i < parsedRecords.length; i += batchLimit) {
+      for (let i = 0; i < parseResult.newItems.length; i += batchLimit) {
         const batch = writeBatch(db);
-        const chunk = parsedRecords.slice(i, i + batchLimit);
+        const chunk = parseResult.newItems.slice(i, i + batchLimit);
 
-        chunk.forEach(record => {
-          const itemDocRef = doc(db, "inventory", record.id);
-          batch.update(itemDocRef, {
-            stock: record.newStock,
+        chunk.forEach(newItemPayload => {
+          const newDocRef = doc(inventoryCollectionRef); // Firestore auto-generates ID
+          batch.set(newDocRef, {
+            ...newItemPayload,
             lastUpdated: new Date().toISOString(),
           });
         });
 
         try {
           await batch.commit();
-          successfulUpdates += chunk.length;
+          itemsAddedSuccessfully += chunk.length;
         } catch (batchError: any) {
           console.error("Error committing batch: ", batchError);
-          // For simplicity, count all in a failed batch as failed.
-          // More granular error handling could check individual document update failures if Firestore provided that.
-          totalFailed += chunk.length; 
+          // Assuming all in a failed batch failed to add for this simplified feedback
           toast({
-            title: "Batch Update Error",
-            description: `A batch of ${chunk.length} items failed to update. Check console for details. Error: ${batchError.message}`,
+            title: "Batch Add Error",
+            description: `A batch of ${chunk.length} items failed to be added. Check console for details. Error: ${batchError.message}`,
             variant: "destructive",
           });
         }
-        totalProcessed += chunk.length;
       }
       
       setIsProcessing(false);
-      setFile(null); // Reset file input
+      setFile(null); 
       const fileInput = document.getElementById('csv-file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = "";
 
+      let feedbackMessage = "";
+      if (itemsAddedSuccessfully > 0) {
+        feedbackMessage += `${itemsAddedSuccessfully} new item(s) added successfully. `;
+      }
+      if (parseResult.skippedRows > 0) {
+        feedbackMessage += `${parseResult.skippedRows} row(s) were skipped due to invalid data.`;
+      }
 
-      if (successfulUpdates > 0) {
+      if (itemsAddedSuccessfully === 0 && parseResult.skippedRows > 0) {
+         toast({
+          title: "Import Complete with Issues",
+          description: feedbackMessage || "No items were added. Check CSV file for errors.",
+          variant: "destructive"
+        });
+      } else if (itemsAddedSuccessfully > 0) {
          toast({
           title: "Import Successful",
-          description: `${successfulUpdates} item(s) stock updated successfully. ${totalFailed > 0 ? `${totalFailed} item(s) failed.` : ''}`,
+          description: feedbackMessage || "Items processed.",
         });
-      } else if (totalFailed > 0 && successfulUpdates === 0) {
+      } else if (parseResult.newItems.length > 0 && itemsAddedSuccessfully === 0 && parseResult.skippedRows === 0) {
+         // Should not happen if parsing was successful and items were present, but as a fallback
          toast({
           title: "Import Failed",
-          description: `All ${totalFailed} item(s) in the CSV failed to update.`,
-          variant: "destructive",
-        });
-      } else if (parsedRecords.length > 0 && successfulUpdates === 0 && totalFailed === 0) {
-        // This case might happen if all rows were skipped by the parser due to bad data
-        toast({
-          title: "Import Partially Completed",
-          description: "Some rows in the CSV may have been invalid and were skipped. No items were updated.",
+          description: "No items were added. An unexpected error occurred.",
           variant: "destructive",
         });
       }
-
-
-      // Optionally, navigate back or prompt for another import
-      // router.push("/inventory"); // This will trigger a refetch on the inventory page
+      
+      // router.push("/inventory"); // Optionally navigate
     };
 
     reader.onerror = () => {
@@ -182,16 +253,26 @@ export default function ImportInventoryPage() {
          <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
             <ArrowLeft className="h-5 w-5" />
          </Button>
-        <h1 className="text-3xl font-bold font-headline">Import Inventory Stock</h1>
+        <h1 className="text-3xl font-bold font-headline">Import New Inventory Items</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Upload CSV File</CardTitle>
+          <CardTitle>Upload CSV File to Add New Items</CardTitle>
           <CardDescription>
-            Upload a CSV file to update stock quantities for your inventory items.
-            The CSV file must contain a header row with `id` and `newStock` columns (case-insensitive).
-            The `id` is the item's Firestore document ID, and `newStock` is the new total stock quantity.
+            Upload a CSV file to add new items to your inventory. Firestore will auto-generate IDs.
+            The CSV file must contain a header row with the following columns (case-insensitive):
+            <ul className="list-disc list-inside mt-2 text-xs">
+              <li><code className="font-semibold">name</code> (Required, Text)</li>
+              <li><code className="font-semibold">description</code> (Required, Text)</li>
+              <li><code className="font-semibold">batchNo</code> (Optional, Text)</li>
+              <li><code className="font-semibold">unit</code> (Optional, Text - e.g., strips, bottle)</li>
+              <li><code className="font-semibold">stock</code> (Required, Number - initial stock quantity)</li>
+              <li><code className="font-semibold">lowStockThreshold</code> (Required, Number)</li>
+              <li><code className="font-semibold">rate</code> (Required, Number - selling price)</li>
+              <li><code className="font-semibold">mrp</code> (Required, Number - Maximum Retail Price)</li>
+              <li><code className="font-semibold">expiryDate</code> (Optional, Text - format YYYY-MM-DD)</li>
+            </ul>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -206,12 +287,12 @@ export default function ImportInventoryPage() {
               disabled={isProcessing}
             />
              <p className="mt-2 text-xs text-muted-foreground">
-              Example CSV format:
+              Example CSV format (ensure headers are exactly as listed above, case-insensitive):
             </p>
             <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
-              id,newStock<br/>
-              yourFirestoreItemId1,100<br/>
-              yourFirestoreItemId2,75
+name,description,batchNo,unit,stock,lowStockThreshold,rate,mrp,expiryDate<br/>
+Amoxicillin 250mg,Antibiotic capsules,BATCH001,strips,100,20,50.00,55.00,2025-12-31<br/>
+Paracetamol 500mg,Pain reliever tablets,,pcs,200,50,25.50,30.00,
             </pre>
           </div>
         </CardContent>
@@ -225,7 +306,7 @@ export default function ImportInventoryPage() {
             ) : (
               <>
                 <FileUp className="mr-2 h-4 w-4" />
-                Import Stock
+                Import New Items
               </>
             )}
           </Button>
@@ -234,3 +315,5 @@ export default function ImportInventoryPage() {
     </div>
   );
 }
+
+    
