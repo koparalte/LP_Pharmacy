@@ -2,12 +2,13 @@
 "use client";
 
 import { AddItemForm, type AddItemFormValues } from "./components/AddItemForm";
-import type { InventoryItem } from "@/lib/types";
+import type { InventoryItem, InventoryMovement } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, writeBatch, doc, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
+import { format } from "date-fns";
 
 export default function AddInventoryItemPage() {
   const { toast } = useToast();
@@ -17,7 +18,10 @@ export default function AddInventoryItemPage() {
   const handleFormSubmit = async (data: AddItemFormValues) => {
     setIsSubmitting(true);
 
+    const batch = writeBatch(db);
+
     try {
+      const newInventoryItemRef = doc(collection(db, "inventory"));
       const newItemPayload: Omit<InventoryItem, 'id'> = {
         name: data.name,
         batchNo: data.batchNo || undefined,
@@ -25,23 +29,40 @@ export default function AddInventoryItemPage() {
         stock: data.stock,
         lowStockThreshold: data.lowStockThreshold,
         rate: data.rate, // Cost price
-        mrp: data.mrp,   // Selling price
-        expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
+        mrp: data.mrp,   // Selling price (MRP)
+        expiryDate: data.expiryDate ? format(data.expiryDate, "yyyy-MM-dd") : undefined,
         lastUpdated: new Date().toISOString(),
       };
+      batch.set(newInventoryItemRef, newItemPayload);
 
-      const docRef = await addDoc(collection(db, "inventory"), newItemPayload);
+      // Log inventory movement for initial stock
+      if (data.stock > 0) {
+        const newMovementRef = doc(collection(db, "inventoryMovements"));
+        const movementPayload: Omit<InventoryMovement, 'id'> = {
+          itemId: newInventoryItemRef.id,
+          itemName: data.name,
+          type: 'in',
+          quantity: data.stock,
+          movementDate: format(new Date(), "yyyy-MM-dd"),
+          source: 'initial_stock',
+          reason: 'Initial stock for new item',
+          recordedAt: new Date().toISOString(),
+        };
+        batch.set(newMovementRef, movementPayload);
+      }
+      
+      await batch.commit();
 
       toast({
         title: "Item Added Successfully!",
-        description: `${data.name} has been added to the inventory with ID: ${docRef.id}.`,
+        description: `${data.name} has been added to the inventory with ID: ${newInventoryItemRef.id}. Initial stock movement logged.`,
       });
       router.push("/inventory");
     } catch (error) {
-      console.error("Error adding item to Firestore: ", error);
+      console.error("Error adding item and logging movement: ", error);
       toast({
         title: "Error Adding Item",
-        description: "There was an issue saving the item to the database. Please try again.",
+        description: "There was an issue saving the item or logging its movement. Please try again.",
         variant: "destructive",
       });
     } finally {

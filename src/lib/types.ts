@@ -51,13 +51,22 @@ export type FinalizedBill = {
   customerAddress?: string;
 };
 
+export type InventoryMovementSource = 
+  | 'initial_stock' 
+  | 'stock_edit' 
+  | 'sale' 
+  | 'csv_import';
+  // Removed 'manual_adjustment_in' and 'manual_adjustment_out' as manual form is removed
+
 export type InventoryMovement = {
   id: string; // Firestore document ID
   itemId: string;
   itemName: string; // Denormalized for easier display
   type: 'in' | 'out';
   quantity: number;
-  movementDate: string; // YYYY-MM-DD format (from calendar picker)
-  reason?: string;
+  movementDate: string; // YYYY-MM-DD format (date of event)
+  source: InventoryMovementSource;
+  reason?: string; // e.g., "Sale - Bill ID: LP12345", "Stock adjustment via edit"
   recordedAt: string; // ISO DateTime string of when the record was made
 };
+

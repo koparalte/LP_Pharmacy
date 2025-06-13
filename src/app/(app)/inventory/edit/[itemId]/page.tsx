@@ -3,14 +3,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { InventoryItem } from "@/lib/types";
+import type { InventoryItem, InventoryMovement } from "@/lib/types";
 import { AddItemForm, type AddItemFormValues } from "@/app/(app)/inventory/add/components/AddItemForm";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 export default function EditInventoryItemPage() {
   const router = useRouter();
@@ -65,9 +66,11 @@ export default function EditInventoryItemPage() {
   const handleFormSubmit = async (data: AddItemFormValues, originalItem?: InventoryItem) => {
     if (!originalItem) {
       toast({ title: "Error", description: "Original item data missing for update.", variant: "destructive" });
+      setIsSubmitting(false);
       return;
     }
     setIsSubmitting(true);
+    const batch = writeBatch(db);
 
     try {
       const currentStock = originalItem.stock;
@@ -75,17 +78,18 @@ export default function EditInventoryItemPage() {
       const newStock = currentStock + stockAdjustment;
 
       if (newStock < 0) {
+        // Allow negative stock but it's generally not ideal.
+        // Consider if business rules should prevent this.
         toast({
-          title: "Invalid Stock Adjustment",
-          description: "Stock cannot be negative after adjustment.",
-          variant: "destructive",
+          title: "Warning: Stock Low",
+          description: `Stock for ${data.name} will become ${newStock}.`,
+          variant: "default", 
         });
-        setIsSubmitting(false);
-        return;
       }
       
       const { stockAdjustment: _, ...updatePayloadBase } = data;
 
+      const itemDocRef = doc(db, "inventory", itemId);
       const updatePayload: Partial<InventoryItem> = {
         name: updatePayloadBase.name,
         batchNo: updatePayloadBase.batchNo || undefined,
@@ -93,24 +97,42 @@ export default function EditInventoryItemPage() {
         stock: newStock,
         lowStockThreshold: updatePayloadBase.lowStockThreshold,
         rate: updatePayloadBase.rate, // Cost price
-        mrp: updatePayloadBase.mrp,   // Selling price
-        expiryDate: updatePayloadBase.expiryDate ? updatePayloadBase.expiryDate.toISOString().split('T')[0] : undefined,
+        mrp: updatePayloadBase.mrp,   // Selling price (MRP)
+        expiryDate: updatePayloadBase.expiryDate ? format(updatePayloadBase.expiryDate, "yyyy-MM-dd") : undefined,
         lastUpdated: new Date().toISOString(),
       };
+      batch.update(itemDocRef, updatePayload);
+
+      // Log inventory movement if stock was adjusted
+      if (stockAdjustment !== 0) {
+        const newMovementRef = doc(collection(db, "inventoryMovements"));
+        const movementPayload: Omit<InventoryMovement, 'id'> = {
+          itemId: itemId,
+          itemName: data.name,
+          type: stockAdjustment > 0 ? 'in' : 'out',
+          quantity: Math.abs(stockAdjustment),
+          movementDate: format(new Date(), "yyyy-MM-dd"),
+          source: 'stock_edit',
+          reason: stockAdjustment > 0 
+            ? `Stock increased by ${stockAdjustment} via edit` 
+            : `Stock decreased by ${Math.abs(stockAdjustment)} via edit`,
+          recordedAt: new Date().toISOString(),
+        };
+        batch.set(newMovementRef, movementPayload);
+      }
       
-      const itemDocRef = doc(db, "inventory", itemId);
-      await updateDoc(itemDocRef, updatePayload);
+      await batch.commit();
 
       toast({
         title: "Item Updated Successfully!",
-        description: `${data.name} has been updated.`,
+        description: `${data.name} has been updated. Stock movement logged if applicable.`,
       });
       router.push("/inventory");
     } catch (error) {
-      console.error("Error updating item: ", error);
+      console.error("Error updating item and logging movement: ", error);
       toast({
         title: "Error Updating Item",
-        description: "There was an issue saving the changes. Please try again.",
+        description: "There was an issue saving the changes or logging movement. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { InventoryItem, BillItem, FinalizedBill } from "@/lib/types";
+import type { InventoryItem, BillItem, FinalizedBill, InventoryMovement } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,7 @@ import {
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, writeBatch, serverTimestamp, query, orderBy, runTransaction } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
 
 export default function BillingPage() {
@@ -143,6 +144,11 @@ export default function BillingPage() {
     try {
       await runTransaction(db, async (transaction) => {
         const inventoryUpdates: { docRef: any, newStock: number }[] = [];
+        const movementLogs: Omit<InventoryMovement, 'id'>[] = [];
+        const billDate = new Date();
+        const billDateStr = format(billDate, "yyyy-MM-dd");
+        const billTimestamp = billDate.toISOString();
+        const customBillId = `LP${billDate.getTime().toString().slice(-7)}`;
 
         for (const bItem of billItems) {
           const itemDocRef = doc(db, "inventory", bItem.id);
@@ -158,14 +164,27 @@ export default function BillingPage() {
           }
           const newStock = inventoryItemData.stock - bItem.quantityInBill;
           inventoryUpdates.push({ docRef: itemDocRef, newStock });
+
+          // Prepare movement log for this item
+          movementLogs.push({
+            itemId: bItem.id,
+            itemName: bItem.name,
+            type: 'out',
+            quantity: bItem.quantityInBill,
+            movementDate: billDateStr,
+            source: 'sale',
+            reason: `Sale - Bill ID: ${customBillId}`,
+            recordedAt: billTimestamp,
+          });
         }
 
+        // Apply inventory updates
         for (const update of inventoryUpdates) {
-          transaction.update(update.docRef, { stock: update.newStock, lastUpdated: new Date().toISOString() });
+          transaction.update(update.docRef, { stock: update.newStock, lastUpdated: billTimestamp });
         }
 
-        const grandTotal = billItems.reduce((total, item) => total + (item.mrp * item.quantityInBill), 0); // Use mrp as selling price for grandTotal
-
+        // Create finalized bill document
+        const grandTotal = billItems.reduce((total, item) => total + (item.mrp * item.quantityInBill), 0);
         const billItemsForPayload: BillItem[] = billItems.map(bi => ({
           id: bi.id,
           name: bi.name,
@@ -177,33 +196,39 @@ export default function BillingPage() {
           expiryDate: bi.expiryDate,
         }));
         
-        const customBillId = `LP${new Date().getTime().toString().slice(-7)}`;
-
         const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
-          date: new Date().toISOString(),
+          date: billTimestamp,
           items: billItemsForPayload,
           grandTotal: grandTotal,
-          customerName: "Walk-in Customer",
-          customerAddress: "N/A",
+          customerName: "Walk-in Customer", // Default, can be made editable later
+          customerAddress: "N/A", // Default
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
         transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
+
+        // Add movement logs
+        const movementsCollectionRef = collection(db, "inventoryMovements");
+        movementLogs.forEach(movement => {
+            const newMovementRef = doc(movementsCollectionRef);
+            transaction.set(newMovementRef, movement);
+        });
       });
 
+      // Update local inventory state
       const updatedLocalInventory = inventory.map(invItem => {
         const billItem = billItems.find(bi => bi.id === invItem.id);
         if (billItem) {
-          return { ...invItem, stock: Math.max(0, invItem.stock - billItem.quantityInBill) };
+          return { ...invItem, stock: Math.max(0, invItem.stock - billItem.quantityInBill), lastUpdated: new Date().toISOString() };
         }
         return invItem;
       });
       setInventory(updatedLocalInventory);
 
-      setBillItems([]);
+      setBillItems([]); // Clear the current bill
 
       toast({
         title: "Bill Finalized!",
-        description: "The bill has been processed, inventory updated, and sales record saved.",
+        description: "Bill processed, inventory updated, and movements logged.",
       });
 
     } catch (error: any) {

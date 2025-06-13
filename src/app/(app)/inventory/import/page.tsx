@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { collection, doc, writeBatch } from "firebase/firestore";
 import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
-import type { InventoryItem } from "@/lib/types";
+import type { InventoryItem, InventoryMovement } from "@/lib/types";
+import { format } from "date-fns";
 
 type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated'>;
 
@@ -58,7 +59,7 @@ export default function ImportInventoryPage() {
       stock: "stock",
       lowStockThreshold: "lowstockthreshold",
       rate: "rate", // Cost Price
-      mrp: "mrp",   // Selling Price
+      mrp: "mrp",   // Selling Price (MRP)
       expiryDate: "expirydate", 
     };
 
@@ -105,7 +106,7 @@ export default function ImportInventoryPage() {
       if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate (Cost Price) must be a positive number. Found: '${rateStr}' for item '${name}'`);}
       itemData.rate = rate;
 
-      const mrpStr = values[headerIndices.mrp]; // Selling Price from CSV
+      const mrpStr = values[headerIndices.mrp]; // Selling Price (MRP) from CSV
       const mrp = parseFloat(mrpStr);
       if (isNaN(mrp) || mrp <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: MRP (Selling Price) must be a positive number. Found: '${mrpStr}' for item '${name}'`);}
       itemData.mrp = mrp;
@@ -113,7 +114,7 @@ export default function ImportInventoryPage() {
       if (headerIndices.expiryDate !== -1) {
         const expiryDateStr = values[headerIndices.expiryDate];
         if (expiryDateStr) {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(expiryDateStr)) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(expiryDateStr)) { // Basic YYYY-MM-DD check
             itemData.expiryDate = expiryDateStr;
           } else {
             console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected YYYY-MM-DD. Found: '${expiryDateStr}'`);
@@ -126,7 +127,7 @@ export default function ImportInventoryPage() {
         itemData.expiryDate = undefined;
       }
 
-      if (validRow && itemData.mrp < itemData.rate) {
+      if (validRow && itemData.mrp < itemData.rate) { // MRP should be >= Rate (Cost Price)
          console.warn(`Skipping row ${i+1} (item '${name}'): MRP (Selling Price) (${itemData.mrp}) cannot be less than Rate (Cost Price) (${itemData.rate}).`);
          validRow = false;
       }
@@ -170,20 +171,39 @@ export default function ImportInventoryPage() {
         return;
       }
 
-      const batchLimit = 500; 
+      const batchLimit = 250; // Firestore batch limit is 500 writes, 1 item + 1 movement = 2 writes.
       let itemsAddedSuccessfully = 0;
       const inventoryCollectionRef = collection(db, "inventory");
+      const movementsCollectionRef = collection(db, "inventoryMovements");
+      const currentDateStr = format(new Date(), "yyyy-MM-dd");
+      const currentTimestamp = new Date().toISOString();
 
       for (let i = 0; i < parseResult.newItems.length; i += batchLimit) {
         const batch = writeBatch(db);
         const chunk = parseResult.newItems.slice(i, i + batchLimit);
 
-        chunk.forEach(newItemPayload => {
-          const newDocRef = doc(inventoryCollectionRef); 
-          batch.set(newDocRef, {
-            ...newItemPayload,
-            lastUpdated: new Date().toISOString(),
-          });
+        chunk.forEach(newItemData => {
+          const newInventoryItemRef = doc(inventoryCollectionRef); 
+          const inventoryItemPayload: Omit<InventoryItem, 'id'> = {
+            ...newItemData,
+            lastUpdated: currentTimestamp,
+          };
+          batch.set(newInventoryItemRef, inventoryItemPayload);
+
+          if (newItemData.stock > 0) {
+            const newMovementRef = doc(movementsCollectionRef);
+            const movementPayload: Omit<InventoryMovement, 'id'> = {
+              itemId: newInventoryItemRef.id,
+              itemName: newItemData.name,
+              type: 'in',
+              quantity: newItemData.stock,
+              movementDate: currentDateStr,
+              source: 'csv_import',
+              reason: 'Initial stock from CSV import',
+              recordedAt: currentTimestamp,
+            };
+            batch.set(newMovementRef, movementPayload);
+          }
         });
 
         try {
@@ -193,9 +213,10 @@ export default function ImportInventoryPage() {
           console.error("Error committing batch: ", batchError);
           toast({
             title: "Batch Add Error",
-            description: `A batch of ${chunk.length} items failed to be added. Check console for details. Error: ${batchError.message}`,
+            description: `A batch of ${chunk.length} items/movements failed. Check console. Error: ${batchError.message}`,
             variant: "destructive",
           });
+          // Potentially break or log which items failed if more granular error handling is needed
         }
       }
       
@@ -206,29 +227,18 @@ export default function ImportInventoryPage() {
 
       let feedbackMessage = "";
       if (itemsAddedSuccessfully > 0) {
-        feedbackMessage += `${itemsAddedSuccessfully} new item(s) added successfully. `;
+        feedbackMessage += `${itemsAddedSuccessfully} new item(s) and their initial stock movements added. `;
       }
       if (parseResult.skippedRows > 0) {
-        feedbackMessage += `${parseResult.skippedRows} row(s) were skipped due to invalid data (check console for details).`;
+        feedbackMessage += `${parseResult.skippedRows} row(s) were skipped (check console).`;
       }
 
       if (itemsAddedSuccessfully === 0 && parseResult.skippedRows > 0) {
-         toast({
-          title: "Import Complete with Issues",
-          description: feedbackMessage || "No items were added. Check CSV file for errors.",
-          variant: "destructive"
-        });
+         toast({ title: "Import Complete with Issues", description: feedbackMessage, variant: "destructive"});
       } else if (itemsAddedSuccessfully > 0) {
-         toast({
-          title: "Import Successful",
-          description: feedbackMessage || "Items processed.",
-        });
+         toast({ title: "Import Successful", description: feedbackMessage });
       } else if (parseResult.newItems.length > 0 && itemsAddedSuccessfully === 0 && parseResult.skippedRows === 0) {
-         toast({
-          title: "Import Failed",
-          description: "No items were added. An unexpected error occurred.",
-          variant: "destructive",
-        });
+         toast({ title: "Import Failed", description: "No items were added. Unexpected error.", variant: "destructive"});
       }
     };
 
@@ -253,19 +263,19 @@ export default function ImportInventoryPage() {
         <CardHeader>
           <CardTitle>Upload CSV File to Add New Items</CardTitle>
           <CardDescription>
-            Upload a CSV file to add new items to your inventory. Firestore will auto-generate IDs.
-            The CSV file must contain a header row with the following columns (case-insensitive, quotes in headers/values will be removed):
+            Upload a CSV file to add new items and their initial stock movements. Firestore will auto-generate IDs.
+            The CSV file must contain a header row with the following columns (case-insensitive, quotes removed):
             <ul className="list-disc list-inside mt-2 text-xs">
               <li><code className="font-semibold">name</code> (Required, Text)</li>
               <li><code className="font-semibold">batchNo</code> (Optional, Text)</li>
-              <li><code className="font-semibold">unit</code> (Optional, Text - e.g., strips, bottle)</li>
+              <li><code className="font-semibold">unit</code> (Optional, Text)</li>
               <li><code className="font-semibold">stock</code> (Required, Number - initial stock quantity)</li>
               <li><code className="font-semibold">lowStockThreshold</code> (Required, Number)</li>
-              <li><code className="font-semibold">rate</code> (Required, Number - cost price of the item)</li>
-              <li><code className="font-semibold">mrp</code> (Required, Number - Maximum Retail Price, also the selling price)</li>
+              <li><code className="font-semibold">rate</code> (Required, Number - cost price)</li>
+              <li><code className="font-semibold">mrp</code> (Required, Number - selling price / MRP)</li>
               <li><code className="font-semibold">expiryDate</code> (Optional, Text - format YYYY-MM-DD)</li>
             </ul>
-             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP (Selling Price) is less than Rate (Cost Price) will be skipped.</p>
+             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Rate (Cost Price) will be skipped.</p>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
