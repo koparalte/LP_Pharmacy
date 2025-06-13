@@ -18,7 +18,7 @@ interface BillingReceiptProps {
 }
 
 export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFinalizeBill, isSubmitting }: BillingReceiptProps) {
-  const calculateSubtotal = (item: BillItem) => item.sellingPrice * item.quantityInBill; // Use sellingPrice for subtotal
+  const calculateSubtotal = (item: BillItem) => item.mrp * item.quantityInBill; // Use mrp as selling price for subtotal
   const grandTotal = billItems.reduce((total, item) => total + calculateSubtotal(item), 0);
 
   const handleQuantityChange = (itemId: string, currentQuantity: number, change: number) => {
@@ -28,7 +28,6 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
   
   const handleDirectQuantityInput = (itemId: string, value: string) => {
     const newQuantity = parseInt(value, 10);
-    // Assuming item.stock is not directly available here, validation against stock is done in parent
     if (!isNaN(newQuantity) && newQuantity >= 1) {
       onUpdateQuantity(itemId, newQuantity);
     } else if (value === "") {
@@ -67,7 +66,7 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
               <TableRow>
                 <TableHead className="w-[40%]">Item</TableHead>
                 <TableHead className="text-center">Qty</TableHead>
-                <TableHead className="text-right">Price (₹)</TableHead>
+                <TableHead className="text-right">Price (MRP) (₹)</TableHead>
                 <TableHead className="text-right">Total (₹)</TableHead>
                 <TableHead className="text-center">Action</TableHead>
               </TableRow>
@@ -93,20 +92,18 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
                         onChange={(e) => handleDirectQuantityInput(item.id, e.target.value)}
                         className="h-7 w-12 text-center px-1"
                         min="1"
-                        // max={item.stock} // Stock check handled in parent `handleUpdateItemQuantity`
                       />
                       <Button
                         variant="outline"
                         size="icon"
                         className="h-6 w-6"
                         onClick={() => handleQuantityChange(item.id, item.quantityInBill, 1)}
-                        // disabled={item.quantityInBill >= item.stock} // Stock check handled in parent
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right py-2">INR ₹{item.sellingPrice.toFixed(2)}</TableCell>
+                  <TableCell className="text-right py-2">INR ₹{item.mrp.toFixed(2)}</TableCell>
                   <TableCell className="text-right py-2">INR ₹{calculateSubtotal(item).toFixed(2)}</TableCell>
                   <TableCell className="text-center py-2">
                     <Button variant="ghost" size="icon" onClick={() => onRemoveItem(item.id)} className="text-destructive hover:text-destructive/80 h-7 w-7">
@@ -131,4 +128,3 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
     </Card>
   );
 }
-

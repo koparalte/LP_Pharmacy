@@ -7,8 +7,7 @@ export type InventoryItem = {
   stock: number;
   lowStockThreshold: number;
   rate: number; // Cost price of the item
-  sellingPrice: number; // Actual selling price
-  mrp: number;
+  mrp: number; // Maximum Retail Price (also the Selling Price)
   expiryDate?: string; // YYYY-MM-DD
   lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
@@ -37,8 +36,7 @@ export type BillItem = {
   batchNo?: string;
   unit?: string;
   rate: number; // Cost price at the time of sale
-  sellingPrice: number; // Selling price at the time of sale
-  mrp: number; // MRP at the time of sale
+  mrp: number; // MRP (which is the selling price) at the time of sale
   quantityInBill: number;
   expiryDate?: string; // Optional: if you want to store a snapshot of expiry
 };
@@ -52,4 +50,3 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
-

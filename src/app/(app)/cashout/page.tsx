@@ -86,16 +86,16 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
+        // Create a new BillItem with only the fields defined in the BillItem type
         const newBillItem: BillItem = {
           id: itemToAdd.id,
           name: itemToAdd.name,
           batchNo: itemToAdd.batchNo,
           unit: itemToAdd.unit,
-          rate: itemToAdd.rate, // This is cost price
-          sellingPrice: itemToAdd.sellingPrice, // This is selling price
-          mrp: itemToAdd.mrp,
-          expiryDate: itemToAdd.expiryDate,
+          rate: itemToAdd.rate, // Cost price
+          mrp: itemToAdd.mrp,   // Selling price (MRP)
           quantityInBill: 1,
+          expiryDate: itemToAdd.expiryDate,
         };
         return [...prevBillItems, newBillItem];
       }
@@ -164,7 +164,7 @@ export default function BillingPage() {
           transaction.update(update.docRef, { stock: update.newStock, lastUpdated: new Date().toISOString() });
         }
 
-        const grandTotal = billItems.reduce((total, item) => total + (item.sellingPrice * item.quantityInBill), 0); // Use sellingPrice for grandTotal
+        const grandTotal = billItems.reduce((total, item) => total + (item.mrp * item.quantityInBill), 0); // Use mrp as selling price for grandTotal
 
         const billItemsForPayload: BillItem[] = billItems.map(bi => ({
           id: bi.id,
@@ -172,8 +172,7 @@ export default function BillingPage() {
           batchNo: bi.batchNo,
           unit: bi.unit,
           rate: bi.rate, // cost price
-          sellingPrice: bi.sellingPrice, // selling price
-          mrp: bi.mrp,
+          mrp: bi.mrp,   // selling price (MRP)
           quantityInBill: bi.quantityInBill,
           expiryDate: bi.expiryDate,
         }));
@@ -252,7 +251,7 @@ export default function BillingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Selling Price (₹)</TableHead>
+                  <TableHead className="text-right">MRP (Sell Price) (₹)</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-center w-[120px]">Action</TableHead>
                 </TableRow>
@@ -299,4 +298,3 @@ export default function BillingPage() {
     </div>
   );
 }
-

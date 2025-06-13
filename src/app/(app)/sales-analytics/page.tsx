@@ -89,12 +89,12 @@ export default function SalesAnalyticsPage() {
         };
       }
 
-      // Sales are based on item.sellingPrice
-      const salesForBill = bill.items.reduce((sum, item) => sum + (item.sellingPrice * item.quantityInBill), 0);
+      // Sales are based on item.mrp (which is the selling price)
+      const salesForBill = bill.items.reduce((sum, item) => sum + (item.mrp * item.quantityInBill), 0);
       
-      // Profit is (MRP - Selling Price) * Quantity for each item
+      // Profit is (MRP_selling_price - Rate_cost_price) * Quantity for each item
       const profitForBill = bill.items.reduce((sum, item) => {
-        const itemProfitContribution = (item.mrp - item.sellingPrice) * item.quantityInBill;
+        const itemProfitContribution = (item.mrp - item.rate) * item.quantityInBill;
         return sum + itemProfitContribution;
       }, 0);
 
@@ -141,29 +141,25 @@ export default function SalesAnalyticsPage() {
   const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
   const currentMonthStart = startOfMonth(today);
 
-  const todaySales = useMemo(() => finalizedBills
-    .filter(bill => format(parseISO(bill.date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"))
-    .reduce((acc, bill) => {
-      acc.sales += bill.items.reduce((itemSum, item) => itemSum + (item.sellingPrice * item.quantityInBill), 0);
-      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.sellingPrice) * item.quantityInBill, 0);
+  const calculatePerformance = (filteredBills: FinalizedBill[]) => {
+    return filteredBills.reduce((acc, bill) => {
+      acc.sales += bill.items.reduce((itemSum, item) => itemSum + (item.mrp * item.quantityInBill), 0);
+      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.rate) * item.quantityInBill, 0);
       return acc;
-    }, { sales: 0, profit: 0 }), [finalizedBills, today]);
+    }, { sales: 0, profit: 0 });
+  };
+  
+  const todaySales = useMemo(() => calculatePerformance(
+      finalizedBills.filter(bill => format(parseISO(bill.date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"))
+    ), [finalizedBills, today]);
 
-  const thisWeekSales = useMemo(() => finalizedBills
-    .filter(bill => isWithinInterval(parseISO(bill.date), { start: currentWeekStart, end: endOfWeek(today, { weekStartsOn: 1 }) }))
-    .reduce((acc, bill) => {
-      acc.sales += bill.items.reduce((itemSum, item) => itemSum + (item.sellingPrice * item.quantityInBill), 0);
-      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.sellingPrice) * item.quantityInBill, 0);
-      return acc;
-    }, { sales: 0, profit: 0 }), [finalizedBills, currentWeekStart, today]);
+  const thisWeekSales = useMemo(() => calculatePerformance(
+      finalizedBills.filter(bill => isWithinInterval(parseISO(bill.date), { start: currentWeekStart, end: endOfWeek(today, { weekStartsOn: 1 }) }))
+    ), [finalizedBills, currentWeekStart, today]);
 
-  const thisMonthSales = useMemo(() => finalizedBills
-    .filter(bill => format(parseISO(bill.date), "yyyy-MM") === format(currentMonthStart, "yyyy-MM"))
-    .reduce((acc, bill) => {
-      acc.sales += bill.items.reduce((itemSum, item) => itemSum + (item.sellingPrice * item.quantityInBill), 0);
-      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.sellingPrice) * item.quantityInBill, 0);
-      return acc;
-    }, { sales: 0, profit: 0 }), [finalizedBills, currentMonthStart]);
+  const thisMonthSales = useMemo(() => calculatePerformance(
+      finalizedBills.filter(bill => format(parseISO(bill.date), "yyyy-MM") === format(currentMonthStart, "yyyy-MM"))
+    ), [finalizedBills, currentMonthStart]);
 
 
   const renderSalesDataTable = (data: SalesData[], caption: string) => {
@@ -229,7 +225,7 @@ export default function SalesAnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Sales & Profit Breakdown</CardTitle>
-          <CardDescription>View sales and profit data aggregated by different time periods. Profit is calculated as (MRP - Selling Price).</CardDescription>
+          <CardDescription>View sales and profit data aggregated by different time periods. Profit is calculated as (MRP - Rate).</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="daily">
@@ -253,4 +249,3 @@ export default function SalesAnalyticsPage() {
     </div>
   );
 }
-

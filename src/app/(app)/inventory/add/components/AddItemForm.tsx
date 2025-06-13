@@ -30,17 +30,13 @@ const formSchema = z.object({
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
-  rate: z.coerce.number().min(0.01, { message: "Rate (Cost Price) must be at least 0.01."}), // Renamed from costPrice
-  sellingPrice: z.coerce.number().min(0.01, { message: "Selling Price must be at least 0.01." }), // New field, was rate
-  mrp: z.coerce.number().min(0.01, { message: "MRP must be at least 0.01." }),
+  rate: z.coerce.number().min(0.01, { message: "Rate (Cost Price) must be at least 0.01."}),
+  mrp: z.coerce.number().min(0.01, { message: "MRP (Selling Price) must be at least 0.01." }),
   expiryDate: z.date().optional(),
   stockAdjustment: z.coerce.number().int().optional(), 
-}).refine(data => data.mrp >= data.sellingPrice, {
-  message: "MRP should be greater than or equal to Selling Price.",
+}).refine(data => data.mrp >= data.rate, {
+  message: "MRP (Selling Price) should be greater than or equal to Rate (Cost Price).",
   path: ["mrp"],
-}).refine(data => data.sellingPrice >= data.rate, { // sellingPrice >= rate (cost price)
-  message: "Selling Price should be greater than or equal to Rate (Cost Price).",
-  path: ["sellingPrice"],
 });
 
 export type AddItemFormValues = z.infer<typeof formSchema>;
@@ -63,9 +59,8 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
       unit: "",
       stock: 0,
       lowStockThreshold: 10,
-      rate: 0, // This is now cost price
-      sellingPrice: 0, // This is the new selling price
-      mrp: 0,
+      rate: 0, // Cost price
+      mrp: 0,  // Selling Price
       expiryDate: undefined,
       stockAdjustment: 0,
     },
@@ -75,10 +70,8 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     if (isEditMode && initialData) {
       form.reset({
         ...initialData,
-        // rate is already costPrice in initialData if it's new model, or it's the old rate.
-        // sellingPrice might not exist if it's old data.
-        sellingPrice: initialData.sellingPrice || initialData.rate, // Fallback for old data where rate was sellingPrice
-        rate: initialData.rate, // This should be cost price if new model, or old rate if old model
+        rate: initialData.rate, 
+        mrp: initialData.mrp,
         expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate) : undefined,
         stockAdjustment: 0, 
       });
@@ -177,7 +170,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
             />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
            <FormField
             control={form.control}
             name="rate" 
@@ -194,28 +187,14 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
           />
           <FormField
             control={form.control}
-            name="sellingPrice"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Selling Price (₹)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormDescription>Actual selling price.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="mrp"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>MRP (₹)</FormLabel>
+                <FormLabel>MRP (Selling Price) (₹)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
-                <FormDescription>Maximum Retail Price.</FormDescription>
+                <FormDescription>Maximum Retail Price, also the selling price.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -280,4 +259,3 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     </Form>
   );
 }
-
