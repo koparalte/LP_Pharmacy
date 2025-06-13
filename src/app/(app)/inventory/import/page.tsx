@@ -207,12 +207,12 @@ export default function ImportInventoryPage() {
             />
              <p className="mt-2 text-xs text-muted-foreground">
               Example CSV format:
-              <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
-                id,newStock<br/>
-                yourFirestoreItemId1,100<br/>
-                yourFirestoreItemId2,75
-              </pre>
             </p>
+            <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
+              id,newStock<br/>
+              yourFirestoreItemId1,100<br/>
+              yourFirestoreItemId2,75
+            </pre>
           </div>
         </CardContent>
         <CardFooter>
