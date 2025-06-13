@@ -86,7 +86,6 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
-        // Explicitly construct BillItem to avoid carrying over unnecessary fields
         const newBillItem: BillItem = {
           id: itemToAdd.id,
           name: itemToAdd.name,
@@ -111,7 +110,7 @@ export default function BillingPage() {
     setBillItems((prevBillItems) =>
       prevBillItems.map((item) => {
         const originalInventoryItem = inventory.find(invItem => invItem.id === itemId);
-        const maxStock = originalInventoryItem ? originalInventoryItem.stock : item.quantityInBill; // Fallback to current quantity in bill if original item not found
+        const maxStock = originalInventoryItem ? originalInventoryItem.stock : item.quantityInBill; 
 
         if (item.id === itemId) {
           if (newQuantity > maxStock) {
@@ -167,8 +166,6 @@ export default function BillingPage() {
 
         const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
 
-        // BillItem already has all the necessary fields (id, name, batchNo, unit, costPrice, mrp, rate, quantityInBill, expiryDate)
-        // as structured when added via handleAddItemToBill and stored in billItems state.
         const billItemsForPayload: BillItem[] = billItems.map(bi => ({
           id: bi.id,
           name: bi.name,
@@ -180,7 +177,9 @@ export default function BillingPage() {
           quantityInBill: bi.quantityInBill,
           expiryDate: bi.expiryDate,
         }));
-
+        
+        // Generate a shorter, custom Bill ID
+        const customBillId = `LP${new Date().getTime().toString().slice(-7)}`;
 
         const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
           date: new Date().toISOString(),
@@ -190,7 +189,8 @@ export default function BillingPage() {
           customerAddress: "N/A",
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
-        transaction.set(doc(finalizedBillCollection), newFinalizedBillPayload);
+        // Use the customBillId when creating the document for the finalized bill
+        transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
       });
 
       const updatedLocalInventory = inventory.map(invItem => {
