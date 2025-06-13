@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, UploadCloud } from "lucide-react"; // Added UploadCloud
 import { InventoryFilters } from "./components/InventoryFilters";
 import { InventoryTable } from "./components/InventoryTable";
 import type { InventoryItem } from "@/lib/types";
@@ -12,14 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
 
   const fetchInventoryItems = useCallback(async () => {
     setLoading(true);
@@ -85,11 +85,18 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline">Inventory Management</h1>
-        <Button asChild size="lg">
-          <Link href="/inventory/add">
-            <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild size="lg" variant="outline">
+            <Link href="/inventory/import">
+              <UploadCloud className="mr-2 h-5 w-5" /> Import from CSV
+            </Link>
+          </Button>
+          <Button asChild size="lg">
+            <Link href="/inventory/add">
+              <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <InventoryFilters
