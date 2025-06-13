@@ -90,8 +90,11 @@ export default function SalesAnalyticsPage() {
       }
 
       const salesForBill = bill.grandTotal;
-      const costOfGoodsSold = bill.items.reduce((sum, item) => (sum + item.quantityInBill * (item.costPrice || 0)), 0);
-      const profitForBill = salesForBill - costOfGoodsSold;
+      // New profit calculation: sum of (MRP - Rate) * Quantity for each item
+      const profitForBill = bill.items.reduce((sum, item) => {
+        const itemProfitContribution = (item.mrp - item.rate) * item.quantityInBill;
+        return sum + itemProfitContribution;
+      }, 0);
 
       aggregated[periodKey].totalSales += salesForBill;
       aggregated[periodKey].totalProfit += profitForBill;
@@ -139,30 +142,24 @@ export default function SalesAnalyticsPage() {
   const todaySales = useMemo(() => finalizedBills
     .filter(bill => format(parseISO(bill.date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"))
     .reduce((acc, bill) => {
-      const sales = bill.grandTotal;
-      const cogs = bill.items.reduce((s, i) => s + i.quantityInBill * (i.costPrice || 0), 0);
-      acc.sales += sales;
-      acc.profit += sales - cogs;
+      acc.sales += bill.grandTotal;
+      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.rate) * item.quantityInBill, 0);
       return acc;
     }, { sales: 0, profit: 0 }), [finalizedBills, today]);
 
   const thisWeekSales = useMemo(() => finalizedBills
     .filter(bill => isWithinInterval(parseISO(bill.date), { start: currentWeekStart, end: endOfWeek(today, { weekStartsOn: 1 }) }))
     .reduce((acc, bill) => {
-      const sales = bill.grandTotal;
-      const cogs = bill.items.reduce((s, i) => s + i.quantityInBill * (i.costPrice || 0), 0);
-      acc.sales += sales;
-      acc.profit += sales - cogs;
+      acc.sales += bill.grandTotal;
+      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.rate) * item.quantityInBill, 0);
       return acc;
     }, { sales: 0, profit: 0 }), [finalizedBills, currentWeekStart, today]);
 
   const thisMonthSales = useMemo(() => finalizedBills
     .filter(bill => format(parseISO(bill.date), "yyyy-MM") === format(currentMonthStart, "yyyy-MM"))
     .reduce((acc, bill) => {
-      const sales = bill.grandTotal;
-      const cogs = bill.items.reduce((s, i) => s + i.quantityInBill * (i.costPrice || 0), 0);
-      acc.sales += sales;
-      acc.profit += sales - cogs;
+      acc.sales += bill.grandTotal;
+      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.rate) * item.quantityInBill, 0);
       return acc;
     }, { sales: 0, profit: 0 }), [finalizedBills, currentMonthStart]);
 
