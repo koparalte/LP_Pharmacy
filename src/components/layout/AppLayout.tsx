@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, BarChart3, Settings, HelpCircle, Receipt, LineChart, CalendarStats } from "lucide-react";
+import { LayoutDashboard, Boxes, BarChart3, Settings, HelpCircle, Receipt, LineChart, BarChartHorizontalBig } from "lucide-react";
 import type { ReactNode } from "react";
 
 const navItems = [
@@ -22,7 +22,7 @@ const navItems = [
   { href: "/inventory", label: "Inventory", icon: Boxes },
   { href: "/cashout", label: "Billing", icon: Receipt },
   { href: "/sales-report", label: "Sales Report", icon: LineChart },
-  { href: "/sales-analytics", label: "Sales Analytics", icon: CalendarStats },
+  { href: "/sales-analytics", label: "Sales Analytics", icon: BarChartHorizontalBig },
   { href: "/reports", label: "Old Reports", icon: BarChart3 },
 ];
 
