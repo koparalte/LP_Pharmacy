@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, isWithinInterval, subMonths, subWeeks, subDays } from "date-fns";
+import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { TrendingUp } from "lucide-react";
 
 interface SalesData {
@@ -19,12 +19,19 @@ interface SalesData {
   totalProfit: number;
 }
 
+const ANALYTICS_BILLS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
 export default function SalesAnalyticsPage() {
   const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [lastFetchedAnalyticsBills, setLastFetchedAnalyticsBills] = useState<number | null>(null);
 
-  const fetchFinalizedBills = useCallback(async () => {
+  const fetchFinalizedBills = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh && lastFetchedAnalyticsBills && (Date.now() - lastFetchedAnalyticsBills < ANALYTICS_BILLS_STALE_TIME)) {
+        setLoading(false); // Already have recent data
+        return;
+    }
     setLoading(true);
     try {
       const billsCollection = collection(db, "finalizedBills");
@@ -35,6 +42,7 @@ export default function SalesAnalyticsPage() {
         ...doc.data(),
       } as FinalizedBill));
       setFinalizedBills(billsList);
+      setLastFetchedAnalyticsBills(Date.now());
     } catch (error) {
       console.error("Error fetching finalized bills: ", error);
       toast({
@@ -42,46 +50,19 @@ export default function SalesAnalyticsPage() {
         description: "Could not load sales transactions.",
         variant: "destructive",
       });
+      setFinalizedBills([]);
+      setLastFetchedAnalyticsBills(null);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, lastFetchedAnalyticsBills]);
 
   useEffect(() => {
     fetchFinalizedBills();
   }, [fetchFinalizedBills]);
 
-  const calculateProfitAndSales = (bills: FinalizedBill[]): SalesData[] => {
-    const aggregatedData: { [key: string]: { totalSales: number; totalProfit: number } } = {};
-
-    bills.forEach(bill => {
-      const billDate = parseISO(bill.date);
-      const periodKey = format(billDate, "yyyy-MM-dd"); // For daily aggregation
-
-      if (!aggregatedData[periodKey]) {
-        aggregatedData[periodKey] = { totalSales: 0, totalProfit: 0 };
-      }
-
-      const salesForBill = bill.grandTotal;
-      const costOfGoodsSold = bill.items.reduce((sum, item) => {
-        // Fallback to 0 if costPrice is somehow missing, though it should be there.
-        const cost = item.costPrice || 0; 
-        return sum + item.quantityInBill * cost;
-      }, 0);
-      const profitForBill = salesForBill - costOfGoodsSold;
-
-      aggregatedData[periodKey].totalSales += salesForBill;
-      aggregatedData[periodKey].totalProfit += profitForBill;
-    });
-
-    return Object.entries(aggregatedData).map(([period, data]) => ({
-      period,
-      ...data,
-    })).sort((a,b) => b.period.localeCompare(a.period)); // Sort descending by date
-  };
-  
-  const aggregateDataByPeriod = (
-    bills: FinalizedBill[], 
+  const aggregateDataByPeriod = useCallback((
+    bills: FinalizedBill[],
     periodType: "daily" | "weekly" | "monthly"
   ): SalesData[] => {
     const aggregated: { [key: string]: { totalSales: number; totalProfit: number; rawDate: Date } } = {};
@@ -89,23 +70,23 @@ export default function SalesAnalyticsPage() {
     bills.forEach(bill => {
       const billDate = parseISO(bill.date);
       let periodKey: string;
-      let displayPeriod: string;
 
       if (periodType === "daily") {
         periodKey = format(billDate, "yyyy-MM-dd");
-        displayPeriod = format(billDate, "PPP"); // e.g., Jun 20, 2024
       } else if (periodType === "weekly") {
         const weekStart = startOfWeek(billDate, { weekStartsOn: 1 }); // Monday
-        periodKey = format(weekStart, "yyyy-MM-dd"); // Key by week start date
-        displayPeriod = `Week of ${format(weekStart, "MMM d, yyyy")}`;
+        periodKey = format(weekStart, "yyyy-MM-dd");
       } else { // monthly
         const monthStart = startOfMonth(billDate);
-        periodKey = format(monthStart, "yyyy-MM"); // Key by YYYY-MM
-        displayPeriod = format(monthStart, "MMMM yyyy");
+        periodKey = format(monthStart, "yyyy-MM");
       }
 
       if (!aggregated[periodKey]) {
-        aggregated[periodKey] = { totalSales: 0, totalProfit: 0, rawDate: periodType === 'daily' ? billDate : (periodType === 'weekly' ? startOfWeek(billDate, {weekStartsOn: 1}) : startOfMonth(billDate)) };
+        aggregated[periodKey] = {
+          totalSales: 0,
+          totalProfit: 0,
+          rawDate: periodType === 'daily' ? billDate : (periodType === 'weekly' ? startOfWeek(billDate, {weekStartsOn: 1}) : startOfMonth(billDate))
+        };
       }
 
       const salesForBill = bill.grandTotal;
@@ -114,7 +95,6 @@ export default function SalesAnalyticsPage() {
 
       aggregated[periodKey].totalSales += salesForBill;
       aggregated[periodKey].totalProfit += profitForBill;
-      // We store displayPeriod with the key, so we'll reconstruct it from `rawDate` later
     });
 
     return Object.entries(aggregated)
@@ -123,31 +103,31 @@ export default function SalesAnalyticsPage() {
          if (periodType === "daily") displayPeriodResolved = format(data.rawDate, "PPP");
          else if (periodType === "weekly") displayPeriodResolved = `Week of ${format(data.rawDate, "MMM d, yyyy")}`;
          else displayPeriodResolved = format(data.rawDate, "MMMM yyyy");
-        
+
         return {
-            period: displayPeriodResolved, // Use the display format
+            period: displayPeriodResolved,
             totalSales: data.totalSales,
             totalProfit: data.totalProfit,
-            rawDate: data.rawDate, // Keep rawDate for sorting
+            rawDate: data.rawDate,
         };
       })
-      .sort((a,b) => b.rawDate.getTime() - a.rawDate.getTime()) // Sort by actual date descending
-      .map(({rawDate, ...rest}) => rest); // Remove rawDate from final output objects
-  };
+      .sort((a,b) => b.rawDate.getTime() - a.rawDate.getTime())
+      .map(({rawDate, ...rest}) => rest);
+  }, []);
 
 
-  const dailySalesData = useMemo(() => aggregateDataByPeriod(finalizedBills, "daily"), [finalizedBills]);
-  const weeklySalesData = useMemo(() => aggregateDataByPeriod(finalizedBills, "weekly"), [finalizedBills]);
-  const monthlySalesData = useMemo(() => aggregateDataByPeriod(finalizedBills, "monthly"), [finalizedBills]);
-  
+  const dailySalesData = useMemo(() => aggregateDataByPeriod(finalizedBills, "daily"), [finalizedBills, aggregateDataByPeriod]);
+  const weeklySalesData = useMemo(() => aggregateDataByPeriod(finalizedBills, "weekly"), [finalizedBills, aggregateDataByPeriod]);
+  const monthlySalesData = useMemo(() => aggregateDataByPeriod(finalizedBills, "monthly"), [finalizedBills, aggregateDataByPeriod]);
+
   const SummaryCard = ({ title, sales, profit }: { title: string, sales: number, profit: number }) => (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-bold">Sales: ₹{sales.toFixed(2)}</p>
-        <p className="text-xl text-green-600">Profit: ₹{profit.toFixed(2)}</p>
+        <p className="text-2xl font-bold">Sales: INR ₹{sales.toFixed(2)}</p>
+        <p className="text-xl text-green-600">Profit: INR ₹{profit.toFixed(2)}</p>
       </CardContent>
     </Card>
   );
@@ -156,7 +136,7 @@ export default function SalesAnalyticsPage() {
   const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
   const currentMonthStart = startOfMonth(today);
 
-  const todaySales = finalizedBills
+  const todaySales = useMemo(() => finalizedBills
     .filter(bill => format(parseISO(bill.date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"))
     .reduce((acc, bill) => {
       const sales = bill.grandTotal;
@@ -164,9 +144,9 @@ export default function SalesAnalyticsPage() {
       acc.sales += sales;
       acc.profit += sales - cogs;
       return acc;
-    }, { sales: 0, profit: 0 });
+    }, { sales: 0, profit: 0 }), [finalizedBills, today]);
 
-  const thisWeekSales = finalizedBills
+  const thisWeekSales = useMemo(() => finalizedBills
     .filter(bill => isWithinInterval(parseISO(bill.date), { start: currentWeekStart, end: endOfWeek(today, { weekStartsOn: 1 }) }))
     .reduce((acc, bill) => {
       const sales = bill.grandTotal;
@@ -174,9 +154,9 @@ export default function SalesAnalyticsPage() {
       acc.sales += sales;
       acc.profit += sales - cogs;
       return acc;
-    }, { sales: 0, profit: 0 });
+    }, { sales: 0, profit: 0 }), [finalizedBills, currentWeekStart, today]);
 
-  const thisMonthSales = finalizedBills
+  const thisMonthSales = useMemo(() => finalizedBills
     .filter(bill => format(parseISO(bill.date), "yyyy-MM") === format(currentMonthStart, "yyyy-MM"))
     .reduce((acc, bill) => {
       const sales = bill.grandTotal;
@@ -184,25 +164,25 @@ export default function SalesAnalyticsPage() {
       acc.sales += sales;
       acc.profit += sales - cogs;
       return acc;
-    }, { sales: 0, profit: 0 });
+    }, { sales: 0, profit: 0 }), [finalizedBills, currentMonthStart]);
 
 
   const renderSalesDataTable = (data: SalesData[], caption: string) => {
-    if (loading) {
+    if (loading && data.length === 0) { // Show skeleton only if loading and no data yet
       return (
-        <div className="space-y-2">
+        <div className="space-y-2 pt-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
       );
     }
-    if (data.length === 0) {
-      return <p className="text-muted-foreground">No sales data for this period.</p>;
+    if (data.length === 0 && !loading) {
+      return <p className="text-muted-foreground pt-4">No sales data for this period.</p>;
     }
     return (
       <Table>
-        <caption>{caption}</caption>
+        <caption className="sr-only">{caption}</caption>
         <TableHeader>
           <TableRow>
             <TableHead>Period</TableHead>
@@ -214,8 +194,8 @@ export default function SalesAnalyticsPage() {
           {data.map((entry) => (
             <TableRow key={entry.period}>
               <TableCell>{entry.period}</TableCell>
-              <TableCell className="text-right">₹{entry.totalSales.toFixed(2)}</TableCell>
-              <TableCell className="text-right">₹{entry.totalProfit.toFixed(2)}</TableCell>
+              <TableCell className="text-right">INR ₹{entry.totalSales.toFixed(2)}</TableCell>
+              <TableCell className="text-right text-green-600">INR ₹{entry.totalProfit.toFixed(2)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -232,7 +212,7 @@ export default function SalesAnalyticsPage() {
         </h1>
       </div>
 
-      {loading ? (
+      {loading && !finalizedBills.length ? ( // Show skeleton for summary cards only on initial load
         <div className="grid gap-4 md:grid-cols-3">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
