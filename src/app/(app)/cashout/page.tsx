@@ -87,7 +87,9 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
-        return [...prevBillItems, { ...itemToAdd, quantityInBill: 1 }];
+        // Exclude description when adding to bill
+        const { description, ...itemDetails } = itemToAdd;
+        return [...prevBillItems, { ...itemDetails, quantityInBill: 1 }];
       }
     });
   };
@@ -158,21 +160,22 @@ export default function BillingPage() {
         const grandTotal = billItems.reduce((total, item) => total + (item.rate * item.quantityInBill), 0);
         const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
           date: new Date().toISOString(), // Or serverTimestamp()
-          items: billItems.map(bi => ({ // Ensure only necessary fields are saved
-            id: bi.id, // Firestore ID of the inventory item
-            name: bi.name,
-            batchNo: bi.batchNo,
-            unit: bi.unit,
-            mrp: bi.mrp,
-            rate: bi.rate, // Rate at the time of sale
-            quantityInBill: bi.quantityInBill,
-            // Exclude fields not relevant to a BillItem copy like stock, lowStockThreshold, description, expiryDate from root
-            description: bi.description, // keep if needed for bill details
-            expiryDate: bi.expiryDate, // keep if needed
-            stock: 0, // Not relevant for the bill copy
-            lowStockThreshold: 0, // Not relevant
-            lastUpdated: "" // Not relevant
-          })),
+          items: billItems.map(bi => {
+            // Ensure only necessary fields are saved, and description is excluded
+            const { description, stock, lowStockThreshold, lastUpdated, ...billItemData } = bi;
+            return {
+              ...billItemData,
+              // Explicitly list fields to ensure correct typing and exclusion
+              id: bi.id,
+              name: bi.name,
+              batchNo: bi.batchNo,
+              unit: bi.unit,
+              mrp: bi.mrp,
+              rate: bi.rate,
+              quantityInBill: bi.quantityInBill,
+              expiryDate: bi.expiryDate,
+            };
+          }),
           grandTotal: grandTotal,
           customerName: "Walk-in Customer", 
           customerAddress: "N/A", 

@@ -14,7 +14,7 @@ import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
 import type { InventoryItem } from "@/lib/types";
 
 // Type for the parsed CSV record, preparing for Firestore (ID will be auto-generated)
-type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated'>;
+type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated' | 'description'>;
 
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -55,7 +55,7 @@ export default function ImportInventoryPage() {
     // Define expected headers (lowercase for case-insensitive matching)
     const expectedHeaders = {
       name: "name",
-      description: "description",
+      // description: "description", // Removed
       batchNo: "batchno",
       unit: "unit",
       stock: "stock",
@@ -72,7 +72,7 @@ export default function ImportInventoryPage() {
     }
 
     // Check for required headers
-    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "description", "stock", "lowStockThreshold", "rate", "mrp"];
+    const requiredFields: (keyof typeof expectedHeaders)[] = ["name", "stock", "lowStockThreshold", "rate", "mrp"];
     for (const field of requiredFields) {
       if (headerIndices[field] === -1) {
         throw new Error(`CSV header must contain '${expectedHeaders[field]}' column (case-insensitive).`);
@@ -91,9 +91,7 @@ export default function ImportInventoryPage() {
       if (!name) { validRow = false; console.warn(`Skipping row ${i+1}: Name is required.`); }
       itemData.name = name;
 
-      const description = values[headerIndices.description]?.trim();
-      if (!description) { validRow = false; console.warn(`Skipping row ${i+1}: Description is required.`); }
-      itemData.description = description;
+      // itemData.description removed
       
       itemData.batchNo = headerIndices.batchNo !== -1 ? values[headerIndices.batchNo]?.trim() || undefined : undefined;
       itemData.unit = headerIndices.unit !== -1 ? values[headerIndices.unit]?.trim() || undefined : undefined;
@@ -264,7 +262,7 @@ export default function ImportInventoryPage() {
             The CSV file must contain a header row with the following columns (case-insensitive):
             <ul className="list-disc list-inside mt-2 text-xs">
               <li><code className="font-semibold">name</code> (Required, Text)</li>
-              <li><code className="font-semibold">description</code> (Required, Text)</li>
+              {/* <li><code className="font-semibold">description</code> (Required, Text)</li> Removed */}
               <li><code className="font-semibold">batchNo</code> (Optional, Text)</li>
               <li><code className="font-semibold">unit</code> (Optional, Text - e.g., strips, bottle)</li>
               <li><code className="font-semibold">stock</code> (Required, Number - initial stock quantity)</li>
@@ -290,9 +288,9 @@ export default function ImportInventoryPage() {
               Example CSV format (ensure headers are exactly as listed above, case-insensitive):
             </p>
             <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
-name,description,batchNo,unit,stock,lowStockThreshold,rate,mrp,expiryDate<br/>
-Amoxicillin 250mg,Antibiotic capsules,BATCH001,strips,100,20,50.00,55.00,2025-12-31<br/>
-Paracetamol 500mg,Pain reliever tablets,,pcs,200,50,25.50,30.00,
+name,batchNo,unit,stock,lowStockThreshold,rate,mrp,expiryDate<br/>
+Amoxicillin 250mg,BATCH001,strips,100,20,50.00,55.00,2025-12-31<br/>
+Paracetamol 500mg,,pcs,200,50,25.50,30.00,
             </pre>
           </div>
         </CardContent>
@@ -315,5 +313,4 @@ Paracetamol 500mg,Pain reliever tablets,,pcs,200,50,25.50,30.00,
     </div>
   );
 }
-
     

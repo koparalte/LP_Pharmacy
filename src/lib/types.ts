@@ -2,13 +2,13 @@
 export type InventoryItem = {
   id: string; // Firestore document ID
   name: string;
-  description: string;
+  // description: string; // Removed
   batchNo?: string;
   unit?: string; 
   stock: number;
   lowStockThreshold: number;
-  mrp: number; 
   rate: number; 
+  mrp: number; 
   expiryDate?: string; // YYYY-MM-DD
   lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
@@ -41,7 +41,7 @@ export type BillItem = {
   mrp: number; // MRP at the time of sale
   rate: number; // Rate at the time of sale
   quantityInBill: number;
-  description?: string; // Optional: if you want to store a snapshot of item description
+  // description?: string; // Removed: Optional: if you want to store a snapshot of item description
   expiryDate?: string; // Optional: if you want to store a snapshot of expiry
   // Exclude: stock, lowStockThreshold, lastUpdated from the original InventoryItem type for the BillItem copy
 };
@@ -55,3 +55,4 @@ export type FinalizedBill = {
   customerName: string;
   customerAddress?: string;
 };
+

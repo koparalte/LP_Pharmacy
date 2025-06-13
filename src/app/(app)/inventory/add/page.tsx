@@ -22,7 +22,7 @@ export default function AddInventoryItemPage() {
       // For adding, stockAdjustment is not used. data.stock is the initial stock.
       const newItemPayload: Omit<InventoryItem, 'id'> = {
         name: data.name,
-        description: data.description,
+        // description: data.description, // Removed
         batchNo: data.batchNo || undefined,
         unit: data.unit || undefined,
         stock: data.stock, // This is the initial stock from the form

@@ -80,12 +80,16 @@ export default function EditInventoryItemPage() {
       const { stockAdjustment: _, ...updatePayloadBase } = data;
 
 
-      const updatePayload: Partial<InventoryItem> = {
-        ...updatePayloadBase,
+      // Explicitly construct payload to ensure description is not included if it was in 'data' accidentally
+      const updatePayload: Omit<Partial<InventoryItem>, 'description'> = {
+        name: updatePayloadBase.name,
+        batchNo: updatePayloadBase.batchNo || undefined,
+        unit: updatePayloadBase.unit || undefined,
         stock: newStock,
-        expiryDate: data.expiryDate ? data.expiryDate.toISOString().split('T')[0] : undefined,
-        batchNo: data.batchNo || undefined,
-        unit: data.unit || undefined,
+        lowStockThreshold: updatePayloadBase.lowStockThreshold,
+        rate: updatePayloadBase.rate,
+        mrp: updatePayloadBase.mrp,
+        expiryDate: updatePayloadBase.expiryDate ? updatePayloadBase.expiryDate.toISOString().split('T')[0] : undefined,
         lastUpdated: new Date().toISOString(),
       };
       
@@ -117,7 +121,7 @@ export default function EditInventoryItemPage() {
           <Skeleton className="h-8 w-1/4" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-20 w-full" />
+          {/* <Skeleton className="h-20 w-full" /> Description Skeleton Removed */}
           <Skeleton className="h-10 w-full" />
           <div className="flex justify-end gap-2">
             <Skeleton className="h-10 w-24" />

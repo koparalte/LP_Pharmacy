@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea"; // Removed
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,7 +27,7 @@ import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
-  description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500),
+  // description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(500), // Removed
   batchNo: z.string().max(50).optional(),
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
@@ -54,7 +54,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      description: "",
+      // description: "", // Removed
       batchNo: "",
       unit: "",
       stock: 0,
@@ -68,8 +68,9 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
 
   useEffect(() => {
     if (isEditMode && initialData) {
+      const { description, ...restOfInitialData } = initialData; // Destructure to exclude description
       form.reset({
-        ...initialData,
+        ...restOfInitialData,
         expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate) : undefined,
         stockAdjustment: 0, // Reset adjustment field
       });
@@ -168,6 +169,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
             />
         </div>
 
+        {/* Description Field Removed
         <FormField
           control={form.control}
           name="description"
@@ -181,6 +183,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
             </FormItem>
           )}
         />
+        */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
           <FormField
@@ -268,3 +271,4 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
     </Form>
   );
 }
+
