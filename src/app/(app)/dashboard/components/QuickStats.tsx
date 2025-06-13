@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Package, AlertTriangle } from "lucide-react";
+import { DollarSign, Package, AlertTriangle, PackageCheck, PackageX } from "lucide-react";
 import type { ReportData } from "@/lib/types";
 
 interface QuickStatsProps {
@@ -9,14 +9,15 @@ interface QuickStatsProps {
 
 export function QuickStats({ data }: QuickStatsProps) {
   const stats = [
-    { title: "Total Items", value: data.totalItems, icon: Package, color: "text-primary" },
-    // Total Inventory Value will now be calculated using 'rate' by the data source
+    { title: "Total Unique Items", value: data.totalUniqueItems, icon: Package, color: "text-primary" },
+    { title: "Items In Stock", value: data.itemsInStockCount, icon: PackageCheck, color: "text-green-600" },
+    { title: "Items Out of Stock", value: data.itemsOutOfStockCount, icon: PackageX, color: "text-red-500" },
     { title: "Total Inventory Value (at Rate)", value: `INR ₹${data.totalValue.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
-    { title: "Low Stock Items", value: data.lowStockItemsCount, icon: AlertTriangle, color: "text-destructive" },
+    { title: "Low Stock Alerts", value: data.lowStockItemsCount, icon: AlertTriangle, color: "text-destructive" },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       {stats.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -25,7 +26,6 @@ export function QuickStats({ data }: QuickStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
-            {/* <p className="text-xs text-muted-foreground">+20.1% from last month</p> */}
           </CardContent>
         </Card>
       ))}

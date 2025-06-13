@@ -2,6 +2,7 @@
 "use client";
 import { QuickStats } from "./components/QuickStats";
 import { LowStockSummary } from "./components/LowStockSummary";
+import { RecentItemsSummary } from "./components/RecentItemsSummary";
 import type { InventoryItem, ReportData } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
@@ -15,9 +16,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DashboardPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [reportData, setReportData] = useState<ReportData>({
-    totalItems: 0,
+    totalUniqueItems: 0,
     totalValue: 0,
     lowStockItemsCount: 0,
+    itemsInStockCount: 0,
+    itemsOutOfStockCount: 0,
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -26,8 +29,7 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const inventoryCollection = collection(db, "inventory");
-      // Optional: Add orderBy for consistency, e.g., orderBy("name")
-      const q = query(inventoryCollection); 
+      const q = query(inventoryCollection, orderBy("lastUpdated", "desc"));
       const querySnapshot = await getDocs(q);
       const itemsToUse = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -37,9 +39,11 @@ export default function DashboardPage() {
       setInventoryItems(itemsToUse);
 
       const newReportData: ReportData = {
-        totalItems: itemsToUse.length,
+        totalUniqueItems: itemsToUse.length,
         totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0),
         lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
+        itemsInStockCount: itemsToUse.filter(item => item.stock > 0).length,
+        itemsOutOfStockCount: itemsToUse.filter(item => item.stock === 0).length,
       };
       setReportData(newReportData);
 
@@ -51,7 +55,13 @@ export default function DashboardPage() {
         variant: "destructive",
       });
        setInventoryItems([]);
-       setReportData({ totalItems: 0, totalValue: 0, lowStockItemsCount: 0 });
+       setReportData({ 
+         totalUniqueItems: 0, 
+         totalValue: 0, 
+         lowStockItemsCount: 0,
+         itemsInStockCount: 0,
+         itemsOutOfStockCount: 0
+        });
     } finally {
       setLoading(false);
     }
@@ -67,7 +77,9 @@ export default function DashboardPage() {
       <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
       
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-28 w-full" />
@@ -77,29 +89,36 @@ export default function DashboardPage() {
       )}
       
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {loading ? (
-           <Skeleton className="h-64 w-full" />
-        ) : (
-           <LowStockSummary items={inventoryItems} />
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+            {loading ? (
+                <Skeleton className="h-64 w-full" />
+            ) : (
+                <RecentItemsSummary items={inventoryItems} />
+            )}
+            {loading ? (
+                <Skeleton className="h-64 w-full" />
+            ) : (
+                <LowStockSummary items={inventoryItems} />
+            )}
+        </div>
         
-        <Card>
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Welcome to LP Pharmacy Inventory</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-muted-foreground">Manage your pharmacy's inventory efficiently and effectively. Use the navigation to track stock, add new items, and generate reports.</p>
             {loading ? (
-              <Skeleton className="h-[300px] w-full rounded-md" />
+              <Skeleton className="h-[200px] w-full rounded-md" />
             ) : (
               <Image 
-                src="https://placehold.co/600x300.png" 
+                src="https://placehold.co/600x400.png" 
                 alt="Pharmacy illustration" 
                 width={600} 
-                height={300} 
-                className="rounded-md object-cover"
-                data-ai-hint="pharmacy interior" 
+                height={400} 
+                className="rounded-md object-cover w-full"
+                data-ai-hint="pharmacy modern" 
               />
             )}
           </CardContent>

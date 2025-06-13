@@ -3,20 +3,22 @@ export type InventoryItem = {
   id: string; // Firestore document ID
   name: string;
   batchNo?: string;
-  unit?: string; 
+  unit?: string;
   stock: number;
   lowStockThreshold: number;
   costPrice: number; // Cost price of the item
-  rate: number; 
-  mrp: number; 
+  rate: number;
+  mrp: number;
   expiryDate?: string; // YYYY-MM-DD
   lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
 
 export type ReportData = {
-  totalItems: number;
-  totalValue: number; 
+  totalUniqueItems: number; // Renamed from totalItems
+  totalValue: number;
   lowStockItemsCount: number;
+  itemsInStockCount: number; // New
+  itemsOutOfStockCount: number; // New
   itemsExpiringSoon?: number;
 };
 
@@ -45,8 +47,8 @@ export type BillItem = {
 export type FinalizedBill = {
   id: string; // Firestore document ID for this bill
   date: string; // ISO DateTime string (or Firestore Timestamp) when the bill was finalized
-  items: BillItem[]; 
-  grandTotal: number; 
+  items: BillItem[];
+  grandTotal: number;
   customerName: string;
   customerAddress?: string;
 };
