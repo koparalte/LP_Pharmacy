@@ -35,7 +35,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger, it's used as DialogTrigger's child
+  AlertDialogTrigger, // Added AlertDialogTrigger back
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -222,7 +223,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
       </ScrollArea>
 
       {selectedBill && (
-        <DialogContent className="sm:max-w-2xl no-print"> {/* Added no-print class here */}
+        <DialogContent className="sm:max-w-2xl no-print">
           <DialogHeader className="no-print">
             <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
             <DialogDescription>
@@ -302,7 +303,6 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
             </div>
           </div>
           
-          {/* Removed the print-only div from here as printing is handled by a new page */}
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
             <div className="flex gap-2 items-center"> 
