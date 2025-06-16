@@ -5,7 +5,6 @@ import type { BillItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Minus, ShoppingCart, CreditCard, Landmark } from "lucide-react";
 
@@ -27,15 +26,6 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onMa
     onUpdateQuantity(itemId, newQuantity);
   };
   
-  const handleDirectQuantityInput = (itemId: string, value: string) => {
-    const newQuantity = parseInt(value, 10);
-    if (!isNaN(newQuantity) && newQuantity >= 1) {
-      onUpdateQuantity(itemId, newQuantity);
-    } else if (value === "") {
-      onUpdateQuantity(itemId, 1);
-    }
-  };
-
 
   if (billItems.length === 0) {
     return (
@@ -87,13 +77,9 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onMa
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <Input
-                        type="number"
-                        value={item.quantityInBill}
-                        onChange={(e) => handleDirectQuantityInput(item.id, e.target.value)}
-                        className="h-7 w-12 text-center px-1"
-                        min="1"
-                      />
+                      <span className="inline-block w-12 text-center text-sm font-medium">
+                        {item.quantityInBill}
+                      </span>
                       <Button
                         variant="outline"
                         size="icon"
