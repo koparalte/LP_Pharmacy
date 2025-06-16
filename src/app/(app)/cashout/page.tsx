@@ -129,11 +129,11 @@ export default function BillingPage() {
     );
   };
 
-  const handleFinalizeBill = async () => {
+  const processBill = async (status: 'paid' | 'debt') => {
     if (billItems.length === 0) {
       toast({
         title: "Empty Bill",
-        description: "Please add items to the bill before finalizing.",
+        description: "Please add items to the bill before processing.",
         variant: "destructive",
       });
       return;
@@ -166,12 +166,10 @@ export default function BillingPage() {
           inventoryUpdates.push({ docRef: itemDocRef, newStock });
         }
 
-        // Apply inventory updates
         for (const update of inventoryUpdates) {
           transaction.update(update.docRef, { stock: update.newStock, lastUpdated: billTimestamp });
         }
 
-        // Create finalized bill document
         const grandTotal = billItems.reduce((total, item) => total + (item.mrp * item.quantityInBill), 0);
         const billItemsForPayload: BillItem[] = billItems.map(bi => ({
           id: bi.id,
@@ -189,14 +187,14 @@ export default function BillingPage() {
           items: billItemsForPayload,
           grandTotal: grandTotal,
           customerName: "Walk-in Customer", 
-          customerAddress: "N/A", 
+          customerAddress: "N/A",
+          status: status, 
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
         transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
 
       });
 
-      // After transaction succeeds, log movements (outside transaction to avoid complex transaction rollbacks on log failure)
       for (const bItem of billItems) {
          try {
             await logInventoryMovement({
@@ -206,11 +204,10 @@ export default function BillingPage() {
               quantity: bItem.quantityInBill,
               movementDate: billDateStr,
               source: 'sale',
-              reason: `Sale - Bill ID: ${customBillId}`,
+              reason: `Sale - Bill ID: ${customBillId} (Status: ${status})`,
             });
           } catch (logError) {
              console.error(`Failed to log movement for item ${bItem.name} in bill ${customBillId}:`, logError);
-             // Optionally, toast a non-critical error for logging failure
              toast({
                 title: "Movement Log Issue",
                 description: `Could not log movement for ${bItem.name}. Inventory & bill are updated.`,
@@ -219,8 +216,6 @@ export default function BillingPage() {
           }
       }
 
-
-      // Update local inventory state
       const updatedLocalInventory = inventory.map(invItem => {
         const billItem = billItems.find(bi => bi.id === invItem.id);
         if (billItem) {
@@ -233,14 +228,14 @@ export default function BillingPage() {
       setBillItems([]); 
 
       toast({
-        title: "Bill Finalized!",
+        title: `Bill Marked as ${status.charAt(0).toUpperCase() + status.slice(1)}!`,
         description: "Bill processed, inventory updated, and movements logged.",
       });
 
     } catch (error: any) {
-      console.error("Error finalizing bill: ", error);
+      console.error(`Error processing bill as ${status}: `, error);
       toast({
-        title: "Error Finalizing Bill",
+        title: `Error Marking Bill as ${status.charAt(0).toUpperCase() + status.slice(1)}`,
         description: error.message || "Could not process the bill. Please try again.",
         variant: "destructive",
       });
@@ -248,6 +243,9 @@ export default function BillingPage() {
       setIsSubmittingBill(false);
     }
   };
+
+  const handleMarkAsPaid = () => processBill('paid');
+  const handleMarkAsDebt = () => processBill('debt');
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) =>
@@ -322,7 +320,8 @@ export default function BillingPage() {
           billItems={billItems}
           onRemoveItem={handleRemoveItemFromBill}
           onUpdateQuantity={handleUpdateItemQuantity}
-          onFinalizeBill={handleFinalizeBill}
+          onMarkAsPaid={handleMarkAsPaid}
+          onMarkAsDebt={handleMarkAsDebt}
           isSubmitting={isSubmittingBill}
         />
       </div>

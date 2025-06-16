@@ -7,22 +7,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, CreditCard, Landmark } from "lucide-react";
 
 interface BillingReceiptProps {
   billItems: BillItem[];
   onRemoveItem: (itemId: string) => void;
   onUpdateQuantity: (itemId: string, newQuantity: number) => void;
-  onFinalizeBill: () => void;
+  onMarkAsPaid: () => void;
+  onMarkAsDebt: () => void;
   isSubmitting: boolean;
 }
 
-export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFinalizeBill, isSubmitting }: BillingReceiptProps) {
-  const calculateSubtotal = (item: BillItem) => item.mrp * item.quantityInBill; // Use mrp as selling price for subtotal
+export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onMarkAsPaid, onMarkAsDebt, isSubmitting }: BillingReceiptProps) {
+  const calculateSubtotal = (item: BillItem) => item.mrp * item.quantityInBill;
   const grandTotal = billItems.reduce((total, item) => total + calculateSubtotal(item), 0);
 
   const handleQuantityChange = (itemId: string, currentQuantity: number, change: number) => {
-    const newQuantity = Math.max(1, currentQuantity + change); // Quantity cannot be less than 1
+    const newQuantity = Math.max(1, currentQuantity + change); 
     onUpdateQuantity(itemId, newQuantity);
   };
   
@@ -60,7 +61,7 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
         <CardDescription>Review items and finalize the transaction.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[calc(100vh-380px)] pr-3">
+        <ScrollArea className="h-[calc(100vh-420px)] pr-3"> {/* Adjusted height for two buttons */}
           <Table>
             <TableHeader>
               <TableRow>
@@ -121,9 +122,14 @@ export function BillingReceipt({ billItems, onRemoveItem, onUpdateQuantity, onFi
           <span>Grand Total:</span>
           <span>INR ₹{grandTotal.toFixed(2)}</span>
         </div>
-        <Button onClick={onFinalizeBill} className="w-full" size="lg" disabled={isSubmitting || billItems.length === 0}>
-          {isSubmitting ? "Processing..." : "Finalize Bill"}
-        </Button>
+        <div className="grid grid-cols-2 gap-2 w-full">
+            <Button onClick={onMarkAsPaid} size="lg" disabled={isSubmitting || billItems.length === 0} className="bg-green-600 hover:bg-green-700 text-white">
+                <CreditCard className="mr-2 h-5 w-5" /> {isSubmitting ? "Processing..." : "Mark as Paid"}
+            </Button>
+            <Button onClick={onMarkAsDebt} size="lg" variant="outline" disabled={isSubmitting || billItems.length === 0} className="border-orange-500 text-orange-500 hover:bg-orange-50 hover:text-orange-600">
+                <Landmark className="mr-2 h-5 w-5" /> {isSubmitting ? "Processing..." : "Mark as Debt"}
+            </Button>
+        </div>
       </CardFooter>
     </Card>
   );

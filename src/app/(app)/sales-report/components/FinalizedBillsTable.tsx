@@ -33,7 +33,7 @@ import { doc, updateDoc } from "firebase/firestore";
 
 interface FinalizedBillsTableProps {
   bills: FinalizedBill[];
-  onBillUpdate: (updatedBill: FinalizedBill) => void; // Callback to update a single bill in parent state
+  onBillUpdate: (updatedBill: FinalizedBill) => void; 
 }
 
 export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTableProps) {
@@ -57,7 +57,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     try {
       return new Date(dateString).toLocaleString();
     } catch (e) {
-      return dateString; // Fallback if date is not valid
+      return dateString; 
     }
   };
 
@@ -83,8 +83,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
         ...selectedBill,
         ...updatedDetails,
       };
-      onBillUpdate(updatedBill); // Update parent state
-      setSelectedBill(updatedBill); // Update local dialog state
+      onBillUpdate(updatedBill); 
+      setSelectedBill(updatedBill); 
       toast({ title: "Success", description: "Customer details updated in Firestore." });
     } catch (error) {
       console.error("Error updating bill in Firestore: ", error);
@@ -94,6 +94,12 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   
   const handlePrint = () => {
     window.print();
+  };
+
+  const getStatusBadgeVariant = (status: 'paid' | 'debt'): "default" | "destructive" | "secondary" | "outline" | null | undefined => {
+    if (status === 'paid') return 'default'; // Or "success" if you define such a variant
+    if (status === 'debt') return 'destructive'; // Or "warning"
+    return 'secondary';
   };
 
 
@@ -110,8 +116,9 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
               <TableHead>Bill ID</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead className="text-center">Items Sold</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
+              <TableHead className="text-center">Items</TableHead>
+              <TableHead className="text-right">Total (₹)</TableHead>
+              <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Details</TableHead>
             </TableRow>
           </TableHeader>
@@ -124,7 +131,12 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 <TableCell className="text-center">
                   <Badge variant="secondary">{calculateTotalItems(bill)}</Badge>
                 </TableCell>
-                <TableCell className="text-right font-medium">INR ₹{bill.grandTotal.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-medium">₹{bill.grandTotal.toFixed(2)}</TableCell>
+                <TableCell className="text-center">
+                   <Badge variant={getStatusBadgeVariant(bill.status)} className={bill.status === 'paid' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}>
+                    {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-center">
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" onClick={() => setSelectedBill(bill)}>
@@ -179,6 +191,9 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
               <div className="print-only hidden text-sm">
                 <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
               </div>
+               <div className="text-sm">
+                <p><strong>Status:</strong> <span className={selectedBill.status === 'paid' ? 'text-green-600 font-semibold' : 'text-orange-600 font-semibold'}>{selectedBill.status.charAt(0).toUpperCase() + selectedBill.status.slice(1)}</span></p>
+              </div>
             </div>
 
             <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md print-dialog-scroll-area print-items-table-area">
@@ -187,7 +202,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   <TableRow>
                     <TableHead>Item Name</TableHead>
                     <TableHead className="text-center">Qty</TableHead>
-                    <TableHead className="text-right">Rate (₹)</TableHead>
+                    <TableHead className="text-right">MRP (₹)</TableHead>
                     <TableHead className="text-right">Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -196,8 +211,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                     <TableRow key={item.id && item.name ? `${item.id}-${item.name}-${index}` : `bill-item-${index}`}>
                       <TableCell>{item.name}</TableCell>
                       <TableCell className="text-center">{item.quantityInBill}</TableCell>
-                      <TableCell className="text-right">INR ₹{item.rate.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">INR ₹{(item.rate * item.quantityInBill).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">₹{item.mrp.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">₹{(item.mrp * item.quantityInBill).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

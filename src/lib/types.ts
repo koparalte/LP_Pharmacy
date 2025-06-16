@@ -49,6 +49,7 @@ export type FinalizedBill = {
   grandTotal: number;
   customerName: string;
   customerAddress?: string;
+  status: 'paid' | 'debt'; // New status field
 };
 
 export type InventoryMovementSource = 

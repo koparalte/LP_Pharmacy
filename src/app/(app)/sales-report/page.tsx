@@ -21,7 +21,7 @@ export default function SalesReportPage() {
 
   const loadBills = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && lastFetchedBills && (Date.now() - lastFetchedBills < BILLS_STALE_TIME)) {
-      setLoading(false); // Already have recent data
+      setLoading(false); 
       return;
     }
     setLoading(true);
@@ -58,8 +58,6 @@ export default function SalesReportPage() {
       prevBills.map(bill => bill.id === updatedBill.id ? updatedBill : bill)
                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     );
-    // No need to change lastFetchedBills here, as it's a local update reflecting a change.
-    // A full refetch might still be desired if other bills were added concurrently by another user.
   }, []);
 
 
@@ -73,7 +71,7 @@ export default function SalesReportPage() {
             Finalized Bills
           </CardTitle>
           <CardDescription>
-            Review all completed sales transactions. Customer details can be edited.
+            Review all completed sales transactions. Customer details can be edited. Bills are marked as 'Paid' or 'Debt'.
           </CardDescription>
         </CardHeader>
         <CardContent>
