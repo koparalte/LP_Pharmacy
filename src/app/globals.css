@@ -151,15 +151,14 @@
       box-sizing: border-box !important;
     }
 
-    /* Target specific elements inside the dialog for white background and black text if needed */
     .print-dialog-content div,
     .print-dialog-content p,
     .print-dialog-content span,
     .print-dialog-content label,
-    .print-dialog-content header, /* DialogHeader */
+    .print-dialog-content header, 
     .print-dialog-content main, 
     .print-dialog-content section,
-    .print-dialog-content h1, /* DialogTitle and other headings */
+    .print-dialog-content h1, 
     .print-dialog-content h2,
     .print-dialog-content h3,
     .print-dialog-content h4,
@@ -173,26 +172,26 @@
      .print-dialog-content *,
     .print-dialog-content *::before,
     .print-dialog-content *::after {
-      border-color: #ccc !important; /* Softer borders for print */
+      border-color: #ccc !important; 
     }
     
-    #printable-bill-content { /* The direct child that holds all bill elements */
+    #printable-bill-content { 
       display: flex !important;
       flex-direction: column !important;
-      flex-grow: 1 !important; /* Make this section grow to fill DialogContent */
+      flex-grow: 1 !important; 
       width: 100% !important;
-      overflow: hidden; /* Prevent its own scrollbars if content is too much for one page */
+      overflow: hidden; 
     }
 
-    .print-items-table-area { /* The ScrollArea containing the table */
-      flex-grow: 1 !important; /* This will make the table area expand */
-      overflow: visible !important; /* For print, we want content to flow, not scroll */
-      border: none !important; /* Remove border for print if desired */
+    .print-items-table-area { 
+      flex-grow: 1 !important; 
+      overflow: visible !important; 
+      border: none !important; 
       background-color: white !important;
     }
     .print-items-table-area > div[data-radix-scroll-area-viewport] {
-       max-height: none !important; /* Override screen max-height */
-       height: auto !important; /* Let content determine height */
+       max-height: none !important; 
+       height: auto !important; 
        overflow: visible !important;
        background-color: white !important;
     }
@@ -201,11 +200,11 @@
     }
 
     .print-grand-total {
-      margin-top: auto !important; /* Pushes the grand total to the bottom */
+      margin-top: auto !important; 
       width: 100% !important;
-      page-break-inside: avoid !important; /* Try to keep total on one page */
-      border-top: 1px solid #ccc !important; /* Light border above total */
-      padding-top: 0.5rem !important; /* Space above total */
+      page-break-inside: avoid !important; 
+      border-top: 1px solid #ccc !important; 
+      padding-top: 0.5rem !important; 
       background-color: white !important;
       color: black !important;
     }
@@ -216,11 +215,19 @@
 
     .print-dialog-content table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: collapse !important; /* Crucial for clean lines */
       background-color: white !important;
     }
+
+    /* Remove default TR borders for print */
+    .print-dialog-content tr {
+      border-top: none !important;
+      border-bottom: none !important;
+      border-color: #ccc !important; /* Ensure TR borders (if any somehow sneak in) are light */
+    }
+
     .print-dialog-content th { /* Header cells */
-      border: 1px solid #ccc !important; /* Keep all borders for header cells */
+      border: 1px solid #ccc !important; /* Full border for header cells */
       padding: 0.3rem 0.5rem !important;
       text-align: left;
       background-color: #f2f2f2 !important;
@@ -228,24 +235,24 @@
       color: black !important;
       page-break-inside: avoid;
     }
+
     .print-dialog-content td { /* Data/item cells */
       border-left: 1px solid #ccc !important;
       border-right: 1px solid #ccc !important;
-      border-top: none !important;    /* Removes horizontal lines between item rows */
-      border-bottom: none !important; /* Removes horizontal lines between item rows */
+      border-top: none !important;    /* No top border for item cells */
+      border-bottom: none !important; /* No bottom border for item cells by default */
       padding: 0.3rem 0.5rem !important;
       text-align: left;
       background-color: white !important;
       color: black !important;
       page-break-inside: avoid;
     }
-    /* Ensure the table itself has an overall bottom border to close the item list box */
-    .print-dialog-content .print-items-table-area > table {
-        border-bottom: 1px solid #ccc !important;
+
+    /* Add bottom border ONLY to the cells in the LAST row of the item body */
+    .print-dialog-content tbody tr:last-child td {
+      border-bottom: 1px solid #ccc !important;
     }
 
-
-    /* Tailwind text alignment and font weight helpers for print */
     .print-dialog-content .text-right { text-align: right !important; }
     .print-dialog-content .text-center { text-align: center !important; }
     .print-dialog-content .font-semibold { font-weight: 600 !important; }
