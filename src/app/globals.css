@@ -111,7 +111,7 @@
 @layer utilities {
   @media print {
     html, body {
-      height: 100% !important;
+      height: auto !important; /* Changed from 100% to auto */
       margin: 0 !important;
       padding: 0 !important;
       background-color: white !important;
@@ -121,7 +121,7 @@
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       font-size: 10pt !important;
-      width: 100% !important; /* Ensure body takes full width */
+      width: 100% !important;
     }
     .no-print {
       display: none !important;
@@ -131,23 +131,20 @@
     }
 
     .print-dialog-content {
-      position: absolute !important;
-      left: 0 !important;
-      top: 0 !important;
+      position: static !important; /* Changed from absolute to static */
       width: 100% !important;
       max-width: 100% !important;
-      height: 100% !important; /* Take full height of the page */
+      height: auto !important; /* Changed from 100% to auto */
       max-height: none !important;
       border: none !important;
       box-shadow: none !important;
-      padding: 1rem !important; /* Adjust padding as needed for print */
+      padding: 1rem !important; 
       margin: 0 !important;
-      overflow: hidden !important; /* Prevent scrollbars on the dialog itself */
+      overflow: visible !important; /* Changed from hidden to visible */
       transform: none !important;
       background-color: white !important; 
       color: black !important;
-      display: flex !important;
-      flex-direction: column !important;
+      display: block !important; /* Changed from flex to block */
       box-sizing: border-box !important;
     }
 
@@ -176,18 +173,23 @@
     }
     
     #printable-bill-content { 
-      display: flex !important;
-      flex-direction: column !important;
-      flex-grow: 1 !important; 
+      display: block !important; /* Changed from flex to block */
       width: 100% !important;
-      overflow: hidden; 
+      overflow: visible !important; /* Changed from hidden */
+      height: auto !important; /* Added height auto */
+    }
+
+    .print-dialog-scroll-area { /* Targets the ScrollArea root */
+      overflow: visible !important;
+      height: auto !important;
     }
 
     .print-items-table-area { 
-      flex-grow: 1 !important; 
+      /* flex-grow: 1 !important; REMOVED */
       overflow: visible !important; 
       border: none !important; 
       background-color: white !important;
+      height: auto !important; /* Added height auto */
     }
     .print-items-table-area > div[data-radix-scroll-area-viewport] {
        max-height: none !important; 
@@ -200,7 +202,8 @@
     }
 
     .print-grand-total {
-      margin-top: auto !important; 
+      /* margin-top: auto !important; REMOVED */
+      margin-top: 1rem !important; /* Added for spacing */
       width: 100% !important;
       page-break-inside: avoid !important; 
       border-top: 1px solid #ccc !important; 
@@ -215,19 +218,18 @@
 
     .print-dialog-content table {
       width: 100%;
-      border-collapse: collapse !important; /* Crucial for clean lines */
+      border-collapse: collapse !important;
       background-color: white !important;
     }
 
-    /* Remove default TR borders for print */
     .print-dialog-content tr {
       border-top: none !important;
       border-bottom: none !important;
-      border-color: #ccc !important; /* Ensure TR borders (if any somehow sneak in) are light */
+      border-color: #ccc !important;
     }
 
-    .print-dialog-content th { /* Header cells */
-      border: 1px solid #ccc !important; /* Full border for header cells */
+    .print-dialog-content th {
+      border: 1px solid #ccc !important;
       padding: 0.3rem 0.5rem !important;
       text-align: left;
       background-color: #f2f2f2 !important;
@@ -236,11 +238,11 @@
       page-break-inside: avoid;
     }
 
-    .print-dialog-content td { /* Data/item cells */
+    .print-dialog-content td {
       border-left: 1px solid #ccc !important;
       border-right: 1px solid #ccc !important;
-      border-top: none !important;    /* No top border for item cells */
-      border-bottom: none !important; /* No bottom border for item cells by default */
+      border-top: none !important;   
+      border-bottom: none !important;
       padding: 0.3rem 0.5rem !important;
       text-align: left;
       background-color: white !important;
@@ -248,7 +250,6 @@
       page-break-inside: avoid;
     }
 
-    /* Add bottom border ONLY to the cells in the LAST row of the item body */
     .print-dialog-content tbody tr:last-child td {
       border-bottom: 1px solid #ccc !important;
     }
