@@ -1,3 +1,6 @@
+
+"use client";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,30 +12,53 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CreditCard, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { LogOut, Settings, User as UserIcon, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export function UserNav() {
-  // In a real app, you'd get user data from an auth context
-  const user = {
-    name: "Admin User",
-    email: "admin@lppharmacy.com",
-    avatarUrl: "https://placehold.co/40x40.png",
+  const { user, logout, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Button variant="ghost" className="relative h-10 w-10 rounded-full" disabled>
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </Button>
+    );
+  }
+
+  if (!user) {
+    // Optionally, render a sign-in button or nothing if user is not logged in
+    // For now, returning null as protected routes should handle redirection
+    return null;
+  }
+  
+  const getInitials = (name?: string | null) => {
+    if (!name) return "";
+    const names = name.split(' ');
+    let initials = names[0].substring(0, 1).toUpperCase();
+    if (names.length > 1) {
+        initials += names[names.length - 1].substring(0, 1).toUpperCase();
+    }
+    return initials;
   };
+
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="user avatar" />
-            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+            {user.photoURL ? (
+              <AvatarImage src={user.photoURL} alt={user.displayName || user.email || "User"} data-ai-hint="user avatar" />
+            ) : null}
+            <AvatarFallback>{getInitials(user.displayName) || getInitials(user.email)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{user.displayName || "User"}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
@@ -40,17 +66,17 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem disabled>
             <UserIcon className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem disabled>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
