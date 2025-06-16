@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, Printer, Save, CheckCircle } from "lucide-react";
+import { Eye, Printer, Save, CheckCircle, Trash2, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,22 +26,39 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FinalizedBillsTableProps {
   bills: FinalizedBill[];
   onBillUpdate: (updatedBill: FinalizedBill) => void; 
+  onDeleteBill: (billId: string) => Promise<void>;
 }
 
-export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTableProps) {
+export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: FinalizedBillsTableProps) {
   const [selectedBill, setSelectedBill] = useState<FinalizedBill | null>(null);
   const [editableCustomerName, setEditableCustomerName] = useState("");
   const [editableCustomerAddress, setEditableCustomerAddress] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeletingBill, setIsDeletingBill] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+
 
   useEffect(() => {
     if (selectedBill) {
@@ -128,9 +145,24 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!selectedBill || !selectedBill.id) return;
+    setIsDeletingBill(true);
+    try {
+      await onDeleteBill(selectedBill.id);
+      setIsDeleteAlertOpen(false); // Close confirmation dialog
+      setSelectedBill(null); // Close main bill dialog
+    } catch (error) {
+       // Error toast is handled by parent `onDeleteBill`
+    } finally {
+      setIsDeletingBill(false);
+    }
+  };
+
 
   return (
-    <Dialog open={!!selectedBill} onOpenChange={(isOpen) => {
+    <>
+    <Dialog open={!!selectedBill && !isDeleteAlertOpen} onOpenChange={(isOpen) => {
       if (!isOpen) {
         setSelectedBill(null);
       }
@@ -282,11 +314,11 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
           </div>
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center"> {/* Group left-aligned buttons */}
                  <Button type="button" variant="outline" onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4" /> Print Bill
                 </Button>
-                {selectedBill && selectedBill.status === 'debt' && (
+                {selectedBill.status === 'debt' && (
                   <Button
                     type="button"
                     onClick={handleClearDebt}
@@ -296,6 +328,16 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                     <CheckCircle className="mr-2 h-4 w-4" />
                     {isUpdatingStatus ? "Updating..." : "Mark as Paid"}
                   </Button>
+                )}
+                {!authLoading && isAdmin && (
+                    <Button
+                        variant="destructive"
+                        onClick={() => setIsDeleteAlertOpen(true)}
+                        disabled={isDeletingBill}
+                    >
+                        {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Delete Bill
+                    </Button>
                 )}
             </div>
             <div className="flex gap-2">
@@ -312,7 +354,30 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
         </DialogContent>
       )}
     </Dialog>
+
+    {selectedBill && (
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+            <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this bill?</AlertDialogTitle>
+                <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete bill ID "{selectedBill.id}".
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeletingBill}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                    onClick={handleDeleteConfirm}
+                    disabled={isDeletingBill}
+                    className="bg-destructive hover:bg-destructive/90"
+                >
+                {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Bill"}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )}
+    </>
   );
 }
-
     
