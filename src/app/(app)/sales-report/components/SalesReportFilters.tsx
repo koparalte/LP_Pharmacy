@@ -2,6 +2,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { useState } from "react"; // Added useState
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -38,6 +39,9 @@ export function SalesReportFilters({
   setSelectedStatus,
   onClearFilters,
 }: SalesReportFiltersProps) {
+  const [startDatePopoverOpen, setStartDatePopoverOpen] = useState(false);
+  const [endDatePopoverOpen, setEndDatePopoverOpen] = useState(false);
+
   return (
     <div className="mb-6 p-4 border rounded-lg shadow-sm bg-card space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
@@ -84,7 +88,7 @@ export function SalesReportFilters({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
          <div>
           <label htmlFor="start-date" className="text-sm font-medium text-muted-foreground">Start Date</label>
-            <Popover>
+            <Popover open={startDatePopoverOpen} onOpenChange={setStartDatePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   id="start-date"
@@ -102,7 +106,10 @@ export function SalesReportFilters({
                 <Calendar
                   mode="single"
                   selected={startDate}
-                  onSelect={setStartDate}
+                  onSelect={(date) => {
+                    setStartDate(date);
+                    setStartDatePopoverOpen(false);
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -110,7 +117,7 @@ export function SalesReportFilters({
         </div>
         <div>
             <label htmlFor="end-date" className="text-sm font-medium text-muted-foreground">End Date</label>
-            <Popover>
+            <Popover open={endDatePopoverOpen} onOpenChange={setEndDatePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   id="end-date"
@@ -128,7 +135,10 @@ export function SalesReportFilters({
                 <Calendar
                   mode="single"
                   selected={endDate}
-                  onSelect={setEndDate}
+                  onSelect={(date) => {
+                    setEndDate(date);
+                    setEndDatePopoverOpen(false);
+                  }}
                   disabled={(date) => startDate ? date < startDate : false}
                   initialFocus
                 />
@@ -142,3 +152,4 @@ export function SalesReportFilters({
     </div>
   );
 }
+

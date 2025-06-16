@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, Printer, Save } from "lucide-react";
+import { Eye, Printer, Save, CheckCircle } from "lucide-react"; // Added CheckCircle
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   const [selectedBill, setSelectedBill] = useState<FinalizedBill | null>(null);
   const [editableCustomerName, setEditableCustomerName] = useState("");
   const [editableCustomerAddress, setEditableCustomerAddress] = useState("");
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,10 +86,10 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
       };
       onBillUpdate(updatedBill); 
       setSelectedBill(updatedBill); 
-      toast({ title: "Success", description: "Customer details updated in Firestore." });
+      toast({ title: "Success", description: "Customer details updated." });
     } catch (error) {
       console.error("Error updating bill in Firestore: ", error);
-      toast({ title: "Error", description: "Could not save changes to the database.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not save customer details to the database.", variant: "destructive" });
     }
   };
   
@@ -100,6 +101,30 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     if (status === 'paid') return 'default'; 
     if (status === 'debt') return 'destructive';
     return 'secondary'; 
+  };
+
+  const handleClearDebt = async () => {
+    if (!selectedBill || !selectedBill.id || selectedBill.status !== 'debt') {
+      toast({ title: "Error", description: "Bill is not marked as debt or not selected.", variant: "destructive" });
+      return;
+    }
+    setIsUpdatingStatus(true);
+    const billDocRef = doc(db, "finalizedBills", selectedBill.id);
+    try {
+      await updateDoc(billDocRef, { status: 'paid' });
+      const updatedBill: FinalizedBill = {
+        ...selectedBill,
+        status: 'paid',
+      };
+      onBillUpdate(updatedBill);
+      setSelectedBill(updatedBill);
+      toast({ title: "Success", description: `Bill ${selectedBill.id} marked as Paid.` });
+    } catch (error) {
+      console.error("Error clearing debt:", error);
+      toast({ title: "Error Clearing Debt", description: "Could not update bill status.", variant: "destructive" });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
 
@@ -140,7 +165,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                         ? 'bg-green-500 text-white' 
                         : bill.status === 'debt' 
                           ? 'bg-orange-500 text-white'
-                          : 'bg-muted text-muted-foreground' 
+                          : 'bg-muted text-muted-foreground' // Default for 'unknown' or undefined
                     }
                   >
                     {bill.status ? bill.status.charAt(0).toUpperCase() + bill.status.slice(1) : 'Unknown'}
@@ -256,9 +281,22 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
           </div>
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
-            <Button type="button" variant="outline" onClick={handlePrint}>
-              <Printer className="mr-2 h-4 w-4" /> Print Bill
-            </Button>
+            <div className="flex gap-2">
+                 <Button type="button" variant="outline" onClick={handlePrint}>
+                    <Printer className="mr-2 h-4 w-4" /> Print Bill
+                </Button>
+                {selectedBill && selectedBill.status === 'debt' && (
+                  <Button
+                    type="button"
+                    onClick={handleClearDebt}
+                    disabled={isUpdatingStatus}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    {isUpdatingStatus ? "Updating..." : "Mark as Paid"}
+                  </Button>
+                )}
+            </div>
             <div className="flex gap-2">
               <DialogClose asChild>
                 <Button type="button" variant="outline">
@@ -266,7 +304,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 </Button>
               </DialogClose>
               <Button type="button" onClick={handleSaveChanges}>
-                <Save className="mr-2 h-4 w-4" /> Save Changes
+                <Save className="mr-2 h-4 w-4" /> Save Details
               </Button>
             </div>
           </DialogFooter>
@@ -275,3 +313,4 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     </Dialog>
   );
 }
+
