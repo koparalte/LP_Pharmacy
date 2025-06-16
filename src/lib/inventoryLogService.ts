@@ -17,14 +17,15 @@ interface LogMovementData extends Omit<InventoryMovement, 'eventId' | 'recordedA
 
 export async function logInventoryMovement(movementData: LogMovementData): Promise<void> {
   const todayStr = format(new Date(), "yyyy-MM-dd"); // Use movementDate from data if present, else today
-  const dailyLogDocRef = doc(db, "dailyMovementLogs", movementData.movementDate || todayStr);
+  const docIdDate = movementData.movementDate || todayStr;
+  const dailyLogDocRef = doc(db, "dailyMovementLogs", docIdDate);
   const currentTimestamp = new Date().toISOString();
 
   const newMovementEvent: InventoryMovement = {
     ...movementData,
     eventId: generateEventId(),
     recordedAt: currentTimestamp,
-    movementDate: movementData.movementDate || todayStr, // Ensure movementDate is set
+    movementDate: movementData.movementDate || todayStr, // Ensure movementDate is set in the event itself
   };
 
   try {
@@ -34,8 +35,8 @@ export async function logInventoryMovement(movementData: LogMovementData): Promi
       if (!dailyLogDoc.exists()) {
         // Create new daily log document
         const newDailyLog: DailyMovementLog = {
-          id: movementData.movementDate || todayStr,
-          date: movementData.movementDate || todayStr,
+          id: docIdDate,
+          date: docIdDate,
           movements: [newMovementEvent],
           lastUpdated: currentTimestamp,
         };
@@ -48,9 +49,11 @@ export async function logInventoryMovement(movementData: LogMovementData): Promi
         });
       }
     });
-  } catch (error) {
-    console.error("Error logging inventory movement: ", error);
-    throw new Error("Failed to log inventory movement.");
+  } catch (error: any) {
+    const originalErrorMessage = error.message || "Unknown error during Firestore transaction";
+    console.error("Error logging inventory movement: Original error ->", error);
+    // throw new Error("Failed to log inventory movement."); // Original line
+    throw new Error(`Failed to log inventory movement: ${originalErrorMessage}`); // Modified line
   }
 }
 
@@ -62,9 +65,7 @@ export async function clearAllDailyMovementLogs(): Promise<{ success: boolean; m
       return { success: true, message: "No logs found to delete." };
     }
 
-    // Firestore allows a maximum of 500 writes in a single batch.
-    // Process deletions in batches if there are many documents.
-    const batchSize = 400; // Keep it safely below 500
+    const batchSize = 400; 
     let batch = writeBatch(db);
     let count = 0;
 
@@ -73,12 +74,11 @@ export async function clearAllDailyMovementLogs(): Promise<{ success: boolean; m
       count++;
       if (count === batchSize) {
         await batch.commit();
-        batch = writeBatch(db); // Start a new batch
+        batch = writeBatch(db); 
         count = 0;
       }
     }
 
-    // Commit any remaining deletes in the last batch
     if (count > 0) {
       await batch.commit();
     }
