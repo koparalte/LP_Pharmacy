@@ -35,7 +35,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added AlertDialogTrigger back
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +64,9 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     if (selectedBill) {
       setEditableCustomerName(selectedBill.customerName);
       setEditableCustomerAddress(selectedBill.customerAddress || "");
+    } else {
+      // If selectedBill becomes null (e.g. main dialog closes), ensure delete alert also closes.
+      setIsDeleteAlertOpen(false);
     }
   }, [selectedBill]);
 
@@ -166,10 +169,9 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
 
   return (
     <>
-    <Dialog open={!!selectedBill && !isDeleteAlertOpen} onOpenChange={(isOpen) => {
+    <Dialog open={!!selectedBill} onOpenChange={(isOpen) => {
       if (!isOpen) {
-        setSelectedBill(null);
-        setIsDeleteAlertOpen(false); 
+        setSelectedBill(null); // This will also close the delete alert via useEffect
       }
     }}>
       <ScrollArea className="h-[calc(100vh-220px)] rounded-md border no-print">
@@ -370,3 +372,4 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     </>
   );
 }
+
