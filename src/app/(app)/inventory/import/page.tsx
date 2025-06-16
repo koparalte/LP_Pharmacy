@@ -114,10 +114,12 @@ export default function ImportInventoryPage() {
       if (headerIndices.expiryDate !== -1) {
         const expiryDateStr = values[headerIndices.expiryDate];
         if (expiryDateStr) {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(expiryDateStr)) { // Basic YYYY-MM-DD check
-            itemData.expiryDate = expiryDateStr;
+          if (/^\d{2}-\d{2}-\d{4}$/.test(expiryDateStr)) { // DD-MM-YYYY format check
+            const parts = expiryDateStr.split('-');
+            // Reformat to YYYY-MM-DD for internal consistency
+            itemData.expiryDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
           } else {
-            console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected YYYY-MM-DD. Found: '${expiryDateStr}'`);
+            console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected DD-MM-YYYY. Found: '${expiryDateStr}'`);
             itemData.expiryDate = undefined;
           }
         } else {
@@ -273,7 +275,7 @@ export default function ImportInventoryPage() {
               <li><code className="font-semibold">lowStockThreshold</code> (Required, Number)</li>
               <li><code className="font-semibold">rate</code> (Required, Number - cost price)</li>
               <li><code className="font-semibold">mrp</code> (Required, Number - selling price / MRP)</li>
-              <li><code className="font-semibold">expiryDate</code> (Optional, Text - format YYYY-MM-DD)</li>
+              <li><code className="font-semibold">expiryDate</code> (Optional, Text - format DD-MM-YYYY)</li>
             </ul>
              <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Rate (Cost Price) will be skipped.</p>
           </CardDescription>
@@ -294,7 +296,7 @@ export default function ImportInventoryPage() {
             </p>
             <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
 name,batchNo,unit,stock,lowStockThreshold,rate,mrp,expiryDate<br/>
-Amoxicillin 250mg,BATCH001,strips,100,20,35.00,55.00,2025-12-31<br/>
+Amoxicillin 250mg,BATCH001,strips,100,20,35.00,55.00,31-12-2025<br/>
 Paracetamol 500mg,,pcs,200,50,18.00,30.00,
             </pre>
           </div>
@@ -318,3 +320,5 @@ Paracetamol 500mg,,pcs,200,50,18.00,30.00,
     </div>
   );
 }
+
+    
