@@ -136,7 +136,7 @@
 
     /* Styles for the main content wrapper on the dedicated print page */
     .print-force-styles {
-        padding: 0.5in; /* Typical page margin, adjust as needed */
+        padding: 0.25in; /* Typical page margin, adjust as needed */
         margin: 0 auto; /* Center content block if it's narrower than page */
         width: 100%; /* Or a fixed width like '7in' or '180mm' */
         max-width: 100%;
@@ -239,3 +239,4 @@
     }
   }
 }
+
