@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from "@/lib/firebase";
-import { doc, runTransaction, FieldValue, collection, getDocs, writeBatch } from "firebase/firestore";
+import { doc, runTransaction, arrayUnion, collection, getDocs, writeBatch } from "firebase/firestore";
 import type { InventoryMovement, DailyMovementLog } from "@/lib/types";
 import { format } from "date-fns";
 
@@ -44,7 +44,7 @@ export async function logInventoryMovement(movementData: LogMovementData): Promi
       } else {
         // Append to existing daily log document
         transaction.update(dailyLogDocRef, {
-          movements: FieldValue.arrayUnion(newMovementEvent),
+          movements: arrayUnion(newMovementEvent),
           lastUpdated: currentTimestamp,
         });
       }
@@ -89,3 +89,4 @@ export async function clearAllDailyMovementLogs(): Promise<{ success: boolean; m
     return { success: false, message: `Failed to clear logs: ${error.message || "Unknown error"}` };
   }
 }
+
