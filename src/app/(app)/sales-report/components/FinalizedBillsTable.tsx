@@ -35,8 +35,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger, it's used as DialogTrigger's child
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -78,14 +77,6 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
       return dateString; 
     }
   };
-   const formatDateForPrint = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString() + " " + new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
-    } catch (e) {
-      return dateString;
-    }
-  };
-
 
   const calculateTotalItems = (bill: FinalizedBill) => {
     return bill.items.reduce((sum, item) => sum + item.quantityInBill, 0);
@@ -119,7 +110,11 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
   };
   
   const handlePrint = () => {
-    window.print();
+    if (selectedBill && selectedBill.id) {
+      window.open(`/print-bill/${selectedBill.id}`, '_blank');
+    } else {
+      toast({ title: "Error", description: "No bill selected for printing.", variant: "destructive" });
+    }
   };
 
   const getStatusBadgeVariant = (status?: 'paid' | 'debt'): "default" | "destructive" | "secondary" | "outline" | null | undefined => {
@@ -227,7 +222,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
       </ScrollArea>
 
       {selectedBill && (
-        <DialogContent className="sm:max-w-2xl print-dialog-content">
+        <DialogContent className="sm:max-w-2xl no-print"> {/* Added no-print class here */}
           <DialogHeader className="no-print">
             <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
             <DialogDescription>
@@ -235,7 +230,6 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
             </DialogDescription>
           </DialogHeader>
           
-          {/* Screen View - Kept for reference but hidden for printing */}
           <div className="no-print">
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -307,56 +301,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 <p className="font-semibold text-lg">Grand Total: INR ₹{selectedBill.grandTotal.toFixed(2)}</p>
             </div>
           </div>
-
-          {/* Simplified Print View */}
-          <div id="printable-bill-content" className="print-only">
-            <div className="print-header text-center mb-4">
-              <h2 className="text-lg font-bold">LP PHARMACY</h2>
-              <p className="text-sm">Venglai, Lunglei</p>
-              <p className="text-sm">Phone : 8118969532</p>
-            </div>
-            
-            <div className="print-customer-details text-sm mb-3">
-              <p><strong>Bill ID:</strong> {selectedBill.id}</p>
-              <p><strong>Date:</strong> {formatDateForPrint(selectedBill.date)}</p>
-              <p><strong>Customer Name:</strong> {editableCustomerName}</p>
-              <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
-              <p><strong>Status:</strong> {selectedBill.status ? selectedBill.status.charAt(0).toUpperCase() + selectedBill.status.slice(1) : 'Unknown'}</p>
-            </div>
-
-            <table className="print-items-table w-full text-sm border-collapse">
-              <thead>
-                <tr>
-                  <th className="border p-1 text-left font-semibold">Item Name</th>
-                  <th className="border p-1 text-left font-semibold">Batch No.</th>
-                  <th className="border p-1 text-center font-semibold">Qty</th>
-                  <th className="border p-1 text-right font-semibold">MRP (₹)</th>
-                  <th className="border p-1 text-right font-semibold">Total (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedBill.items.map((item: BillItem, index: number) => (
-                  <tr key={`print-item-${index}`}>
-                    <td className="border p-1">{item.name}</td>
-                    <td className="border p-1">{item.batchNo || 'N/A'}</td>
-                    <td className="border p-1 text-center">{item.quantityInBill}</td>
-                    <td className="border p-1 text-right">₹{item.mrp.toFixed(2)}</td>
-                    <td className="border p-1 text-right">₹{(item.mrp * item.quantityInBill).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            <div className="print-totals mt-3 text-right text-sm">
-                <p>Subtotal: INR ₹{selectedBill.subTotal?.toFixed(2) ?? '0.00'}</p>
-                <p>Discount: INR ₹{selectedBill.discountAmount?.toFixed(2) ?? '0.00'}</p>
-                <p className="font-semibold text-base">Grand Total: INR ₹{selectedBill.grandTotal.toFixed(2)}</p>
-            </div>
-             <div className="print-footer text-center mt-4 text-xs">
-                <p>Thank you for your visit!</p>
-            </div>
-          </div>
-
+          
+          {/* Removed the print-only div from here as printing is handled by a new page */}
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
             <div className="flex gap-2 items-center"> 
@@ -376,7 +322,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 )}
                 {!authLoading && isAdmin && (
                     <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-                        <AlertDialogTrigger asChild>
+                         <AlertDialogTrigger asChild>
                             <Button
                                 variant="destructive"
                                 disabled={isDeletingBill}
@@ -424,7 +370,3 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     </>
   );
 }
-    
-
-    
-

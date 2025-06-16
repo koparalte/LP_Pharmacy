@@ -106,6 +106,7 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* .print-only class is for elements that should ONLY be visible during print */
   .print-only {
     display: none;
   }
@@ -113,7 +114,7 @@
 
 @layer utilities {
   @media print {
-    html, body {
+    html, body { /* General print reset for the entire document being printed */
       height: auto !important;
       width: 100% !important;
       margin: 0 !important;
@@ -122,107 +123,119 @@
       color: black !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      font-size: 10pt !important;
+      font-size: 10pt !important; /* Base font size for print */
+    }
+    
+    /* Specific styles for the body of the dedicated print page */
+    body.print-body-override {
+        background-color: white !important;
+        color: black !important;
+        padding: 0 !important; /* Remove any body padding from main app */
+        margin: 0 !important;
+    }
+
+    /* Styles for the main content wrapper on the dedicated print page */
+    .print-force-styles {
+        padding: 0.5in; /* Typical page margin, adjust as needed */
+        margin: 0 auto; /* Center content block if it's narrower than page */
+        width: 100%; /* Or a fixed width like '7in' or '180mm' */
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .no-print {
       display: none !important;
     }
-
+    
     .print-only {
-      display: block !important;
+      display: block !important; /* Or 'table-row', 'inline', etc., as appropriate for the element */
     }
     
-    /* Dialog specific overrides for printing */
-    .print-dialog-content {
-      position: static !important;
-      display: block !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      height: auto !important;
-      max-height: none !important;
-      margin: 0 !important;
-      padding: 1rem !important; /* Page margins */
-      border: none !important;
-      box-shadow: none !important;
-      background-color: white !important;
-      color: black !important;
-      overflow: visible !important;
-      transform: none !important;
-      inset: auto !important;
-      border-radius: 0 !important;
+    /* Styles for the bill content itself, applied on the dedicated print page */
+    .print-header {
+      text-align: center;
+      margin-bottom: 1rem;
+      page-break-after: avoid;
     }
-    
-    .print-dialog-content *,
-    .print-dialog-content *::before,
-    .print-dialog-content *::after {
-        /* background-color: transparent !important; /* Allow parent BG, or be explicit with white */
-        /* color: black !important; */ /* Already set on .print-dialog-content */
-        box-shadow: none !important;
-        text-shadow: none !important;
-        border-color: #666 !important; /* Darker border for print clarity */
+    .print-header h2 {
+      font-size: 1.25rem; /* ~16-18pt */
+      font-weight: bold;
+      margin-bottom: 0.25rem;
     }
-    
-    #printable-bill-content { /* This is now the simple print view */
-      display: block !important;
-      width: 100% !important;
-      height: auto !important;
-      overflow: visible !important;
-      background-color: white !important;
-      color: black !important;
+    .print-header p {
+      font-size: 0.875rem; /* ~11-12pt */
+      line-height: 1.2;
     }
 
-    .print-header, .print-customer-details, .print-items-table, .print-totals, .print-footer {
-      page-break-inside: avoid;
+    .print-customer-details {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      page-break-after: avoid;
     }
-    
+    .print-customer-details p {
+      margin-bottom: 0.1rem;
+      line-height: 1.3;
+    }
+    .print-customer-details strong {
+      font-weight: bold;
+    }
+
     .print-items-table {
       width: 100% !important;
       border-collapse: collapse !important;
       margin-top: 0.5rem;
       margin-bottom: 0.5rem;
+      font-size: 0.875rem;
     }
 
     .print-items-table th,
     .print-items-table td {
       border: 1px solid #333 !important; /* Clear, dark borders for table cells */
-      padding: 4px 6px !important; /* Adjust padding as needed */
+      padding: 5px 8px !important; /* Adjust padding for readability */
       text-align: left !important;
       vertical-align: top;
       page-break-inside: avoid !important;
     }
     .print-items-table th {
-        background-color: #f0f0f0 !important; /* Light gray for table headers */
-        font-weight: bold; /* Ensure headers are bold */
+      background-color: #f0f0f0 !important; /* Light gray for table headers */
+      font-weight: bold !important; /* Ensure headers are bold */
     }
     .print-items-table .text-right { text-align: right !important; }
     .print-items-table .text-center { text-align: center !important; }
-    .print-items-table .text-left { text-align: left !important; }
 
 
     .print-totals {
-      margin-top: 0.5rem !important;
+      margin-top: 0.75rem !important;
       padding-top: 0.5rem !important;
       border-top: 1px dashed #333 !important;
-      page-break-before: auto !important;
-      page-break-inside: avoid !important;
+      page-break-before: auto !important; /* Allow break before totals if needed */
+      page-break-inside: avoid !important; /* But don't break totals block itself */
+      font-size: 0.875rem;
     }
     .print-totals p {
-        text-align: right !important;
-        margin-bottom: 2px;
+      text-align: right !important;
+      margin-bottom: 3px;
+      line-height: 1.3;
     }
-     .print-totals p.font-semibold {
-        font-weight: 600 !important;
+    .print-totals p.font-semibold {
+      font-weight: bold !important;
+      font-size: 1rem; /* ~13-14pt */
     }
 
-    /* Hide any overlays or corners from Radix components that might still interfere */
+    .print-footer {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.75rem; /* ~10pt */
+      page-break-before: auto;
+    }
+
+    /* Hide any Radix UI elements that might accidentally appear on the print page */
     [data-radix-dialog-overlay], 
+    [data-radix-popper-content-wrapper],
+    [data-radix-tooltip-content],
     [data-radix-scroll-area-corner],
     [data-radix-scroll-area-scrollbar] {
       display: none !important;
     }
   }
 }
-    
-
-    
