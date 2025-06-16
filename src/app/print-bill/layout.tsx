@@ -7,11 +7,10 @@ export const metadata = {
 };
 
 export default function PrintLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body className="print-body-override"> {/* Class for potential specific print body styling */}
-        {children}
-      </body>
-    </html>
-  );
+  // The <html> and <body> tags are provided by the root layout.
+  // This layout should only return its specific children.
+  // If specific body styling is needed for this page during print,
+  // it should be applied dynamically from the page component itself
+  // (e.g., using useEffect in page.tsx to add a class to document.body).
+  return <>{children}</>;
 }
