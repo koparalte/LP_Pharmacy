@@ -61,7 +61,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </SidebarMenuItem>
             <SidebarMenuItem>
                <Link href="/help" passHref legacyBehavior={false}>
-                <SidebarMenuButton tooltip="Help">
+                <SidebarMenuButton tooltip="Help (Coming Soon)" aria-disabled="true" className="opacity-50 cursor-not-allowed">
                   <HelpCircle />
                   <span>Help</span>
                 </SidebarMenuButton>
