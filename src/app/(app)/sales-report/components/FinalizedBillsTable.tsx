@@ -161,7 +161,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
 
       {selectedBill && (
         <DialogContent className="sm:max-w-2xl print-dialog-content">
-          <DialogHeader>
+          <DialogHeader className="no-print">
             <DialogTitle>Bill Details - ID: {selectedBill.id}</DialogTitle>
             <DialogDescription>
               Date: {formatDate(selectedBill.date)}
@@ -169,6 +169,12 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
           </DialogHeader>
           
           <div id="printable-bill-content">
+            <div className="print-only hidden text-center mb-4">
+                <h2 className="text-lg font-bold">LP PHARMACY</h2>
+                <p className="text-sm">Venglai, Lunglei</p>
+                <p className="text-sm">Phone : 8118969532</p>
+            </div>
+            
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4 no-print">
                 <Label htmlFor="customerName" className="text-right col-span-1">
@@ -182,6 +188,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 />
               </div>
                <div className="print-only hidden text-sm">
+                <p><strong>Bill ID:</strong> {selectedBill.id}</p>
+                <p><strong>Date:</strong> {formatDate(selectedBill.date)}</p>
                 <p><strong>Customer Name:</strong> {editableCustomerName}</p>
               </div>
 
@@ -220,6 +228,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item Name</TableHead>
+                    <TableHead>Batch No.</TableHead>
                     <TableHead className="text-center">Qty</TableHead>
                     <TableHead className="text-right">MRP (₹)</TableHead>
                     <TableHead className="text-right">Subtotal</TableHead>
@@ -229,6 +238,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                   {selectedBill.items.map((item: BillItem, index: number) => ( 
                     <TableRow key={item.id && item.name ? `${item.id}-${item.name}-${index}` : `bill-item-${index}`}>
                       <TableCell>{item.name}</TableCell>
+                      <TableCell>{item.batchNo || 'N/A'}</TableCell>
                       <TableCell className="text-center">{item.quantityInBill}</TableCell>
                       <TableCell className="text-right">₹{item.mrp.toFixed(2)}</TableCell>
                       <TableCell className="text-right">₹{(item.mrp * item.quantityInBill).toFixed(2)}</TableCell>
