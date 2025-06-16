@@ -96,10 +96,10 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     window.print();
   };
 
-  const getStatusBadgeVariant = (status: 'paid' | 'debt'): "default" | "destructive" | "secondary" | "outline" | null | undefined => {
-    if (status === 'paid') return 'default'; // Or "success" if you define such a variant
-    if (status === 'debt') return 'destructive'; // Or "warning"
-    return 'secondary';
+  const getStatusBadgeVariant = (status?: 'paid' | 'debt'): "default" | "destructive" | "secondary" | "outline" | null | undefined => {
+    if (status === 'paid') return 'default'; 
+    if (status === 'debt') return 'destructive';
+    return 'secondary'; // For unknown or undefined status
   };
 
 
@@ -133,8 +133,17 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 </TableCell>
                 <TableCell className="text-right font-medium">₹{bill.grandTotal.toFixed(2)}</TableCell>
                 <TableCell className="text-center">
-                   <Badge variant={getStatusBadgeVariant(bill.status)} className={bill.status === 'paid' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}>
-                    {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
+                   <Badge 
+                    variant={getStatusBadgeVariant(bill.status)} 
+                    className={
+                        bill.status === 'paid' 
+                        ? 'bg-green-500 text-white' 
+                        : bill.status === 'debt' 
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-muted text-muted-foreground' // Default for undefined/other status
+                    }
+                  >
+                    {bill.status ? bill.status.charAt(0).toUpperCase() + bill.status.slice(1) : 'Unknown'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">
@@ -192,7 +201,17 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
               </div>
                <div className="text-sm">
-                <p><strong>Status:</strong> <span className={selectedBill.status === 'paid' ? 'text-green-600 font-semibold' : 'text-orange-600 font-semibold'}>{selectedBill.status.charAt(0).toUpperCase() + selectedBill.status.slice(1)}</span></p>
+                <p><strong>Status:</strong> 
+                    <span className={
+                        selectedBill.status === 'paid' 
+                        ? 'text-green-600 font-semibold' 
+                        : selectedBill.status === 'debt' 
+                            ? 'text-orange-600 font-semibold' 
+                            : 'text-muted-foreground font-semibold'
+                        }>
+                        {selectedBill.status ? selectedBill.status.charAt(0).toUpperCase() + selectedBill.status.slice(1) : 'Unknown'}
+                    </span>
+                </p>
               </div>
             </div>
 
@@ -244,3 +263,4 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     </Dialog>
   );
 }
+
