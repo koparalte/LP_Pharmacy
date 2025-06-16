@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, Printer, Save, CheckCircle } from "lucide-react"; // Added CheckCircle
+import { Eye, Printer, Save, CheckCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
 
 interface FinalizedBillsTableProps {
   bills: FinalizedBill[];
@@ -42,6 +43,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   const [editableCustomerAddress, setEditableCustomerAddress] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth(); // Get admin status and auth loading state
 
   useEffect(() => {
     if (selectedBill) {
@@ -108,6 +110,10 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
       toast({ title: "Error", description: "Bill is not marked as debt or not selected.", variant: "destructive" });
       return;
     }
+    if (authLoading || !isAdmin) { // Double check admin status before action
+      toast({ title: "Access Denied", description: "You do not have permission to perform this action.", variant: "destructive" });
+      return;
+    }
     setIsUpdatingStatus(true);
     const billDocRef = doc(db, "finalizedBills", selectedBill.id);
     try {
@@ -165,7 +171,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                         ? 'bg-green-500 text-white' 
                         : bill.status === 'debt' 
                           ? 'bg-orange-500 text-white'
-                          : 'bg-muted text-muted-foreground' // Default for 'unknown' or undefined
+                          : 'bg-muted text-muted-foreground'
                     }
                   >
                     {bill.status ? bill.status.charAt(0).toUpperCase() + bill.status.slice(1) : 'Unknown'}
@@ -285,7 +291,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                  <Button type="button" variant="outline" onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4" /> Print Bill
                 </Button>
-                {selectedBill && selectedBill.status === 'debt' && (
+                {!authLoading && isAdmin && selectedBill && selectedBill.status === 'debt' && (
                   <Button
                     type="button"
                     onClick={handleClearDebt}
@@ -314,3 +320,4 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   );
 }
 
+    
