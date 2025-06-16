@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from "@/lib/firebase";
-import { doc, runTransaction, FieldValue } from "firebase/firestore";
+import { doc, runTransaction, FieldValue, collection, getDocs, writeBatch } from "firebase/firestore";
 import type { InventoryMovement, DailyMovementLog } from "@/lib/types";
 import { format } from "date-fns";
 
@@ -16,14 +16,15 @@ interface LogMovementData extends Omit<InventoryMovement, 'eventId' | 'recordedA
 }
 
 export async function logInventoryMovement(movementData: LogMovementData): Promise<void> {
-  const todayStr = format(new Date(), "yyyy-MM-dd");
-  const dailyLogDocRef = doc(db, "dailyMovementLogs", todayStr);
+  const todayStr = format(new Date(), "yyyy-MM-dd"); // Use movementDate from data if present, else today
+  const dailyLogDocRef = doc(db, "dailyMovementLogs", movementData.movementDate || todayStr);
   const currentTimestamp = new Date().toISOString();
 
   const newMovementEvent: InventoryMovement = {
     ...movementData,
     eventId: generateEventId(),
     recordedAt: currentTimestamp,
+    movementDate: movementData.movementDate || todayStr, // Ensure movementDate is set
   };
 
   try {
@@ -33,16 +34,14 @@ export async function logInventoryMovement(movementData: LogMovementData): Promi
       if (!dailyLogDoc.exists()) {
         // Create new daily log document
         const newDailyLog: DailyMovementLog = {
-          id: todayStr,
-          date: todayStr,
+          id: movementData.movementDate || todayStr,
+          date: movementData.movementDate || todayStr,
           movements: [newMovementEvent],
           lastUpdated: currentTimestamp,
         };
         transaction.set(dailyLogDocRef, newDailyLog);
       } else {
         // Append to existing daily log document
-        // Firestore's arrayUnion adds elements if they aren't already present.
-        // Since eventId is unique, this effectively appends.
         transaction.update(dailyLogDocRef, {
           movements: FieldValue.arrayUnion(newMovementEvent),
           lastUpdated: currentTimestamp,
@@ -51,7 +50,42 @@ export async function logInventoryMovement(movementData: LogMovementData): Promi
     });
   } catch (error) {
     console.error("Error logging inventory movement: ", error);
-    // Depending on the calling context, you might want to re-throw or handle more gracefully
     throw new Error("Failed to log inventory movement.");
+  }
+}
+
+export async function clearAllDailyMovementLogs(): Promise<{ success: boolean; message: string }> {
+  const dailyLogsCollectionRef = collection(db, "dailyMovementLogs");
+  try {
+    const querySnapshot = await getDocs(dailyLogsCollectionRef);
+    if (querySnapshot.empty) {
+      return { success: true, message: "No logs found to delete." };
+    }
+
+    // Firestore allows a maximum of 500 writes in a single batch.
+    // Process deletions in batches if there are many documents.
+    const batchSize = 400; // Keep it safely below 500
+    let batch = writeBatch(db);
+    let count = 0;
+
+    for (const docSnapshot of querySnapshot.docs) {
+      batch.delete(docSnapshot.ref);
+      count++;
+      if (count === batchSize) {
+        await batch.commit();
+        batch = writeBatch(db); // Start a new batch
+        count = 0;
+      }
+    }
+
+    // Commit any remaining deletes in the last batch
+    if (count > 0) {
+      await batch.commit();
+    }
+
+    return { success: true, message: "All inventory movement logs have been successfully deleted." };
+  } catch (error: any) {
+    console.error("Error clearing all daily movement logs: ", error);
+    return { success: false, message: `Failed to clear logs: ${error.message || "Unknown error"}` };
   }
 }

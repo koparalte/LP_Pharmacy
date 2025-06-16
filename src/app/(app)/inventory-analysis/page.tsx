@@ -5,18 +5,31 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileClock, PackageSearch } from "lucide-react";
+import { FileClock, PackageSearch, Trash2 } from "lucide-react";
 import { format, parseISO, subDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import type { InventoryMovement, DailyMovementLog } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button"; // For Load More
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { clearAllDailyMovementLogs } from "@/lib/inventoryLogService";
+
 
 const MOVEMENT_HISTORY_STALE_TIME = 2 * 60 * 1000; // 2 minutes
-const DAYS_TO_LOAD_INITIALLY = 7; // Load last 7 days initially
-const DAYS_TO_LOAD_MORE = 7; // Load 7 more days when "Load More" is clicked
+const DAYS_TO_LOAD_INITIALLY = 7; 
+const DAYS_TO_LOAD_MORE = 7; 
 
 export default function InventoryAnalysisPage() {
   const [allMovements, setAllMovements] = useState<InventoryMovement[]>([]);
@@ -25,6 +38,7 @@ export default function InventoryAnalysisPage() {
   const { toast } = useToast();
   const [oldestDocDateLoaded, setOldestDocDateLoaded] = useState<Date | null>(null);
   const [canLoadMore, setCanLoadMore] = useState(true);
+  const [isClearingLog, setIsClearingLog] = useState(false);
 
   const fetchDailyLogs = useCallback(async (startDate: Date, endDate: Date, isInitialLoad: boolean = false) => {
     setLoadingMovements(true);
@@ -32,18 +46,9 @@ export default function InventoryAnalysisPage() {
     let processedOldestDate: Date | null = startDate;
 
     try {
-      const dateArray: string[] = [];
-      let currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        dateArray.push(format(currentDate, "yyyy-MM-dd"));
-        currentDate.setDate(currentDate.getDate() + 1); // This logic is for fetching a range, for "last N days" it's different.
-      }
-      
-      // For fetching last N days, we need to query based on document IDs (which are dates)
-      // Construct date strings for the period to fetch
       const dateStringsToFetch: string[] = [];
       for (let i = 0; i < (isInitialLoad ? DAYS_TO_LOAD_INITIALLY : DAYS_TO_LOAD_MORE); i++) {
-          const dateToFetch = subDays(startDate, i); // startDate will be 'today' or 'oldestDocDateLoaded - 1 day'
+          const dateToFetch = subDays(startDate, i); 
           dateStringsToFetch.push(format(dateToFetch, "yyyy-MM-dd"));
           if (i === (isInitialLoad ? DAYS_TO_LOAD_INITIALLY : DAYS_TO_LOAD_MORE) - 1) {
             processedOldestDate = dateToFetch;
@@ -57,9 +62,6 @@ export default function InventoryAnalysisPage() {
       }
 
       const dailyLogsCollection = collection(db, "dailyMovementLogs");
-      // Firestore 'in' query supports up to 30 elements, ensure we don't exceed this.
-      // For simplicity, fetching one by one if it's many days, or adjust strategy.
-      // Here, we'll fetch up to `DAYS_TO_LOAD_INITIALLY` or `DAYS_TO_LOAD_MORE` which is small.
       const q = query(dailyLogsCollection, where("id", "in", dateStringsToFetch), orderBy("id", "desc"));
       
       const snapshot = await getDocs(q);
@@ -69,20 +71,18 @@ export default function InventoryAnalysisPage() {
       });
 
       if (snapshot.docs.length < dateStringsToFetch.length) {
-         // If we fetched fewer documents than requested days, we might have reached the beginning of logs
          setCanLoadMore(false);
       }
       
-      if (snapshot.empty && !isInitialLoad) { // If load more fetches nothing
+      if (snapshot.empty && !isInitialLoad) { 
         setCanLoadMore(false);
       }
-
 
     } catch (error) {
       console.error("Error fetching daily movement logs: ", error);
       toast({ title: "Error", description: "Could not load movement history.", variant: "destructive" });
     } finally {
-      setLoadingMovements(false);
+      // setLoadingMovements(false); // Moved to after state updates in callers
     }
     return { fetchedMovements: newFetchedMovements, oldestDate: processedOldestDate };
   }, [toast]);
@@ -93,18 +93,17 @@ export default function InventoryAnalysisPage() {
       setLoadingMovements(false);
       return;
     }
+    setLoadingMovements(true);
     const today = new Date();
-    const { fetchedMovements, oldestDate } = await fetchDailyLogs(today, today, true); // endDate not really used this way for initial
+    const { fetchedMovements, oldestDate } = await fetchDailyLogs(today, today, true); 
     
     const sortedMovements = fetchedMovements.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
     setAllMovements(sortedMovements);
     setOldestDocDateLoaded(oldestDate);
     setLastFetchedMovements(Date.now());
-    if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY * (5) ) { // Heuristic: avg 5 movements/day
-        // If initial load is sparse, maybe there's not much more data
-        // This condition might need tuning based on typical data volume
-    }
-
+    if (fetchedMovements.length === 0) setCanLoadMore(false); // If nothing loaded initially, nothing more to load
+    else if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY * 1 ) setCanLoadMore(false); // Simple heuristic
+    setLoadingMovements(false);
   }, [fetchDailyLogs, lastFetchedMovements]);
 
   useEffect(() => {
@@ -112,7 +111,7 @@ export default function InventoryAnalysisPage() {
   }, [loadInitialMovements]);
 
   const handleLoadMore = async () => {
-    if (!oldestDocDateLoaded || !canLoadMore) return;
+    if (!oldestDocDateLoaded || !canLoadMore || loadingMovements) return;
     setLoadingMovements(true);
     
     const dayBeforeOldest = subDays(oldestDocDateLoaded, 1);
@@ -124,7 +123,7 @@ export default function InventoryAnalysisPage() {
       );
       setOldestDocDateLoaded(newOldestDate);
     } else {
-      setCanLoadMore(false); // No more data found
+      setCanLoadMore(false); 
     }
     setLoadingMovements(false);
   };
@@ -152,6 +151,29 @@ export default function InventoryAnalysisPage() {
     }
   };
 
+  const handleClearLogConfirm = async () => {
+    setIsClearingLog(true);
+    try {
+      await clearAllDailyMovementLogs();
+      setAllMovements([]);
+      setOldestDocDateLoaded(null);
+      setLastFetchedMovements(null);
+      setCanLoadMore(true); // Reset load more capability
+      toast({
+        title: "Log Cleared",
+        description: "All inventory movement logs have been deleted.",
+      });
+    } catch (error) {
+      console.error("Error clearing logs:", error);
+      toast({
+        title: "Error Clearing Log",
+        description: "Could not clear inventory movement logs. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearingLog(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -160,6 +182,36 @@ export default function InventoryAnalysisPage() {
           <FileClock className="mr-3 h-8 w-8 text-primary" />
           Inventory Movement Log
         </h1>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="destructive" 
+              disabled={allMovements.length === 0 || loadingMovements || isClearingLog}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All Logs
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete all
+                inventory movement logs from the database.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isClearingLog}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleClearLogConfirm}
+                disabled={isClearingLog}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isClearingLog ? "Clearing..." : "Yes, delete all logs"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <Card>
@@ -168,8 +220,8 @@ export default function InventoryAnalysisPage() {
           <CardDescription>Automatically recorded stock movements. Logs are grouped by day.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[calc(100vh-350px)]"> {/* Adjusted height for load more button */}
-            {loadingMovements && allMovements.length === 0 ? ( // Show skeleton only on initial full load
+          <ScrollArea className="h-[calc(100vh-400px)]"> 
+            {loadingMovements && allMovements.length === 0 ? ( 
               <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
@@ -216,12 +268,12 @@ export default function InventoryAnalysisPage() {
           </ScrollArea>
           {canLoadMore && allMovements.length > 0 && (
             <div className="mt-4 flex justify-center">
-              <Button onClick={handleLoadMore} disabled={loadingMovements}>
+              <Button onClick={handleLoadMore} disabled={loadingMovements || isClearingLog}>
                 {loadingMovements ? "Loading..." : "Load More Movements"}
               </Button>
             </div>
           )}
-           {!canLoadMore && allMovements.length > 0 && (
+           {!canLoadMore && allMovements.length > 0 && !loadingMovements && (
             <p className="mt-4 text-center text-muted-foreground">No more movements to load.</p>
            )}
         </CardContent>
@@ -229,3 +281,4 @@ export default function InventoryAnalysisPage() {
     </div>
   );
 }
+
