@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { clearAllDailyMovementLogs } from "@/lib/inventoryLogService";
+import { useAuth } from "@/hooks/useAuth";
 
 
 const MOVEMENT_HISTORY_STALE_TIME = 2 * 60 * 1000; // 2 minutes
@@ -39,6 +40,7 @@ export default function InventoryAnalysisPage() {
   const [oldestDocDateLoaded, setOldestDocDateLoaded] = useState<Date | null>(null);
   const [canLoadMore, setCanLoadMore] = useState(true);
   const [isClearingLog, setIsClearingLog] = useState(false);
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const fetchDailyLogs = useCallback(async (startDate: Date, endDate: Date, isInitialLoad: boolean = false) => {
     setLoadingMovements(true);
@@ -182,36 +184,38 @@ export default function InventoryAnalysisPage() {
           <FileClock className="mr-3 h-8 w-8 text-primary" />
           Inventory Movement Log
         </h1>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button 
-              variant="destructive" 
-              disabled={allMovements.length === 0 || loadingMovements || isClearingLog}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear All Logs
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all
-                inventory movement logs from the database.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isClearingLog}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleClearLogConfirm}
-                disabled={isClearingLog}
-                className="bg-destructive hover:bg-destructive/90"
+        {!authLoading && isAdmin && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                disabled={allMovements.length === 0 || loadingMovements || isClearingLog}
               >
-                {isClearingLog ? "Clearing..." : "Yes, delete all logs"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear All Logs
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete all
+                  inventory movement logs from the database.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isClearingLog}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearLogConfirm}
+                  disabled={isClearingLog}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  {isClearingLog ? "Clearing..." : "Yes, delete all logs"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <Card>
