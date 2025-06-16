@@ -106,7 +106,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* Default style for print-only elements (hidden on screen) */
   .print-only {
     display: none;
   }
@@ -116,165 +115,143 @@
   @media print {
     html, body {
       height: auto !important;
+      width: 100% !important;
       margin: 0 !important;
       padding: 0 !important;
       background-color: white !important;
       color: black !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      font-size: 10pt !important; /* Standard print font size */
     }
-    body {
-      font-size: 10pt !important;
-      width: 100% !important;
-    }
+
     .no-print {
       display: none !important;
     }
+
     .print-only {
-      display: block !important; /* Make .print-only elements block by default on print */
+      display: block !important;
     }
-    /* Ensure elements with text-center also display correctly */
-    .print-only.text-center {
-        display: block !important; /* or `text-align: center` will be inherited if parent is block */
+    .print-only.text-center { /* Specific for the pharmacy header */
+        display: block !important;
+        text-align: center !important;
     }
 
-
+    /* Dialog specific overrides for printing */
     .print-dialog-content {
       position: static !important;
+      display: block !important;
       width: 100% !important;
       max-width: 100% !important;
       height: auto !important;
       max-height: none !important;
+      margin: 0 !important;
+      padding: 1rem !important; /* Or desired page margins */
       border: none !important;
       box-shadow: none !important;
-      padding: 1rem !important; 
-      margin: 0 !important;
+      background-color: white !important;
+      color: black !important;
       overflow: visible !important;
       transform: none !important;
-      background-color: white !important; 
-      color: black !important;
-      display: block !important; /* Ensure it's a block container */
-      box-sizing: border-box !important;
-      inset: auto !important; /* Override any absolute positioning */
+      inset: auto !important;
+      border-radius: 0 !important;
     }
-
-    /* Reset background and color for all children within the print dialog */
-    .print-dialog-content div,
-    .print-dialog-content p,
-    .print-dialog-content span,
-    .print-dialog-content label,
-    .print-dialog-content header, 
-    .print-dialog-content main, 
-    .print-dialog-content section,
-    .print-dialog-content h1, 
-    .print-dialog-content h2,
-    .print-dialog-content h3,
-    .print-dialog-content h4,
-    .print-dialog-content h5,
-    .print-dialog-content h6 {
-        background-color: white !important; 
+    
+    /* Ensure all children of print-dialog-content also reset their BG and color if needed */
+    .print-dialog-content *,
+    .print-dialog-content *::before,
+    .print-dialog-content *::after {
+        background-color: transparent !important; /* Allow parent BG to show or be white */
         color: black !important;
         box-shadow: none !important;
         text-shadow: none !important;
-    }
-     .print-dialog-content *,
-    .print-dialog-content *::before,
-    .print-dialog-content *::after {
-      border-color: #ccc !important; 
+        border-color: #ccc !important; /* Light border for tables etc. */
     }
     
-    #printable-bill-content { 
-      display: block !important; 
+    #printable-bill-content {
+      display: block !important;
       width: 100% !important;
-      overflow: visible !important; 
-      height: auto !important; 
-    }
-
-    .print-dialog-scroll-area, /* Targets the ScrollArea root */
-    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] { /* Targets the viewport */
-      overflow: visible !important;
       height: auto !important;
-      max-height: none !important; /* Crucial for viewport */
-      background-color: white !important; /* Ensure viewport BG is white */
+      overflow: visible !important;
+    }
+
+    /* ScrollArea overrides for printing */
+    .print-dialog-scroll-area, /* The ScrollArea root */
+    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport], /* The viewport */
+    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] > div:first-child /* The content wrapper inside viewport */ {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+      background-color: white !important; /* Ensure these are not transparent if children are */
     }
     
-    /* Target the direct div child of the viewport, which is often the content wrapper */
-    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] > div:first-child {
-        overflow: visible !important;
-        height: auto !important;
-        background-color: white !important;
-    }
-
-     .print-dialog-scroll-area [role="scrollbar"] {
-        display: none !important;
-    }
-
-    .print-grand-total {
-      margin-top: 1rem !important; /* Use margin for spacing */
-      width: 100% !important;
-      page-break-inside: avoid !important; 
-      border-top: 1px solid #ccc !important; 
-      padding-top: 0.5rem !important; 
-      background-color: white !important;
-      color: black !important;
-    }
-
-    [data-radix-dialog-overlay], [data-radix-scroll-area-corner] {
+    .print-dialog-scroll-area [role="scrollbar"] {
       display: none !important;
     }
 
+    /* Table specific overrides for printing */
+    /* Target the div wrapper ShadCN's Table component adds */
+    .print-items-table-area > .relative.w-full.overflow-auto {
+        overflow: visible !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+
     .print-dialog-content table {
-      width: 100%;
+      width: 100% !important;
       border-collapse: collapse !important;
-      background-color: white !important;
+      table-layout: auto !important; /* Allow table to size naturally */
+    }
+
+    .print-dialog-content th,
+    .print-dialog-content td {
+      border: 1px solid #ccc !important;
+      padding: 0.3rem 0.5rem !important;
+      text-align: left !important;
+      page-break-inside: avoid !important;
+    }
+    .print-dialog-content th {
+        background-color: #f2f2f2 !important; /* Light grey for headers */
     }
 
     .print-dialog-content tr {
-      border-top: none !important;
-      border-bottom: none !important;
-      border-color: #ccc !important;
+      border: none !important; /* Individual TR borders are not needed if cells have them */
+      page-break-inside: avoid !important;
+    }
+     .print-dialog-content tbody tr:last-child td {
+        border-bottom: 1px solid #ccc !important; /* Ensure last row has a bottom border */
     }
 
-    .print-dialog-content th {
-      border: 1px solid #ccc !important;
-      padding: 0.3rem 0.5rem !important;
-      text-align: left;
-      background-color: #f2f2f2 !important;
-      font-weight: bold;
-      color: black !important;
-      page-break-inside: avoid;
+
+    .print-grand-total {
+      margin-top: 1rem !important;
+      padding-top: 0.5rem !important;
+      border-top: 1px solid #ccc !important;
+      page-break-before: auto !important; /* Let it decide, but avoid if possible */
+      page-break-inside: avoid !important;
+      text-align: right !important; /* Align grand total to right */
+    }
+    .print-grand-total p {
+        text-align: right !important; /* Ensure p tags inside also align right */
     }
 
-    .print-dialog-content td {
-      border-left: 1px solid #ccc !important;
-      border-right: 1px solid #ccc !important;
-      border-top: none !important;   
-      border-bottom: none !important;
-      padding: 0.3rem 0.5rem !important;
-      text-align: left;
-      background-color: white !important;
-      color: black !important;
-      page-break-inside: avoid;
+    /* Hide any overlays or corners from Radix components */
+    [data-radix-dialog-overlay], 
+    [data-radix-scroll-area-corner] {
+      display: none !important;
     }
 
-    .print-dialog-content tbody tr:last-child td {
-      border-bottom: 1px solid #ccc !important;
-    }
-
+    /* General text alignment helpers if needed */
     .print-dialog-content .text-right { text-align: right !important; }
     .print-dialog-content .text-center { text-align: center !important; }
+    .print-dialog-content .text-left { text-align: left !important; }
+    
+    /* Font weight helpers */
     .print-dialog-content .font-semibold { font-weight: 600 !important; }
     .print-dialog-content .font-medium { font-weight: 500 !important; }
     .print-dialog-content .font-bold { font-weight: 700 !important; }
-    .print-dialog-content .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important; }
-    .print-dialog-content .badge, .print-dialog-content [class*="badge"] {
-      border: 1px solid #ccc !important;
-      background-color: #f9f9f9 !important;
-      color: black !important;
-      padding: 0.1rem 0.3rem !important;
-      font-size: 0.8em !important;
-    }
   }
 }
+    
 
     
