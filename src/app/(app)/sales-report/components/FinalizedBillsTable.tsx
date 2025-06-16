@@ -35,8 +35,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger from here as it's not directly used as a standalone import
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -150,8 +149,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     setIsDeletingBill(true);
     try {
       await onDeleteBill(selectedBill.id);
-      setIsDeleteAlertOpen(false); // Close confirmation dialog
-      setSelectedBill(null); // Close main bill dialog
+      setIsDeleteAlertOpen(false); 
+      setSelectedBill(null); 
     } catch (error) {
        // Error toast is handled by parent `onDeleteBill`
     } finally {
@@ -227,7 +226,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
           </DialogHeader>
           
           <div id="printable-bill-content">
-            <div className="print-only hidden text-center mb-4">
+            <div className="print-only text-center mb-4">
                 <h2 className="text-lg font-bold">LP PHARMACY</h2>
                 <p className="text-sm">Venglai, Lunglei</p>
                 <p className="text-sm">Phone : 8118969532</p>
@@ -245,7 +244,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   className="col-span-3"
                 />
               </div>
-               <div className="print-only hidden text-sm">
+               <div className="print-only text-sm"> {/* Removed 'hidden' class here */}
                 <p><strong>Bill ID:</strong> {selectedBill.id}</p>
                 <p><strong>Date:</strong> {formatDate(selectedBill.date)}</p>
                 <p><strong>Customer Name:</strong> {editableCustomerName}</p>
@@ -263,7 +262,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   placeholder="Optional"
                 />
               </div>
-              <div className="print-only hidden text-sm">
+              <div className="print-only text-sm"> {/* Removed 'hidden' class here */}
                 <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
               </div>
                <div className="text-sm">
@@ -314,7 +313,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
           </div>
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
-            <div className="flex gap-2 items-center"> {/* Group left-aligned buttons */}
+            <div className="flex gap-2 items-center"> 
                  <Button type="button" variant="outline" onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4" /> Print Bill
                 </Button>
@@ -330,14 +329,35 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   </Button>
                 )}
                 {!authLoading && isAdmin && (
-                    <Button
-                        variant="destructive"
-                        onClick={() => setIsDeleteAlertOpen(true)}
-                        disabled={isDeletingBill}
-                    >
-                        {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                        Delete Bill
-                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                variant="destructive"
+                                disabled={isDeletingBill}
+                            >
+                                {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                Delete Bill
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure you want to delete this bill?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete bill ID "{selectedBill.id}".
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)} disabled={isDeletingBill}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleDeleteConfirm}
+                                    disabled={isDeletingBill}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Bill"}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 )}
             </div>
             <div className="flex gap-2">
@@ -354,30 +374,9 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
         </DialogContent>
       )}
     </Dialog>
-
-    {selectedBill && (
-        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-            <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure you want to delete this bill?</AlertDialogTitle>
-                <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete bill ID "{selectedBill.id}".
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeletingBill}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                    onClick={handleDeleteConfirm}
-                    disabled={isDeletingBill}
-                    className="bg-destructive hover:bg-destructive/90"
-                >
-                {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Bill"}
-                </AlertDialogAction>
-            </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    )}
     </>
   );
 }
+    
+
     

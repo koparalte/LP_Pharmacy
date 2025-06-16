@@ -106,20 +106,24 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Default style for print-only elements (hidden on screen) */
+  .print-only {
+    display: none;
+  }
 }
 
 @layer utilities {
   @media print {
     html, body {
-      height: auto !important; /* Changed from 100% to auto */
+      height: auto !important;
       margin: 0 !important;
       padding: 0 !important;
       background-color: white !important;
       color: black !important;
-    }
-    body {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+    }
+    body {
       font-size: 10pt !important;
       width: 100% !important;
     }
@@ -127,27 +131,34 @@
       display: none !important;
     }
     .print-only {
-      display: block !important;
+      display: block !important; /* Make .print-only elements block by default on print */
+    }
+    /* Ensure elements with text-center also display correctly */
+    .print-only.text-center {
+        display: block !important; /* or `text-align: center` will be inherited if parent is block */
     }
 
+
     .print-dialog-content {
-      position: static !important; /* Changed from absolute to static */
+      position: static !important;
       width: 100% !important;
       max-width: 100% !important;
-      height: auto !important; /* Changed from 100% to auto */
+      height: auto !important;
       max-height: none !important;
       border: none !important;
       box-shadow: none !important;
       padding: 1rem !important; 
       margin: 0 !important;
-      overflow: visible !important; /* Changed from hidden to visible */
+      overflow: visible !important;
       transform: none !important;
       background-color: white !important; 
       color: black !important;
-      display: block !important; /* Changed from flex to block */
+      display: block !important; /* Ensure it's a block container */
       box-sizing: border-box !important;
+      inset: auto !important; /* Override any absolute positioning */
     }
 
+    /* Reset background and color for all children within the print dialog */
     .print-dialog-content div,
     .print-dialog-content p,
     .print-dialog-content span,
@@ -173,37 +184,33 @@
     }
     
     #printable-bill-content { 
-      display: block !important; /* Changed from flex to block */
+      display: block !important; 
       width: 100% !important;
-      overflow: visible !important; /* Changed from hidden */
-      height: auto !important; /* Added height auto */
+      overflow: visible !important; 
+      height: auto !important; 
     }
 
-    .print-dialog-scroll-area { /* Targets the ScrollArea root */
+    .print-dialog-scroll-area, /* Targets the ScrollArea root */
+    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] { /* Targets the viewport */
       overflow: visible !important;
       height: auto !important;
+      max-height: none !important; /* Crucial for viewport */
+      background-color: white !important; /* Ensure viewport BG is white */
+    }
+    
+    /* Target the direct div child of the viewport, which is often the content wrapper */
+    .print-dialog-scroll-area > div[data-radix-scroll-area-viewport] > div:first-child {
+        overflow: visible !important;
+        height: auto !important;
+        background-color: white !important;
     }
 
-    .print-items-table-area { 
-      /* flex-grow: 1 !important; REMOVED */
-      overflow: visible !important; 
-      border: none !important; 
-      background-color: white !important;
-      height: auto !important; /* Added height auto */
-    }
-    .print-items-table-area > div[data-radix-scroll-area-viewport] {
-       max-height: none !important; 
-       height: auto !important; 
-       overflow: visible !important;
-       background-color: white !important;
-    }
      .print-dialog-scroll-area [role="scrollbar"] {
         display: none !important;
     }
 
     .print-grand-total {
-      /* margin-top: auto !important; REMOVED */
-      margin-top: 1rem !important; /* Added for spacing */
+      margin-top: 1rem !important; /* Use margin for spacing */
       width: 100% !important;
       page-break-inside: avoid !important; 
       border-top: 1px solid #ccc !important; 
@@ -269,3 +276,5 @@
     }
   }
 }
+
+    
