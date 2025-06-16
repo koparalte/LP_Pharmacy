@@ -27,6 +27,7 @@ export default function BillingPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [isSubmittingBill, setIsSubmittingBill] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(true);
   const { toast } = useToast();
@@ -129,6 +130,10 @@ export default function BillingPage() {
     );
   };
 
+  const handleDiscountChange = (amount: number) => {
+    setDiscountAmount(amount);
+  };
+
   const processBill = async (status: 'paid' | 'debt') => {
     if (billItems.length === 0) {
       toast({
@@ -170,7 +175,9 @@ export default function BillingPage() {
           transaction.update(update.docRef, { stock: update.newStock, lastUpdated: billTimestamp });
         }
 
-        const grandTotal = billItems.reduce((total, item) => total + (item.mrp * item.quantityInBill), 0);
+        const subTotal = billItems.reduce((total, item) => total + (item.mrp * item.quantityInBill), 0);
+        const finalGrandTotal = Math.max(0, subTotal - discountAmount);
+
         const billItemsForPayload: BillItem[] = billItems.map(bi => ({
           id: bi.id,
           name: bi.name,
@@ -185,7 +192,9 @@ export default function BillingPage() {
         const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
           date: billTimestamp,
           items: billItemsForPayload,
-          grandTotal: grandTotal,
+          subTotal: subTotal,
+          discountAmount: discountAmount,
+          grandTotal: finalGrandTotal,
           customerName: "Walk-in Customer", 
           customerAddress: "N/A",
           status: status, 
@@ -206,11 +215,11 @@ export default function BillingPage() {
               source: 'sale',
               reason: `Sale - Bill ID: ${customBillId} (Status: ${status})`,
             });
-          } catch (logError) {
+          } catch (logError: any) {
              console.error(`Failed to log movement for item ${bItem.name} in bill ${customBillId}:`, logError);
              toast({
                 title: "Movement Log Issue",
-                description: `Could not log movement for ${bItem.name}. Inventory & bill are updated.`,
+                description: `Could not log movement for ${bItem.name}. Inventory & bill are updated. Error: ${logError.message}`,
                 variant: "default" 
              });
           }
@@ -226,6 +235,7 @@ export default function BillingPage() {
       setInventory(updatedLocalInventory);
 
       setBillItems([]); 
+      setDiscountAmount(0);
 
       toast({
         title: `Bill Marked as ${status.charAt(0).toUpperCase() + status.slice(1)}!`,
@@ -318,8 +328,10 @@ export default function BillingPage() {
       <div className="lg:w-2/5">
         <BillingReceipt
           billItems={billItems}
+          discountAmount={discountAmount}
           onRemoveItem={handleRemoveItemFromBill}
           onUpdateQuantity={handleUpdateItemQuantity}
+          onDiscountChange={handleDiscountChange}
           onMarkAsPaid={handleMarkAsPaid}
           onMarkAsDebt={handleMarkAsDebt}
           isSubmitting={isSubmittingBill}

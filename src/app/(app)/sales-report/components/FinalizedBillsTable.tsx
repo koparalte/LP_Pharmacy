@@ -99,7 +99,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
   const getStatusBadgeVariant = (status?: 'paid' | 'debt'): "default" | "destructive" | "secondary" | "outline" | null | undefined => {
     if (status === 'paid') return 'default'; 
     if (status === 'debt') return 'destructive';
-    return 'secondary'; // For unknown or undefined status
+    return 'secondary'; 
   };
 
 
@@ -117,7 +117,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead className="text-center">Items</TableHead>
-              <TableHead className="text-right">Total (₹)</TableHead>
+              <TableHead className="text-right">Grand Total (₹)</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Details</TableHead>
             </TableRow>
@@ -140,7 +140,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                         ? 'bg-green-500 text-white' 
                         : bill.status === 'debt' 
                           ? 'bg-orange-500 text-white'
-                          : 'bg-muted text-muted-foreground' // Default for undefined/other status
+                          : 'bg-muted text-muted-foreground' 
                     }
                   >
                     {bill.status ? bill.status.charAt(0).toUpperCase() + bill.status.slice(1) : 'Unknown'}
@@ -247,9 +247,11 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
                 </TableBody>
               </Table>
             </ScrollArea>
-            <div className="flex justify-end items-center font-semibold text-lg border-t pt-4 print-grand-total">
-              <span>Grand Total:</span>
-              <span className="ml-2">INR ₹{selectedBill.grandTotal.toFixed(2)}</span>
+            
+            <div className="space-y-1 text-right mt-2 print-grand-total">
+                <p className="text-sm">Subtotal: INR ₹{selectedBill.subTotal?.toFixed(2) ?? '0.00'}</p>
+                <p className="text-sm">Discount: INR ₹{selectedBill.discountAmount?.toFixed(2) ?? '0.00'}</p>
+                <p className="font-semibold text-lg">Grand Total: INR ₹{selectedBill.grandTotal.toFixed(2)}</p>
             </div>
           </div>
 
@@ -273,4 +275,3 @@ export function FinalizedBillsTable({ bills, onBillUpdate }: FinalizedBillsTable
     </Dialog>
   );
 }
-

@@ -46,7 +46,9 @@ export type FinalizedBill = {
   id: string; // Firestore document ID for this bill
   date: string; // ISO DateTime string (or Firestore Timestamp) when the bill was finalized
   items: BillItem[];
-  grandTotal: number;
+  subTotal: number; // Total before discount
+  discountAmount: number; // Amount of discount applied
+  grandTotal: number; // Total after discount
   customerName: string;
   customerAddress?: string;
   status: 'paid' | 'debt'; // New status field
@@ -76,3 +78,4 @@ export type DailyMovementLog = {
   movements: InventoryMovement[];
   lastUpdated: string; // ISO DateTime string of the last update to this daily log document
 };
+
