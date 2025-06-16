@@ -219,20 +219,31 @@
       border-collapse: collapse;
       background-color: white !important;
     }
-    .print-dialog-content th,
-    .print-dialog-content td {
-      border: 1px solid #ccc !important;
+    .print-dialog-content th { /* Header cells */
+      border: 1px solid #ccc !important; /* Keep all borders for header cells */
+      padding: 0.3rem 0.5rem !important;
+      text-align: left;
+      background-color: #f2f2f2 !important;
+      font-weight: bold;
+      color: black !important;
+      page-break-inside: avoid;
+    }
+    .print-dialog-content td { /* Data/item cells */
+      border-left: 1px solid #ccc !important;
+      border-right: 1px solid #ccc !important;
+      border-top: none !important;    /* Removes horizontal lines between item rows */
+      border-bottom: none !important; /* Removes horizontal lines between item rows */
       padding: 0.3rem 0.5rem !important;
       text-align: left;
       background-color: white !important;
       color: black !important;
-      page-break-inside: avoid; /* Try to keep rows/cells from breaking */
+      page-break-inside: avoid;
     }
-    .print-dialog-content th {
-      background-color: #f2f2f2 !important; /* Light grey for table headers */
-      font-weight: bold;
-      color: black !important;
+    /* Ensure the table itself has an overall bottom border to close the item list box */
+    .print-dialog-content .print-items-table-area > table {
+        border-bottom: 1px solid #ccc !important;
     }
+
 
     /* Tailwind text alignment and font weight helpers for print */
     .print-dialog-content .text-right { text-align: right !important; }
