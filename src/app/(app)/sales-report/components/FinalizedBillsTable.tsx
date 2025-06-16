@@ -35,7 +35,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger from here as it's not directly used as a standalone import
+  AlertDialogTrigger, // Added AlertDialogTrigger back
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -56,7 +57,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
   const [isDeletingBill, setIsDeletingBill] = useState(false);
   const { toast } = useToast();
   const { isAdmin, loading: authLoading } = useAuth();
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false); // Used to control AlertDialog specifically for delete
 
 
   useEffect(() => {
@@ -149,8 +150,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     setIsDeletingBill(true);
     try {
       await onDeleteBill(selectedBill.id);
-      setIsDeleteAlertOpen(false); 
-      setSelectedBill(null); 
+      setIsDeleteAlertOpen(false); // Close alert dialog
+      setSelectedBill(null); // Close main bill dialog
     } catch (error) {
        // Error toast is handled by parent `onDeleteBill`
     } finally {
@@ -164,6 +165,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     <Dialog open={!!selectedBill && !isDeleteAlertOpen} onOpenChange={(isOpen) => {
       if (!isOpen) {
         setSelectedBill(null);
+        // Ensure delete alert is also closed if main dialog is closed
+        setIsDeleteAlertOpen(false); 
       }
     }}>
       <ScrollArea className="h-[calc(100vh-220px)] rounded-md border">
@@ -244,7 +247,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   className="col-span-3"
                 />
               </div>
-               <div className="print-only text-sm"> {/* Removed 'hidden' class here */}
+               <div className="print-only text-sm">
                 <p><strong>Bill ID:</strong> {selectedBill.id}</p>
                 <p><strong>Date:</strong> {formatDate(selectedBill.date)}</p>
                 <p><strong>Customer Name:</strong> {editableCustomerName}</p>
@@ -262,7 +265,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   placeholder="Optional"
                 />
               </div>
-              <div className="print-only text-sm"> {/* Removed 'hidden' class here */}
+              <div className="print-only text-sm">
                 <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
               </div>
                <div className="text-sm">
@@ -281,28 +284,30 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
             </div>
 
             <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md print-dialog-scroll-area print-items-table-area">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item Name</TableHead>
-                    <TableHead>Batch No.</TableHead>
-                    <TableHead className="text-center">Qty</TableHead>
-                    <TableHead className="text-right">MRP (₹)</TableHead>
-                    <TableHead className="text-right">Subtotal</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedBill.items.map((item: BillItem, index: number) => ( 
-                    <TableRow key={item.id && item.name ? `${item.id}-${item.name}-${index}` : `bill-item-${index}`}>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.batchNo || 'N/A'}</TableCell>
-                      <TableCell className="text-center">{item.quantityInBill}</TableCell>
-                      <TableCell className="text-right">₹{item.mrp.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">₹{(item.mrp * item.quantityInBill).toFixed(2)}</TableCell>
+              <div className="relative w-full overflow-auto print-table-wrapper">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item Name</TableHead>
+                      <TableHead>Batch No.</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
+                      <TableHead className="text-right">MRP (₹)</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedBill.items.map((item: BillItem, index: number) => ( 
+                      <TableRow key={item.id && item.name ? `${item.id}-${item.name}-${index}` : `bill-item-${index}`}>
+                        <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.batchNo || 'N/A'}</TableCell>
+                        <TableCell className="text-center">{item.quantityInBill}</TableCell>
+                        <TableCell className="text-right">₹{item.mrp.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">₹{(item.mrp * item.quantityInBill).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
             
             <div className="space-y-1 text-right mt-2 print-grand-total">
@@ -329,11 +334,12 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   </Button>
                 )}
                 {!authLoading && isAdmin && (
-                    <AlertDialog>
+                    <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
                         <AlertDialogTrigger asChild>
                             <Button
                                 variant="destructive"
                                 disabled={isDeletingBill}
+                                onClick={() => setIsDeleteAlertOpen(true)} // Open delete alert
                             >
                                 {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                                 Delete Bill
