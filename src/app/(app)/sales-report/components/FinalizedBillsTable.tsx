@@ -35,7 +35,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added AlertDialogTrigger back
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +57,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
   const [isDeletingBill, setIsDeletingBill] = useState(false);
   const { toast } = useToast();
   const { isAdmin, loading: authLoading } = useAuth();
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false); // Used to control AlertDialog specifically for delete
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
 
   useEffect(() => {
@@ -78,6 +78,14 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
       return dateString; 
     }
   };
+   const formatDateForPrint = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString() + " " + new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
+    } catch (e) {
+      return dateString;
+    }
+  };
+
 
   const calculateTotalItems = (bill: FinalizedBill) => {
     return bill.items.reduce((sum, item) => sum + item.quantityInBill, 0);
@@ -150,8 +158,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     setIsDeletingBill(true);
     try {
       await onDeleteBill(selectedBill.id);
-      setIsDeleteAlertOpen(false); // Close alert dialog
-      setSelectedBill(null); // Close main bill dialog
+      setIsDeleteAlertOpen(false); 
+      setSelectedBill(null); 
     } catch (error) {
        // Error toast is handled by parent `onDeleteBill`
     } finally {
@@ -165,11 +173,10 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     <Dialog open={!!selectedBill && !isDeleteAlertOpen} onOpenChange={(isOpen) => {
       if (!isOpen) {
         setSelectedBill(null);
-        // Ensure delete alert is also closed if main dialog is closed
         setIsDeleteAlertOpen(false); 
       }
     }}>
-      <ScrollArea className="h-[calc(100vh-220px)] rounded-md border">
+      <ScrollArea className="h-[calc(100vh-220px)] rounded-md border no-print">
         <Table>
           <TableHeader>
             <TableRow>
@@ -228,15 +235,10 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
             </DialogDescription>
           </DialogHeader>
           
-          <div id="printable-bill-content">
-            <div className="print-only text-center mb-4">
-                <h2 className="text-lg font-bold">LP PHARMACY</h2>
-                <p className="text-sm">Venglai, Lunglei</p>
-                <p className="text-sm">Phone : 8118969532</p>
-            </div>
-            
+          {/* Screen View - Kept for reference but hidden for printing */}
+          <div className="no-print">
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4 no-print">
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="customerName" className="text-right col-span-1">
                   Customer Name
                 </Label>
@@ -247,13 +249,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   className="col-span-3"
                 />
               </div>
-               <div className="print-only text-sm">
-                <p><strong>Bill ID:</strong> {selectedBill.id}</p>
-                <p><strong>Date:</strong> {formatDate(selectedBill.date)}</p>
-                <p><strong>Customer Name:</strong> {editableCustomerName}</p>
-              </div>
-
-              <div className="grid grid-cols-4 items-center gap-4 no-print">
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="customerAddress" className="text-right col-span-1">
                   Address
                 </Label>
@@ -264,9 +260,6 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   className="col-span-3"
                   placeholder="Optional"
                 />
-              </div>
-              <div className="print-only text-sm">
-                <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
               </div>
                <div className="text-sm">
                 <p><strong>Status:</strong> 
@@ -282,9 +275,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 </p>
               </div>
             </div>
-
-            <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md print-dialog-scroll-area print-items-table-area">
-              <div className="relative w-full overflow-auto print-table-wrapper">
+            <ScrollArea className="max-h-[40vh] pr-3 my-4 border rounded-md">
+              <div className="relative w-full overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -309,13 +301,62 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 </Table>
               </div>
             </ScrollArea>
-            
-            <div className="space-y-1 text-right mt-2 print-grand-total">
+            <div className="space-y-1 text-right mt-2">
                 <p className="text-sm">Subtotal: INR ₹{selectedBill.subTotal?.toFixed(2) ?? '0.00'}</p>
                 <p className="text-sm">Discount: INR ₹{selectedBill.discountAmount?.toFixed(2) ?? '0.00'}</p>
                 <p className="font-semibold text-lg">Grand Total: INR ₹{selectedBill.grandTotal.toFixed(2)}</p>
             </div>
           </div>
+
+          {/* Simplified Print View */}
+          <div id="printable-bill-content" className="print-only">
+            <div className="print-header text-center mb-4">
+              <h2 className="text-lg font-bold">LP PHARMACY</h2>
+              <p className="text-sm">Venglai, Lunglei</p>
+              <p className="text-sm">Phone : 8118969532</p>
+            </div>
+            
+            <div className="print-customer-details text-sm mb-3">
+              <p><strong>Bill ID:</strong> {selectedBill.id}</p>
+              <p><strong>Date:</strong> {formatDateForPrint(selectedBill.date)}</p>
+              <p><strong>Customer Name:</strong> {editableCustomerName}</p>
+              <p><strong>Address:</strong> {editableCustomerAddress || 'N/A'}</p>
+              <p><strong>Status:</strong> {selectedBill.status ? selectedBill.status.charAt(0).toUpperCase() + selectedBill.status.slice(1) : 'Unknown'}</p>
+            </div>
+
+            <table className="print-items-table w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="border p-1 text-left font-semibold">Item Name</th>
+                  <th className="border p-1 text-left font-semibold">Batch No.</th>
+                  <th className="border p-1 text-center font-semibold">Qty</th>
+                  <th className="border p-1 text-right font-semibold">MRP (₹)</th>
+                  <th className="border p-1 text-right font-semibold">Total (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedBill.items.map((item: BillItem, index: number) => (
+                  <tr key={`print-item-${index}`}>
+                    <td className="border p-1">{item.name}</td>
+                    <td className="border p-1">{item.batchNo || 'N/A'}</td>
+                    <td className="border p-1 text-center">{item.quantityInBill}</td>
+                    <td className="border p-1 text-right">₹{item.mrp.toFixed(2)}</td>
+                    <td className="border p-1 text-right">₹{(item.mrp * item.quantityInBill).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            <div className="print-totals mt-3 text-right text-sm">
+                <p>Subtotal: INR ₹{selectedBill.subTotal?.toFixed(2) ?? '0.00'}</p>
+                <p>Discount: INR ₹{selectedBill.discountAmount?.toFixed(2) ?? '0.00'}</p>
+                <p className="font-semibold text-base">Grand Total: INR ₹{selectedBill.grandTotal.toFixed(2)}</p>
+            </div>
+             <div className="print-footer text-center mt-4 text-xs">
+                <p>Thank you for your visit!</p>
+            </div>
+          </div>
+
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print">
             <div className="flex gap-2 items-center"> 
@@ -339,7 +380,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                             <Button
                                 variant="destructive"
                                 disabled={isDeletingBill}
-                                onClick={() => setIsDeleteAlertOpen(true)} // Open delete alert
+                                onClick={() => setIsDeleteAlertOpen(true)} 
                             >
                                 {isDeletingBill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                                 Delete Bill
@@ -386,3 +427,4 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     
 
     
+
