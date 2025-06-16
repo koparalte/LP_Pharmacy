@@ -12,20 +12,28 @@ import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const DASHBOARD_DATA_STALE_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
 
 export default function DashboardPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [reportData, setReportData] = useState<ReportData>({
     totalUniqueItems: 0,
-    totalValue: 0, // This will be total cost value
+    totalValue: 0, 
     lowStockItemsCount: 0,
     itemsInStockCount: 0,
     itemsOutOfStockCount: 0,
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [lastFetchedDashboardData, setLastFetchedDashboardData] = useState<number | null>(null);
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    if (!forceRefresh && lastFetchedDashboardData && (now - lastFetchedDashboardData < DASHBOARD_DATA_STALE_TIME)) {
+      setLoading(false); // Data is fresh, no need to re-fetch, ensure loading is false
+      return;
+    }
+
     setLoading(true);
     try {
       const inventoryCollection = collection(db, "inventory");
@@ -40,12 +48,13 @@ export default function DashboardPage() {
 
       const newReportData: ReportData = {
         totalUniqueItems: itemsToUse.length,
-        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0), // item.rate is now cost price
+        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0), 
         lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
         itemsInStockCount: itemsToUse.filter(item => item.stock > 0).length,
         itemsOutOfStockCount: itemsToUse.filter(item => item.stock === 0).length,
       };
       setReportData(newReportData);
+      setLastFetchedDashboardData(now);
 
     } catch (error) {
       console.error("Error fetching inventory for dashboard: ", error);
@@ -62,10 +71,11 @@ export default function DashboardPage() {
          itemsInStockCount: 0,
          itemsOutOfStockCount: 0
         });
+       setLastFetchedDashboardData(null); // Reset on error
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, lastFetchedDashboardData]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -76,7 +86,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
       
-      {loading ? (
+      {loading && !lastFetchedDashboardData ? ( // Show skeletons only if loading for the very first time
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-28 w-full" />
@@ -91,12 +101,12 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-            {loading ? (
+            {loading && !lastFetchedDashboardData ? (
                 <Skeleton className="h-64 w-full" />
             ) : (
                 <RecentItemsSummary items={inventoryItems} />
             )}
-            {loading ? (
+            {loading && !lastFetchedDashboardData ? (
                 <Skeleton className="h-64 w-full" />
             ) : (
                 <LowStockSummary items={inventoryItems} />
@@ -109,7 +119,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-muted-foreground">Manage your pharmacy's inventory efficiently and effectively. Use the navigation to track stock, add new items, and generate reports.</p>
-            {loading ? (
+            {loading && !lastFetchedDashboardData ? (
               <Skeleton className="h-[200px] w-full rounded-md" />
             ) : (
               <Image 
@@ -127,4 +137,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
 
+const INVENTORY_BILLING_STALE_TIME = 2 * 60 * 1000; // 2 minutes
 
 export default function BillingPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -31,8 +32,15 @@ export default function BillingPage() {
   const [isSubmittingBill, setIsSubmittingBill] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(true);
   const { toast } = useToast();
+  const [lastFetchedInventoryBilling, setLastFetchedInventoryBilling] = useState<number | null>(null);
 
-  const fetchInventoryForBilling = useCallback(async () => {
+  const fetchInventoryForBilling = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    if (!forceRefresh && lastFetchedInventoryBilling && (now - lastFetchedInventoryBilling < INVENTORY_BILLING_STALE_TIME)) {
+      setLoadingInventory(false);
+      return;
+    }
+
     setLoadingInventory(true);
     try {
       const inventoryCollection = collection(db, "inventory");
@@ -43,6 +51,7 @@ export default function BillingPage() {
         ...doc.data(),
       } as InventoryItem));
       setInventory(inventoryList);
+      setLastFetchedInventoryBilling(now);
     } catch (error) {
       console.error("Error fetching inventory for billing: ", error);
       toast({
@@ -51,10 +60,11 @@ export default function BillingPage() {
         variant: "destructive",
       });
       setInventory([]);
+      setLastFetchedInventoryBilling(null);
     } finally {
       setLoadingInventory(false);
     }
-  }, [toast]);
+  }, [toast, lastFetchedInventoryBilling]);
 
   useEffect(() => {
     fetchInventoryForBilling();
@@ -233,6 +243,7 @@ export default function BillingPage() {
         return invItem;
       });
       setInventory(updatedLocalInventory);
+      setLastFetchedInventoryBilling(Date.now()); // Mark local inventory as updated
 
       setBillItems([]); 
       setDiscountAmount(0);
@@ -279,7 +290,7 @@ export default function BillingPage() {
           />
         </div>
         <ScrollArea className="flex-grow rounded-md border">
-          {loadingInventory ? (
+          {loadingInventory && !lastFetchedInventoryBilling ? (
             <div className="space-y-1 p-2">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />

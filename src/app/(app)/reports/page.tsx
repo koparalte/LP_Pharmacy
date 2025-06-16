@@ -11,6 +11,7 @@ import { collection, getDocs, query } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const REPORT_DATA_STALE_TIME = 2 * 60 * 1000; // 2 minutes
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData & { itemsExpiringSoon?: number }>({
@@ -18,8 +19,15 @@ export default function ReportsPage() {
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [lastFetchedReportData, setLastFetchedReportData] = useState<number | null>(null);
 
-  const fetchReportData = useCallback(async () => {
+  const fetchReportData = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    if (!forceRefresh && lastFetchedReportData && (now - lastFetchedReportData < REPORT_DATA_STALE_TIME)) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const inventoryCollection = collection(db, "inventory");
@@ -32,7 +40,7 @@ export default function ReportsPage() {
 
       const newReportData: ReportData = {
         totalUniqueItems: itemsToUse.length,
-        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0), // item.rate is cost price
+        totalValue: itemsToUse.reduce((sum, item) => sum + item.stock * item.rate, 0), 
         lowStockItemsCount: itemsToUse.filter(item => item.stock <= item.lowStockThreshold).length,
         itemsInStockCount: itemsToUse.filter(item => item.stock > 0).length,
         itemsOutOfStockCount: itemsToUse.filter(item => item.stock === 0).length,
@@ -53,6 +61,7 @@ export default function ReportsPage() {
       }).length;
 
       setReportData({ ...newReportData, itemsExpiringSoon });
+      setLastFetchedReportData(now);
 
     } catch (error) {
       console.error("Error fetching inventory for reports: ", error);
@@ -62,10 +71,11 @@ export default function ReportsPage() {
         variant: "destructive",
       });
       setReportData({ totalUniqueItems: 0, totalValue: 0, lowStockItemsCount: 0, itemsExpiringSoon: 0, itemsInStockCount: 0, itemsOutOfStockCount: 0 });
+      setLastFetchedReportData(null);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, lastFetchedReportData]);
 
 
   useEffect(() => {
@@ -76,7 +86,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Inventory Reports</h1>
       
-      {loading ? (
+      {loading && !lastFetchedReportData ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-28 w-full" />
@@ -95,7 +105,7 @@ export default function ReportsPage() {
             <CardDescription>More detailed reports and analytics will be available here.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
-             {loading ? (
+             {loading && !lastFetchedReportData ? (
                 <Skeleton className="h-[200px] w-[400px] rounded-md" />
              ) : (
                 <Image 
@@ -114,4 +124,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
