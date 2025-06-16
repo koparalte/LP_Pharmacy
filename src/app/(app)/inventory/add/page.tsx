@@ -2,13 +2,14 @@
 "use client";
 
 import { AddItemForm, type AddItemFormValues } from "./components/AddItemForm";
-import type { InventoryItem, InventoryMovement } from "@/lib/types";
+import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, writeBatch, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, writeBatch, doc } from "firebase/firestore";
 import { useState } from "react";
 import { format } from "date-fns";
+import { logInventoryMovement } from "@/lib/inventoryLogService";
 
 export default function AddInventoryItemPage() {
   const { toast } = useToast();
@@ -18,10 +19,10 @@ export default function AddInventoryItemPage() {
   const handleFormSubmit = async (data: AddItemFormValues) => {
     setIsSubmitting(true);
 
-    const batch = writeBatch(db);
+    const inventoryCollectionRef = collection(db, "inventory");
+    const newInventoryItemDocRef = doc(inventoryCollectionRef); // Generate ID upfront
 
     try {
-      const newInventoryItemRef = doc(collection(db, "inventory"));
       const newItemPayload: Omit<InventoryItem, 'id'> = {
         name: data.name,
         batchNo: data.batchNo || undefined,
@@ -33,29 +34,26 @@ export default function AddInventoryItemPage() {
         expiryDate: data.expiryDate ? format(data.expiryDate, "yyyy-MM-dd") : undefined,
         lastUpdated: new Date().toISOString(),
       };
-      batch.set(newInventoryItemRef, newItemPayload);
+      
+      // Set the inventory item first
+      await addDoc(collection(db, "inventory"), newItemPayload); // Or use set with newInventoryItemDocRef if ID needed immediately before log
 
       // Log inventory movement for initial stock
       if (data.stock > 0) {
-        const newMovementRef = doc(collection(db, "inventoryMovements"));
-        const movementPayload: Omit<InventoryMovement, 'id'> = {
-          itemId: newInventoryItemRef.id,
+        await logInventoryMovement({
+          itemId: newInventoryItemDocRef.id, // Use the generated ID
           itemName: data.name,
           type: 'in',
           quantity: data.stock,
           movementDate: format(new Date(), "yyyy-MM-dd"),
           source: 'initial_stock',
           reason: 'Initial stock for new item',
-          recordedAt: new Date().toISOString(),
-        };
-        batch.set(newMovementRef, movementPayload);
+        });
       }
       
-      await batch.commit();
-
       toast({
         title: "Item Added Successfully!",
-        description: `${data.name} has been added to the inventory with ID: ${newInventoryItemRef.id}. Initial stock movement logged.`,
+        description: `${data.name} has been added to the inventory. Initial stock movement logged.`,
       });
       router.push("/inventory");
     } catch (error) {

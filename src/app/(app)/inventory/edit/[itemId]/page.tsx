@@ -3,15 +3,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc, collection, writeBatch } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { InventoryItem, InventoryMovement } from "@/lib/types";
+import type { InventoryItem } from "@/lib/types";
 import { AddItemForm, type AddItemFormValues } from "@/app/(app)/inventory/add/components/AddItemForm";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { logInventoryMovement } from "@/lib/inventoryLogService";
 
 export default function EditInventoryItemPage() {
   const router = useRouter();
@@ -70,7 +71,6 @@ export default function EditInventoryItemPage() {
       return;
     }
     setIsSubmitting(true);
-    const batch = writeBatch(db);
 
     try {
       const currentStock = originalItem.stock;
@@ -78,8 +78,6 @@ export default function EditInventoryItemPage() {
       const newStock = currentStock + stockAdjustment;
 
       if (newStock < 0) {
-        // Allow negative stock but it's generally not ideal.
-        // Consider if business rules should prevent this.
         toast({
           title: "Warning: Stock Low",
           description: `Stock for ${data.name} will become ${newStock}.`,
@@ -96,17 +94,16 @@ export default function EditInventoryItemPage() {
         unit: updatePayloadBase.unit || undefined,
         stock: newStock,
         lowStockThreshold: updatePayloadBase.lowStockThreshold,
-        rate: updatePayloadBase.rate, // Cost price
-        mrp: updatePayloadBase.mrp,   // Selling price (MRP)
+        rate: updatePayloadBase.rate, 
+        mrp: updatePayloadBase.mrp,   
         expiryDate: updatePayloadBase.expiryDate ? format(updatePayloadBase.expiryDate, "yyyy-MM-dd") : undefined,
         lastUpdated: new Date().toISOString(),
       };
-      batch.update(itemDocRef, updatePayload);
+      
+      await updateDoc(itemDocRef, updatePayload);
 
-      // Log inventory movement if stock was adjusted
       if (stockAdjustment !== 0) {
-        const newMovementRef = doc(collection(db, "inventoryMovements"));
-        const movementPayload: Omit<InventoryMovement, 'id'> = {
+        await logInventoryMovement({
           itemId: itemId,
           itemName: data.name,
           type: stockAdjustment > 0 ? 'in' : 'out',
@@ -116,13 +113,9 @@ export default function EditInventoryItemPage() {
           reason: stockAdjustment > 0 
             ? `Stock increased by ${stockAdjustment} via edit` 
             : `Stock decreased by ${Math.abs(stockAdjustment)} via edit`,
-          recordedAt: new Date().toISOString(),
-        };
-        batch.set(newMovementRef, movementPayload);
+        });
       }
       
-      await batch.commit();
-
       toast({
         title: "Item Updated Successfully!",
         description: `${data.name} has been updated. Stock movement logged if applicable.`,

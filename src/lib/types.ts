@@ -56,10 +56,9 @@ export type InventoryMovementSource =
   | 'stock_edit' 
   | 'sale' 
   | 'csv_import';
-  // Removed 'manual_adjustment_in' and 'manual_adjustment_out' as manual form is removed
 
 export type InventoryMovement = {
-  id: string; // Firestore document ID
+  eventId: string; // Unique ID for this specific movement event within a daily log
   itemId: string;
   itemName: string; // Denormalized for easier display
   type: 'in' | 'out';
@@ -70,3 +69,9 @@ export type InventoryMovement = {
   recordedAt: string; // ISO DateTime string of when the record was made
 };
 
+export type DailyMovementLog = {
+  id: string; // Document ID, YYYY-MM-DD
+  date: string; // YYYY-MM-DD, same as ID
+  movements: InventoryMovement[];
+  lastUpdated: string; // ISO DateTime string of the last update to this daily log document
+};

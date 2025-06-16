@@ -13,6 +13,7 @@ import { collection, doc, writeBatch } from "firebase/firestore";
 import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
 import type { InventoryItem, InventoryMovement } from "@/lib/types";
 import { format } from "date-fns";
+import { logInventoryMovement } from "@/lib/inventoryLogService";
 
 type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated'>;
 
@@ -58,8 +59,8 @@ export default function ImportInventoryPage() {
       unit: "unit",
       stock: "stock",
       lowStockThreshold: "lowstockthreshold",
-      rate: "rate", // Cost Price
-      mrp: "mrp",   // Selling Price (MRP)
+      rate: "rate", 
+      mrp: "mrp",   
       expiryDate: "expirydate", 
     };
 
@@ -101,12 +102,12 @@ export default function ImportInventoryPage() {
       if (isNaN(lowStockThreshold) || lowStockThreshold < 0) { validRow = false; console.warn(`Skipping row ${i+1}: Low Stock Threshold must be a non-negative number. Found: '${lowStockThresholdStr}' for item '${name}'`);}
       itemData.lowStockThreshold = lowStockThreshold;
       
-      const rateStr = values[headerIndices.rate]; // Cost Price from CSV
+      const rateStr = values[headerIndices.rate]; 
       const rate = parseFloat(rateStr);
       if (isNaN(rate) || rate <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: Rate (Cost Price) must be a positive number. Found: '${rateStr}' for item '${name}'`);}
       itemData.rate = rate;
 
-      const mrpStr = values[headerIndices.mrp]; // Selling Price (MRP) from CSV
+      const mrpStr = values[headerIndices.mrp]; 
       const mrp = parseFloat(mrpStr);
       if (isNaN(mrp) || mrp <= 0) { validRow = false; console.warn(`Skipping row ${i+1}: MRP (Selling Price) must be a positive number. Found: '${mrpStr}' for item '${name}'`);}
       itemData.mrp = mrp;
@@ -114,9 +115,8 @@ export default function ImportInventoryPage() {
       if (headerIndices.expiryDate !== -1) {
         const expiryDateStr = values[headerIndices.expiryDate];
         if (expiryDateStr) {
-          if (/^\d{2}-\d{2}-\d{4}$/.test(expiryDateStr)) { // DD-MM-YYYY format check
+          if (/^\d{2}-\d{2}-\d{4}$/.test(expiryDateStr)) { 
             const parts = expiryDateStr.split('-');
-            // Reformat to YYYY-MM-DD for internal consistency
             itemData.expiryDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
           } else {
             console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected DD-MM-YYYY. Found: '${expiryDateStr}'`);
@@ -129,8 +129,8 @@ export default function ImportInventoryPage() {
         itemData.expiryDate = undefined;
       }
 
-      if (validRow && itemData.mrp < itemData.rate) { // MRP should be >= Rate (Cost Price)
-         console.warn(`Skipping row ${i+1} (item '${name}'): MRP (Selling Price) (${itemData.mrp}) cannot be less than Rate (Cost Price) (${itemData.rate}).`);
+      if (validRow && itemData.mrp < itemData.rate) { 
+         console.warn(`Skipping row ${i+1} (item '${name}'): MRP (${itemData.mrp}) cannot be less than Rate (Cost Price) (${itemData.rate}).`);
          validRow = false;
       }
       
@@ -173,16 +173,15 @@ export default function ImportInventoryPage() {
         return;
       }
 
-      const batchLimit = 250; // Firestore batch limit is 500 writes, 1 item + 1 movement = 2 writes.
+      const batchLimit = 250; 
       let itemsAddedSuccessfully = 0;
       const inventoryCollectionRef = collection(db, "inventory");
-      const movementsCollectionRef = collection(db, "inventoryMovements");
-      const currentDateStr = format(new Date(), "yyyy-MM-dd");
       const currentTimestamp = new Date().toISOString();
 
       for (let i = 0; i < parseResult.newItems.length; i += batchLimit) {
         const batch = writeBatch(db);
         const chunk = parseResult.newItems.slice(i, i + batchLimit);
+        const movementPromises: Promise<void>[] = [];
 
         chunk.forEach(newItemData => {
           const newInventoryItemRef = doc(inventoryCollectionRef); 
@@ -193,32 +192,29 @@ export default function ImportInventoryPage() {
           batch.set(newInventoryItemRef, inventoryItemPayload);
 
           if (newItemData.stock > 0) {
-            const newMovementRef = doc(movementsCollectionRef);
-            const movementPayload: Omit<InventoryMovement, 'id'> = {
+            movementPromises.push(logInventoryMovement({
               itemId: newInventoryItemRef.id,
               itemName: newItemData.name,
               type: 'in',
               quantity: newItemData.stock,
-              movementDate: currentDateStr,
+              movementDate: format(new Date(), "yyyy-MM-dd"),
               source: 'csv_import',
               reason: 'Initial stock from CSV import',
-              recordedAt: currentTimestamp,
-            };
-            batch.set(newMovementRef, movementPayload);
+            }));
           }
         });
 
         try {
           await batch.commit();
+          await Promise.all(movementPromises); // Log movements after batch commit
           itemsAddedSuccessfully += chunk.length;
         } catch (batchError: any) {
-          console.error("Error committing batch: ", batchError);
+          console.error("Error committing batch or logging movements: ", batchError);
           toast({
             title: "Batch Add Error",
             description: `A batch of ${chunk.length} items/movements failed. Check console. Error: ${batchError.message}`,
             variant: "destructive",
           });
-          // Potentially break or log which items failed if more granular error handling is needed
         }
       }
       
@@ -320,5 +316,3 @@ Paracetamol 500mg,,pcs,200,50,18.00,30.00,
     </div>
   );
 }
-
-    

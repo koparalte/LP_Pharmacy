@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { InventoryItem, BillItem, FinalizedBill, InventoryMovement } from "@/lib/types";
+import type { InventoryItem, BillItem, FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,9 +17,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, serverTimestamp, query, orderBy, runTransaction } from "firebase/firestore";
+import { collection, getDocs, doc, runTransaction, query, orderBy } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { logInventoryMovement } from "@/lib/inventoryLogService";
 
 
 export default function BillingPage() {
@@ -87,14 +88,13 @@ export default function BillingPage() {
           return prevBillItems;
         }
       } else {
-        // Create a new BillItem with only the fields defined in the BillItem type
         const newBillItem: BillItem = {
           id: itemToAdd.id,
           name: itemToAdd.name,
           batchNo: itemToAdd.batchNo,
           unit: itemToAdd.unit,
-          rate: itemToAdd.rate, // Cost price
-          mrp: itemToAdd.mrp,   // Selling price (MRP)
+          rate: itemToAdd.rate, 
+          mrp: itemToAdd.mrp,   
           quantityInBill: 1,
           expiryDate: itemToAdd.expiryDate,
         };
@@ -142,14 +142,14 @@ export default function BillingPage() {
     setIsSubmittingBill(true);
 
     try {
+      const billDate = new Date();
+      const billDateStr = format(billDate, "yyyy-MM-dd");
+      const billTimestamp = billDate.toISOString();
+      const customBillId = `LP${billDate.getTime().toString().slice(-7)}`;
+
       await runTransaction(db, async (transaction) => {
         const inventoryUpdates: { docRef: any, newStock: number }[] = [];
-        const movementLogs: Omit<InventoryMovement, 'id'>[] = [];
-        const billDate = new Date();
-        const billDateStr = format(billDate, "yyyy-MM-dd");
-        const billTimestamp = billDate.toISOString();
-        const customBillId = `LP${billDate.getTime().toString().slice(-7)}`;
-
+        
         for (const bItem of billItems) {
           const itemDocRef = doc(db, "inventory", bItem.id);
           const itemDoc = await transaction.get(itemDocRef);
@@ -164,18 +164,6 @@ export default function BillingPage() {
           }
           const newStock = inventoryItemData.stock - bItem.quantityInBill;
           inventoryUpdates.push({ docRef: itemDocRef, newStock });
-
-          // Prepare movement log for this item
-          movementLogs.push({
-            itemId: bItem.id,
-            itemName: bItem.name,
-            type: 'out',
-            quantity: bItem.quantityInBill,
-            movementDate: billDateStr,
-            source: 'sale',
-            reason: `Sale - Bill ID: ${customBillId}`,
-            recordedAt: billTimestamp,
-          });
         }
 
         // Apply inventory updates
@@ -190,8 +178,8 @@ export default function BillingPage() {
           name: bi.name,
           batchNo: bi.batchNo,
           unit: bi.unit,
-          rate: bi.rate, // cost price
-          mrp: bi.mrp,   // selling price (MRP)
+          rate: bi.rate, 
+          mrp: bi.mrp,   
           quantityInBill: bi.quantityInBill,
           expiryDate: bi.expiryDate,
         }));
@@ -200,19 +188,37 @@ export default function BillingPage() {
           date: billTimestamp,
           items: billItemsForPayload,
           grandTotal: grandTotal,
-          customerName: "Walk-in Customer", // Default, can be made editable later
-          customerAddress: "N/A", // Default
+          customerName: "Walk-in Customer", 
+          customerAddress: "N/A", 
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
         transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
 
-        // Add movement logs
-        const movementsCollectionRef = collection(db, "inventoryMovements");
-        movementLogs.forEach(movement => {
-            const newMovementRef = doc(movementsCollectionRef);
-            transaction.set(newMovementRef, movement);
-        });
       });
+
+      // After transaction succeeds, log movements (outside transaction to avoid complex transaction rollbacks on log failure)
+      for (const bItem of billItems) {
+         try {
+            await logInventoryMovement({
+              itemId: bItem.id,
+              itemName: bItem.name,
+              type: 'out',
+              quantity: bItem.quantityInBill,
+              movementDate: billDateStr,
+              source: 'sale',
+              reason: `Sale - Bill ID: ${customBillId}`,
+            });
+          } catch (logError) {
+             console.error(`Failed to log movement for item ${bItem.name} in bill ${customBillId}:`, logError);
+             // Optionally, toast a non-critical error for logging failure
+             toast({
+                title: "Movement Log Issue",
+                description: `Could not log movement for ${bItem.name}. Inventory & bill are updated.`,
+                variant: "default" 
+             });
+          }
+      }
+
 
       // Update local inventory state
       const updatedLocalInventory = inventory.map(invItem => {
@@ -224,7 +230,7 @@ export default function BillingPage() {
       });
       setInventory(updatedLocalInventory);
 
-      setBillItems([]); // Clear the current bill
+      setBillItems([]); 
 
       toast({
         title: "Bill Finalized!",
