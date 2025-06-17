@@ -186,20 +186,38 @@
       margin-top: 0.5rem;
       margin-bottom: 0.5rem;
       font-size: 0.875rem;
+      border: 1px solid #333 !important; /* Box around the whole table */
     }
 
     .print-items-table th,
     .print-items-table td {
-      border: 1px solid #333 !important; /* Clear, dark borders for table cells */
-      padding: 5px 8px !important; /* Adjust padding for readability */
+      padding: 5px 8px !important;
       text-align: left !important;
       vertical-align: top;
       page-break-inside: avoid !important;
+      /* Horizontal borders removed from individual cells here */
     }
-    .print-items-table th {
-      background-color: #f0f0f0 !important; /* Light gray for table headers */
-      font-weight: bold !important; /* Ensure headers are bold */
+
+    .print-items-table th { /* Styles for header cells */
+      background-color: #f0f0f0 !important;
+      font-weight: bold !important;
+      border-bottom: 1px solid #333 !important; /* Line under headers */
     }
+
+    /* Add vertical lines between all cells (th and td), except the last one in a row */
+    .print-items-table th:not(:last-child),
+    .print-items-table td:not(:last-child) {
+      border-right: 1px solid #333 !important;
+    }
+    
+    /* Ensure body rows don't have their own top/bottom borders */
+    .print-items-table tbody tr td {
+        /* No specific border-top or border-bottom for individual body cells. */
+        /* This prevents horizontal lines between items. */
+    }
+    /* The overall table border creates the line under the last item. */
+
+
     .print-items-table .text-right { text-align: right !important; }
     .print-items-table .text-center { text-align: center !important; }
 
@@ -239,4 +257,3 @@
     }
   }
 }
-
