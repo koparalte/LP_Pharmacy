@@ -103,6 +103,7 @@ export default function PrintBillPage() {
         <p><strong>Customer Name:</strong> {bill.customerName}</p>
         <p><strong>Address:</strong> {bill.customerAddress || 'N/A'}</p>
         <p><strong>Status:</strong> {bill.status ? bill.status.charAt(0).toUpperCase() + bill.status.slice(1) : 'Unknown'}</p>
+        {bill.remarks && <p><strong>Remarks:</strong> {bill.remarks}</p>}
       </div>
 
       <table className="print-items-table">

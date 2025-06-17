@@ -6,16 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Minus, ShoppingCart, CreditCard, Landmark, Percent } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, CreditCard, Landmark, Percent, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface BillingReceiptProps {
   billItems: BillItem[];
   discountAmount: number;
+  remarks: string;
   onRemoveItem: (itemId: string) => void;
   onUpdateQuantity: (itemId: string, newQuantity: number) => void;
   onDiscountChange: (amount: number) => void;
+  onRemarksChange: (remarks: string) => void;
   onMarkAsPaid: () => void;
   onMarkAsDebt: () => void;
   isSubmitting: boolean;
@@ -24,9 +27,11 @@ interface BillingReceiptProps {
 export function BillingReceipt({ 
   billItems, 
   discountAmount,
+  remarks,
   onRemoveItem, 
   onUpdateQuantity, 
   onDiscountChange,
+  onRemarksChange,
   onMarkAsPaid, 
   onMarkAsDebt, 
   isSubmitting 
@@ -75,7 +80,7 @@ export function BillingReceipt({
         <CardDescription>Review items, add discount, and finalize the transaction.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[calc(100vh-480px)] pr-3"> {/* Adjusted height for discount and two buttons */}
+        <ScrollArea className="h-[calc(100vh-560px)] pr-3"> {/* Adjusted height for remarks, discount, and two buttons */}
           <Table>
             <TableHeader>
               <TableRow>
@@ -152,6 +157,19 @@ export function BillingReceipt({
         <div className="flex justify-between w-full text-lg font-semibold mt-1">
           <span>Grand Total:</span>
           <span>INR ₹{grandTotal.toFixed(2)}</span>
+        </div>
+        
+        <div className="w-full space-y-1.5 mt-2">
+            <Label htmlFor="remarks" className="text-md font-medium flex items-center">
+                <MessageSquare className="mr-1 h-4 w-4 text-muted-foreground" /> Remarks (Optional):
+            </Label>
+            <Textarea
+                id="remarks"
+                placeholder="E.g., Paid via UPI, Cash only..."
+                value={remarks}
+                onChange={(e) => onRemarksChange(e.target.value)}
+                className="min-h-[60px]"
+            />
         </div>
 
         <div className="grid grid-cols-2 gap-2 w-full pt-2">

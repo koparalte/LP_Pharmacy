@@ -15,7 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, Printer, Save, CheckCircle, Trash2, Loader2, CreditCard, DollarSign } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea"; // Added Textarea
+import { Eye, Printer, Save, CheckCircle, Trash2, Loader2, CreditCard, DollarSign, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,7 @@ import {
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteField } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 
 interface FinalizedBillsTableProps {
@@ -53,6 +54,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
   const [selectedBill, setSelectedBill] = useState<FinalizedBill | null>(null);
   const [editableCustomerName, setEditableCustomerName] = useState("");
   const [editableCustomerAddress, setEditableCustomerAddress] = useState("");
+  const [editableRemarks, setEditableRemarks] = useState(""); // New state for remarks
   const [paymentInputValue, setPaymentInputValue] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isDeletingBill, setIsDeletingBill] = useState(false);
@@ -65,6 +67,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     if (selectedBill) {
       setEditableCustomerName(selectedBill.customerName);
       setEditableCustomerAddress(selectedBill.customerAddress || "");
+      setEditableRemarks(selectedBill.remarks || ""); // Initialize editable remarks
       setPaymentInputValue(""); // Reset payment input when a new bill is selected
     } else {
       setIsDeleteAlertOpen(false);
@@ -94,23 +97,37 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     }
 
     const billDocRef = doc(db, "finalizedBills", selectedBill.id);
-    const updatedDetails = {
+    const updatedDetails: { customerName: string; customerAddress?: string; remarks?: string | FieldValue } = {
       customerName: editableCustomerName,
-      customerAddress: editableCustomerAddress,
     };
+
+    if (editableCustomerAddress.trim() !== "") {
+      updatedDetails.customerAddress = editableCustomerAddress;
+    } else {
+      updatedDetails.customerAddress = deleteField(); // Remove if empty
+    }
+
+    if (editableRemarks.trim() !== "") {
+        updatedDetails.remarks = editableRemarks;
+    } else {
+        updatedDetails.remarks = deleteField(); // Remove if empty
+    }
+
 
     try {
       await updateDoc(billDocRef, updatedDetails);
       const updatedBill: FinalizedBill = {
         ...selectedBill,
-        ...updatedDetails,
+        customerName: editableCustomerName,
+        customerAddress: editableCustomerAddress.trim() !== "" ? editableCustomerAddress : undefined,
+        remarks: editableRemarks.trim() !== "" ? editableRemarks : undefined,
       };
       onBillUpdate(updatedBill); 
       setSelectedBill(updatedBill); 
-      toast({ title: "Success", description: "Customer details updated." });
+      toast({ title: "Success", description: "Bill details updated." });
     } catch (error) {
       console.error("Error updating bill in Firestore: ", error);
-      toast({ title: "Error", description: "Could not save customer details to the database.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not save bill details to the database.", variant: "destructive" });
     }
   };
   
@@ -188,7 +205,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     let finalAmountPaid = newAmountActuallyPaid;
     let finalRemaining = newRemainingBalance;
 
-    if (newRemainingBalance <= 0) { // Changed to <= 0 for robustness
+    if (newRemainingBalance <= 0.005) { // Handle potential floating point inaccuracies
       newStatus = 'paid';
       finalAmountPaid = selectedBill.grandTotal; 
       finalRemaining = 0;
@@ -330,6 +347,18 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   placeholder="Optional"
                 />
               </div>
+              <div className="grid grid-cols-4 items-start gap-4"> {/* Changed to items-start for textarea */}
+                <Label htmlFor="remarks" className="text-right col-span-1 pt-2"> {/* Added pt-2 for alignment */}
+                  Remarks
+                </Label>
+                <Textarea
+                  id="remarks"
+                  value={editableRemarks}
+                  onChange={(e) => setEditableRemarks(e.target.value)}
+                  className="col-span-3 min-h-[60px]"
+                  placeholder="Optional - e.g., Paid via UPI"
+                />
+              </div>
             </div>
 
             <ScrollArea className="max-h-[30vh] pr-3 my-4 border rounded-md">
@@ -453,7 +482,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 </Button>
               </DialogClose>
               <Button type="button" onClick={handleSaveChanges}>
-                <Save className="mr-2 h-4 w-4" /> Save Customer Details
+                <Save className="mr-2 h-4 w-4" /> Save Bill Details
               </Button>
             </div>
           </DialogFooter>
@@ -463,4 +492,3 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     </>
   );
 }
-

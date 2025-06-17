@@ -30,6 +30,7 @@ export default function BillingPage() {
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [remarks, setRemarks] = useState(""); // New state for remarks
   const [isSubmittingBill, setIsSubmittingBill] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(true);
   const { toast } = useToast();
@@ -145,6 +146,10 @@ export default function BillingPage() {
   const handleDiscountChange = (amount: number) => {
     setDiscountAmount(amount);
   };
+  
+  const handleRemarksChange = (text: string) => {
+    setRemarks(text);
+  };
 
   const processBill = async (status: 'paid' | 'debt') => {
     if (billItems.length === 0) {
@@ -209,7 +214,7 @@ export default function BillingPage() {
           expiryDate: bi.expiryDate,
         }));
         
-        const newFinalizedBillPayload: Omit<FinalizedBill, 'id'> = {
+        const newFinalizedBillPayload: Partial<Omit<FinalizedBill, 'id'>> & Pick<FinalizedBill, 'date' | 'items' | 'subTotal' | 'discountAmount' | 'grandTotal' | 'customerName' | 'status' | 'amountActuallyPaid' | 'remainingBalance'> = {
           date: billTimestamp,
           items: billItemsForPayload,
           subTotal: subTotal,
@@ -221,8 +226,13 @@ export default function BillingPage() {
           amountActuallyPaid: status === 'paid' ? finalGrandTotal : 0,
           remainingBalance: status === 'paid' ? 0 : finalGrandTotal,
         };
+
+        if (remarks.trim() !== "") {
+          newFinalizedBillPayload.remarks = remarks.trim();
+        }
+        
         const finalizedBillCollection = collection(db, "finalizedBills");
-        transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
+        transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload as Omit<FinalizedBill, 'id'>);
 
       });
 
@@ -261,6 +271,7 @@ export default function BillingPage() {
 
       setBillItems([]); 
       setDiscountAmount(0);
+      setRemarks(""); // Reset remarks
 
       toast({
         title: `Bill Marked as ${status.charAt(0).toUpperCase() + status.slice(1)}!`,
@@ -354,9 +365,11 @@ export default function BillingPage() {
         <BillingReceipt
           billItems={billItems}
           discountAmount={discountAmount}
+          remarks={remarks}
           onRemoveItem={handleRemoveItemFromBill}
           onUpdateQuantity={handleUpdateItemQuantity}
           onDiscountChange={handleDiscountChange}
+          onRemarksChange={handleRemarksChange}
           onMarkAsPaid={handleMarkAsPaid}
           onMarkAsDebt={handleMarkAsDebt}
           isSubmitting={isSubmittingBill}

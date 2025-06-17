@@ -54,6 +54,7 @@ export type FinalizedBill = {
   status: 'paid' | 'debt'; 
   amountActuallyPaid: number; // Total amount paid by the customer for this bill
   remainingBalance: number; // grandTotal - amountActuallyPaid
+  remarks?: string; // Optional field for remarks, e.g., payment method
 };
 
 export type InventoryMovementSource = 
