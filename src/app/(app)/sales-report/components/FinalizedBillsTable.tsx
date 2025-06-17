@@ -247,6 +247,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
               <TableHead>Customer</TableHead>
               <TableHead className="text-center">Items</TableHead>
               <TableHead className="text-right">Grand Total (₹)</TableHead>
+              <TableHead className="text-right">Remaining Balance (₹)</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Details</TableHead>
             </TableRow>
@@ -261,6 +262,9 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   <Badge variant="secondary">{calculateTotalItems(bill)}</Badge>
                 </TableCell>
                 <TableCell className="text-right font-medium">₹{bill.grandTotal.toFixed(2)}</TableCell>
+                <TableCell className={`text-right font-medium ${bill.status === 'debt' && bill.remainingBalance > 0 ? 'text-orange-600' : ''}`}>
+                  ₹{bill.remainingBalance.toFixed(2)}
+                </TableCell>
                 <TableCell className="text-center">
                    <Badge 
                     variant={getStatusBadgeVariant(bill.status)} 
@@ -455,3 +459,4 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
     </>
   );
 }
+
