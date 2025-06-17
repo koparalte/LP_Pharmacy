@@ -131,7 +131,9 @@ export default function PrintBillPage() {
       <div className="print-totals">
           <p>Subtotal: INR ₹{bill.subTotal?.toFixed(2) ?? '0.00'}</p>
           <p>Discount: INR ₹{bill.discountAmount?.toFixed(2) ?? '0.00'}</p>
-          <p className="font-semibold">Grand Total: INR ₹{bill.grandTotal.toFixed(2)}</p>
+          <p className="font-semibold text-base">Grand Total: INR ₹{bill.grandTotal.toFixed(2)}</p>
+          <p>Amount Paid: INR ₹{(bill.amountActuallyPaid || 0).toFixed(2)}</p>
+          <p className="font-medium">Remaining Balance: INR ₹{(bill.remainingBalance || 0).toFixed(2)}</p>
       </div>
       <div className="print-footer">
           <p>Thank you for your visit!</p>

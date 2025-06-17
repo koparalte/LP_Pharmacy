@@ -51,7 +51,9 @@ export type FinalizedBill = {
   grandTotal: number; // Total after discount
   customerName: string;
   customerAddress?: string;
-  status: 'paid' | 'debt'; // New status field
+  status: 'paid' | 'debt'; 
+  amountActuallyPaid: number; // Total amount paid by the customer for this bill
+  remainingBalance: number; // grandTotal - amountActuallyPaid
 };
 
 export type InventoryMovementSource = 
@@ -80,3 +82,4 @@ export type DailyMovementLog = {
   movements: InventoryMovement[];
   lastUpdated: string; // ISO DateTime string of the last update to this daily log document
 };
+

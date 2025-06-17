@@ -218,6 +218,8 @@ export default function BillingPage() {
           customerName: "Walk-in Customer", 
           customerAddress: "N/A",
           status: status, 
+          amountActuallyPaid: status === 'paid' ? finalGrandTotal : 0,
+          remainingBalance: status === 'paid' ? 0 : finalGrandTotal,
         };
         const finalizedBillCollection = collection(db, "finalizedBills");
         transaction.set(doc(finalizedBillCollection, customBillId), newFinalizedBillPayload);
