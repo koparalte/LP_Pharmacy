@@ -17,11 +17,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, runTransaction, query, orderBy, setDoc } from "firebase/firestore";
+import { collection, getDocs, doc, runTransaction, query, orderBy, setDoc, where } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
-import { useAuth } from "@/hooks/useAuth"; // Import useAuth
+import { useAuth } from "@/hooks/useAuth"; 
 
 const INVENTORY_BILLING_STALE_TIME = 2 * 60 * 1000; // 2 minutes
 
@@ -30,12 +30,12 @@ export default function BillingPage() {
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
-  const [remarks, setRemarks] = useState(""); // New state for remarks
+  const [remarks, setRemarks] = useState(""); 
   const [isSubmittingBill, setIsSubmittingBill] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(true);
   const { toast } = useToast();
   const [lastFetchedInventoryBilling, setLastFetchedInventoryBilling] = useState<number | null>(null);
-  const { user } = useAuth(); // Get current user
+  const { user } = useAuth(); 
 
   const fetchInventoryForBilling = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
@@ -67,7 +67,7 @@ export default function BillingPage() {
     } finally {
       setLoadingInventory(false);
     }
-  }, [toast, lastFetchedInventoryBilling]);
+  }, [toast, lastFetchedInventoryBilling]); // Removed user from dependency array as it's not used here
 
   useEffect(() => {
     fetchInventoryForBilling();
@@ -246,8 +246,8 @@ export default function BillingPage() {
               movementDate: billDateStr,
               source: 'sale',
               reason: `Sale - Bill ID: ${customBillId} (Status: ${status})`,
-              movedByUserId: user.uid,
-              movedByUserName: user.displayName || user.email || "Unknown User",
+              movedByUserId: user.uid, // Pass user ID
+              movedByUserName: user.displayName || user.email || "Unknown User", // Pass user name
             });
           } catch (logError: any) {
              console.error(`Failed to log movement for item ${bItem.name} in bill ${customBillId}:`, logError);
@@ -271,7 +271,7 @@ export default function BillingPage() {
 
       setBillItems([]); 
       setDiscountAmount(0);
-      setRemarks(""); // Reset remarks
+      setRemarks(""); 
 
       toast({
         title: `Bill Marked as ${status.charAt(0).toUpperCase() + status.slice(1)}!`,
