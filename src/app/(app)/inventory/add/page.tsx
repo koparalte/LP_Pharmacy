@@ -53,7 +53,7 @@ export default function AddInventoryItemPage() {
       
       toast({
         title: "Item Added Successfully!",
-        description: `${data.name} has been added to the inventory. Initial stock movement logged.`,
+        description: `${data.name} has been added as a distinct record to the inventory. Initial stock movement logged.`,
       });
       router.push("/inventory");
     } catch (error) {
@@ -71,6 +71,9 @@ export default function AddInventoryItemPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Add New Inventory Item</h1>
+      <p className="text-sm text-muted-foreground">
+        Use this form to add a new, distinct item to your inventory. Items with the same name but different units or expiry dates will be treated as separate records.
+      </p>
       <div className="p-6 border rounded-lg shadow-sm bg-card">
         <AddItemForm 
           onFormSubmit={handleFormSubmit} 
