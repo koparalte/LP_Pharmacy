@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import type { InventoryItem } from "@/lib/types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -50,6 +50,7 @@ interface AddItemFormProps {
 
 export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isLoading = false }: AddItemFormProps) {
   const router = useRouter();
+  const [expiryPopoverOpen, setExpiryPopoverOpen] = useState(false);
 
   const form = useForm<AddItemFormValues>({
     resolver: zodResolver(formSchema),
@@ -135,7 +136,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Expiry Date (Optional)</FormLabel>
-                  <Popover>
+                  <Popover open={expiryPopoverOpen} onOpenChange={setExpiryPopoverOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -158,7 +159,10 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setExpiryPopoverOpen(false);
+                        }}
                         disabled={(date) => date < new Date(new Date().toDateString()) || date < new Date("1900-01-01")}
                         initialFocus
                       />
