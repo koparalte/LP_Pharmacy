@@ -170,24 +170,28 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
       toast({ title: "Invalid Amount", description: "Please enter a valid positive payment amount.", variant: "destructive" });
       return;
     }
-    if (paymentAmount > selectedBill.remainingBalance) {
-      toast({ title: "Overpayment Alert", description: `Payment amount (₹${paymentAmount.toFixed(2)}) cannot exceed remaining balance (₹${selectedBill.remainingBalance.toFixed(2)}). Use 'Pay in Full' or adjust amount.`, variant: "destructive" });
+    
+    const currentRemainingBalance = selectedBill.remainingBalance || 0;
+    if (paymentAmount > currentRemainingBalance) {
+      toast({ title: "Overpayment Alert", description: `Payment amount (₹${paymentAmount.toFixed(2)}) cannot exceed remaining balance (₹${currentRemainingBalance.toFixed(2)}). Use 'Pay in Full' or adjust amount.`, variant: "destructive" });
       return;
     }
     
     setIsProcessingPayment(true);
     const billDocRef = doc(db, "finalizedBills", selectedBill.id);
     
-    const newAmountActuallyPaid = selectedBill.amountActuallyPaid + paymentAmount;
-    const newRemainingBalance = Math.max(0, selectedBill.grandTotal - newAmountActuallyPaid); // Ensure not negative
+    const currentAmountActuallyPaid = selectedBill.amountActuallyPaid || 0;
+    const newAmountActuallyPaid = currentAmountActuallyPaid + paymentAmount;
+    const newRemainingBalance = Math.max(0, selectedBill.grandTotal - newAmountActuallyPaid); 
 
     let newStatus: 'paid' | 'debt' = 'debt';
     let finalAmountPaid = newAmountActuallyPaid;
     let finalRemaining = newRemainingBalance;
 
-    if (newRemainingBalance === 0) {
+    if (newRemainingBalance <= 0) { // Changed to <= 0 for robustness
       newStatus = 'paid';
-      finalAmountPaid = selectedBill.grandTotal; // Ensure it's exactly grandTotal if paid off
+      finalAmountPaid = selectedBill.grandTotal; 
+      finalRemaining = 0;
     }
     
     const updates = {
@@ -203,8 +207,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
         ...updates,
       };
       onBillUpdate(updatedBillData);
-      setSelectedBill(updatedBillData); // Update the selected bill in dialog
-      setPaymentInputValue(""); // Clear input
+      setSelectedBill(updatedBillData); 
+      setPaymentInputValue(""); 
       toast({ title: "Payment Recorded", description: `₹${paymentAmount.toFixed(2)} recorded for bill ${selectedBill.id}.` });
     } catch (error) {
       console.error("Error recording payment:", error);
@@ -262,8 +266,8 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                   <Badge variant="secondary">{calculateTotalItems(bill)}</Badge>
                 </TableCell>
                 <TableCell className="text-right font-medium">₹{bill.grandTotal.toFixed(2)}</TableCell>
-                <TableCell className={`text-right font-medium ${bill.status === 'debt' && bill.remainingBalance > 0 ? 'text-orange-600' : ''}`}>
-                  ₹{bill.remainingBalance.toFixed(2)}
+                <TableCell className={`text-right font-medium ${bill.status === 'debt' && (bill.remainingBalance || 0) > 0 ? 'text-orange-600' : ''}`}>
+                  ₹{(bill.remainingBalance || 0).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-center">
                    <Badge 
@@ -360,7 +364,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 <p>Discount: INR ₹{selectedBill.discountAmount?.toFixed(2) ?? '0.00'}</p>
                 <p className="font-semibold text-base">Grand Total: INR ₹{selectedBill.grandTotal.toFixed(2)}</p>
                 <p>Amount Paid: INR ₹{(selectedBill.amountActuallyPaid || 0).toFixed(2)}</p>
-                <p className={`font-medium ${selectedBill.remainingBalance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                <p className={`font-medium ${(selectedBill.remainingBalance || 0) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                     Remaining Balance: INR ₹{(selectedBill.remainingBalance || 0).toFixed(2)}
                 </p>
                 <p>Status: 
@@ -370,7 +374,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                 </p>
             </div>
 
-            {selectedBill.status === 'debt' && selectedBill.remainingBalance > 0 && (
+            {selectedBill.status === 'debt' && (selectedBill.remainingBalance || 0) > 0 && (
                 <div className="mt-4 pt-4 border-t">
                     <h4 className="text-md font-semibold mb-2">Record Payment</h4>
                     <div className="flex items-center gap-2">
@@ -396,7 +400,7 @@ export function FinalizedBillsTable({ bills, onBillUpdate, onDeleteBill }: Final
                         size="sm"
                     >
                         {isProcessingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" /> }
-                        Pay in Full (₹{selectedBill.remainingBalance.toFixed(2)})
+                        Pay in Full (₹{(selectedBill.remainingBalance || 0).toFixed(2)})
                     </Button>
                 </div>
             )}
