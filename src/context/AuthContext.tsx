@@ -27,12 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    setLoading(true); 
+    // setLoading(true); // Removed: loading is already initialized to true
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // setLoading(true); // This could cause a flicker if already true
         try {
           const adminDocRef = doc(db, "admins", currentUser.uid);
           const adminDocSnap = await getDoc(adminDocRef);
@@ -107,8 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message || "Could not log out. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      // setLoading(false); // onAuthStateChanged will handle final loading state once user is null
+      // setLoading(false); // Let onAuthStateChanged handle this after user becomes null
     }
   };
 
