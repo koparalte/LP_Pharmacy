@@ -27,8 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // setLoading(true); // Removed: loading is already initialized to true
-
+    // loading is initialized to true, no need to set it again here
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -57,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast]); // Added toast to dependency array as it's used in the effect
 
   const loginWithGoogle = async () => {
     setLoading(true);
@@ -69,13 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Welcome back, ${result.user.displayName || 'User'}!`,
       });
       router.push('/dashboard');
-      // setLoading(false) will be handled by onAuthStateChanged's final block
+      // setLoading(false) will be handled by onAuthStateChanged's final block after user state updates
     } catch (error: any) {
       console.error("Error during Google sign-in: ", error);
       if (error.code === 'auth/popup-closed-by-user') {
         toast({
           title: "Login Cancelled",
-          description: "The sign-in process was cancelled.",
+          description: "The sign-in process was cancelled by the user.",
           variant: "default", 
         });
       } else {
@@ -85,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
       }
-      setLoading(false); // Ensure loading is false on error
+      setLoading(false); // Ensure loading is reset on any error during login attempt
     }
   };
 
@@ -94,7 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut(auth);
       // User and isAdmin will be reset by onAuthStateChanged
-      router.push('/login');
+      // setLoading(false) will be handled by onAuthStateChanged after user becomes null
+      router.push('/login'); // Redirect after signOut
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message || "Could not log out. Please try again.",
         variant: "destructive",
       });
-      // setLoading(false); // Let onAuthStateChanged handle this after user becomes null
+      setLoading(false); // Ensure loading is reset if signOut itself fails before onAuthStateChanged updates
     }
   };
 
