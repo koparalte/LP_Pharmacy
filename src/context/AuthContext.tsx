@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // setLoading(true); // Ensure loading is true while checking admin status - this can cause flicker if already true
+        // setLoading(true); // This could cause a flicker if already true
         try {
           const adminDocRef = doc(db, "admins", currentUser.uid);
           const adminDocSnap = await getDoc(adminDocRef);
@@ -58,30 +58,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return () => unsubscribe();
-  }, [toast]); // router is not directly used in this useEffect
+  }, [toast]);
 
   const loginWithGoogle = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      // User is set by onAuthStateChanged, admin status also checked there
-      // No need to set user/isAdmin here directly after onAuthStateChanged is active
       toast({
         title: "Login Successful",
         description: `Welcome back, ${result.user.displayName || 'User'}!`,
       });
       router.push('/dashboard');
+      // setLoading(false) will be handled by onAuthStateChanged's final block
     } catch (error: any) {
       console.error("Error during Google sign-in: ", error);
-      toast({
-        title: "Login Failed",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive",
-      });
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast({
+          title: "Login Cancelled",
+          description: "The sign-in process was cancelled.",
+          variant: "default", 
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: error.message || "Could not sign in with Google. Please try again.",
+          variant: "destructive",
+        });
+      }
       setLoading(false); // Ensure loading is false on error
     }
-    // setLoading(false) // This might be set too early if onAuthStateChanged is still processing admin check
   };
 
   const logout = async () => {
@@ -102,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
     } finally {
-      // setLoading(false); // onAuthStateChanged will handle final loading state
+      // setLoading(false); // onAuthStateChanged will handle final loading state once user is null
     }
   };
 
