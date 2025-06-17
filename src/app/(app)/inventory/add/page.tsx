@@ -6,7 +6,7 @@ import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, writeBatch, doc } from "firebase/firestore";
+import { collection, addDoc, doc } from "firebase/firestore"; // Removed writeBatch as it's not used directly here for single add
 import { useState } from "react";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
@@ -20,28 +20,39 @@ export default function AddInventoryItemPage() {
     setIsSubmitting(true);
 
     const inventoryCollectionRef = collection(db, "inventory");
-    const newInventoryItemDocRef = doc(inventoryCollectionRef); // Generate ID upfront
+    const newInventoryItemDocRef = doc(inventoryCollectionRef); // Generate ID upfront for logging
 
     try {
-      const newItemPayload: Omit<InventoryItem, 'id'> = {
+      const payload: Partial<Omit<InventoryItem, 'id'>> = { // Use Partial for easier conditional assignment
         name: data.name,
-        batchNo: data.batchNo || undefined,
-        unit: data.unit || undefined,
         stock: data.stock,
         lowStockThreshold: data.lowStockThreshold,
-        rate: data.rate, // Cost price
-        mrp: data.mrp,   // Selling price (MRP)
-        expiryDate: data.expiryDate ? format(data.expiryDate, "yyyy-MM-dd") : undefined,
+        rate: data.rate,
+        mrp: data.mrp,
         lastUpdated: new Date().toISOString(),
       };
-      
-      // Set the inventory item first
-      await addDoc(collection(db, "inventory"), newItemPayload); // Or use set with newInventoryItemDocRef if ID needed immediately before log
 
-      // Log inventory movement for initial stock
+      // Conditionally add optional fields to avoid 'undefined' values
+      if (data.batchNo !== undefined) {
+        payload.batchNo = data.batchNo; // Allows "" (empty string)
+      }
+      if (data.unit !== undefined) {
+        payload.unit = data.unit; // Allows "" (empty string)
+      }
+      if (data.expiryDate) {
+        payload.expiryDate = format(data.expiryDate, "yyyy-MM-dd");
+      }
+      
+      // Use the pre-generated doc ref with setDoc, or addDoc and get the ID after for logging
+      // For simplicity with pre-generated ID for logging:
+      // await setDoc(newInventoryItemDocRef, payload as Omit<InventoryItem, 'id'>);
+      // Or, if using addDoc and need ID after:
+      const addedDocRef = await addDoc(inventoryCollectionRef, payload as Omit<InventoryItem, 'id'>);
+
+
       if (data.stock > 0) {
         await logInventoryMovement({
-          itemId: newInventoryItemDocRef.id, // Use the generated ID
+          itemId: addedDocRef.id, // Use ID from the actually added document
           itemName: data.name,
           type: 'in',
           quantity: data.stock,

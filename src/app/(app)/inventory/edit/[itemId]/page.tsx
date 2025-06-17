@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, FieldValue as FirebaseFieldValue } from "firebase/firestore"; // Added FirebaseFieldValue
 import { db } from "@/lib/firebase";
 import type { InventoryItem } from "@/lib/types";
 import { AddItemForm, type AddItemFormValues } from "@/app/(app)/inventory/add/components/AddItemForm";
@@ -78,27 +78,42 @@ export default function EditInventoryItemPage() {
       const newStock = currentStock + stockAdjustment;
 
       if (newStock < 0) {
+        // This is a warning, the operation will still proceed.
+        // Consider if stock should actually go negative or be clamped at 0.
+        // For now, it allows negative stock based on current logic.
         toast({
-          title: "Warning: Stock Low",
-          description: `Stock for ${data.name} will become ${newStock}.`,
+          title: "Stock Alert",
+          description: `Stock for ${data.name} is now ${newStock}.`,
           variant: "default", 
         });
       }
       
-      const { stockAdjustment: _, ...updatePayloadBase } = data;
-
       const itemDocRef = doc(db, "inventory", itemId);
-      const updatePayload: Partial<InventoryItem> = {
-        name: updatePayloadBase.name,
-        batchNo: updatePayloadBase.batchNo || undefined,
-        unit: updatePayloadBase.unit || undefined,
+      
+      // Construct the payload carefully to handle optional fields for update
+      const updatePayload: { [key: string]: any } = { // Use any for flexibility with FieldValue.delete()
+        name: data.name,
         stock: newStock,
-        lowStockThreshold: updatePayloadBase.lowStockThreshold,
-        rate: updatePayloadBase.rate, 
-        mrp: updatePayloadBase.mrp,   
-        expiryDate: updatePayloadBase.expiryDate ? format(updatePayloadBase.expiryDate, "yyyy-MM-dd") : undefined,
+        lowStockThreshold: data.lowStockThreshold,
+        rate: data.rate,
+        mrp: data.mrp,
         lastUpdated: new Date().toISOString(),
       };
+
+      // For optional string fields, update to new value or empty string if cleared
+      // Firestore treats undefined in update as "do not change", so if it was "abc" and data.batchNo is undefined, it stays "abc"
+      // If data.batchNo is "", it becomes ""
+      updatePayload.batchNo = data.batchNo !== undefined ? data.batchNo : ""; 
+      updatePayload.unit = data.unit !== undefined ? data.unit : "";
+
+      // For optional date field, update to formatted date, or remove the field if cleared
+      if (data.expiryDate) {
+        updatePayload.expiryDate = format(data.expiryDate, "yyyy-MM-dd");
+      } else {
+        // If data.expiryDate is undefined (meaning user cleared it in the form)
+        // Set to FieldValue.delete() to remove the field from Firestore document
+        updatePayload.expiryDate = FirebaseFieldValue.delete();
+      }
       
       await updateDoc(itemDocRef, updatePayload);
 
