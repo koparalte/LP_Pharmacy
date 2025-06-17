@@ -103,8 +103,8 @@ export default function InventoryAnalysisPage() {
     setAllMovements(sortedMovements);
     setOldestDocDateLoaded(oldestDate);
     setLastFetchedMovements(Date.now());
-    if (fetchedMovements.length === 0) setCanLoadMore(false); // If nothing loaded initially, nothing more to load
-    else if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY * 1 ) setCanLoadMore(false); // Simple heuristic
+    if (fetchedMovements.length === 0) setCanLoadMore(false);
+    else if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY * 1 ) setCanLoadMore(false); 
     setLoadingMovements(false);
   }, [fetchDailyLogs, lastFetchedMovements]);
 
@@ -160,7 +160,7 @@ export default function InventoryAnalysisPage() {
       setAllMovements([]);
       setOldestDocDateLoaded(null);
       setLastFetchedMovements(null);
-      setCanLoadMore(true); // Reset load more capability
+      setCanLoadMore(true); 
       toast({
         title: "Log Cleared",
         description: "All inventory movement logs have been deleted.",
@@ -243,6 +243,7 @@ export default function InventoryAnalysisPage() {
                     <TableHead className="text-right">Quantity</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Reason / Details</TableHead>
+                    <TableHead>Moved By</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -256,6 +257,7 @@ export default function InventoryAnalysisPage() {
                       <TableCell className="text-right">{movement.quantity}</TableCell>
                       <TableCell className="text-sm">{getSourceDisplay(movement.source)}</TableCell>
                       <TableCell className="text-xs">{movement.reason || 'N/A'}</TableCell>
+                      <TableCell className="text-xs">{movement.movedByUserName || 'System'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -285,4 +287,3 @@ export default function InventoryAnalysisPage() {
     </div>
   );
 }
-

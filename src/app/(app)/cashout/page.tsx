@@ -17,10 +17,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, runTransaction, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, runTransaction, query, orderBy, setDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
 
 const INVENTORY_BILLING_STALE_TIME = 2 * 60 * 1000; // 2 minutes
 
@@ -33,6 +34,7 @@ export default function BillingPage() {
   const [loadingInventory, setLoadingInventory] = useState(true);
   const { toast } = useToast();
   const [lastFetchedInventoryBilling, setLastFetchedInventoryBilling] = useState<number | null>(null);
+  const { user } = useAuth(); // Get current user
 
   const fetchInventoryForBilling = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
@@ -153,6 +155,14 @@ export default function BillingPage() {
       });
       return;
     }
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to process bills.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmittingBill(true);
 
@@ -224,6 +234,8 @@ export default function BillingPage() {
               movementDate: billDateStr,
               source: 'sale',
               reason: `Sale - Bill ID: ${customBillId} (Status: ${status})`,
+              movedByUserId: user.uid,
+              movedByUserName: user.displayName || user.email || "Unknown User",
             });
           } catch (logError: any) {
              console.error(`Failed to log movement for item ${bItem.name} in bill ${customBillId}:`, logError);
@@ -243,7 +255,7 @@ export default function BillingPage() {
         return invItem;
       });
       setInventory(updatedLocalInventory);
-      setLastFetchedInventoryBilling(Date.now()); // Mark local inventory as updated
+      setLastFetchedInventoryBilling(Date.now()); 
 
       setBillItems([]); 
       setDiscountAmount(0);

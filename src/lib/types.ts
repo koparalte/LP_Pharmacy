@@ -70,6 +70,8 @@ export type InventoryMovement = {
   source: InventoryMovementSource;
   reason?: string; // e.g., "Sale - Bill ID: LP12345", "Stock adjustment via edit"
   recordedAt: string; // ISO DateTime string of when the record was made
+  movedByUserId: string; // ID of the user who performed the action
+  movedByUserName?: string; // Display name or email of the user
 };
 
 export type DailyMovementLog = {
@@ -78,4 +80,3 @@ export type DailyMovementLog = {
   movements: InventoryMovement[];
   lastUpdated: string; // ISO DateTime string of the last update to this daily log document
 };
-

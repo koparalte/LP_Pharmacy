@@ -14,6 +14,7 @@ import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
 import type { InventoryItem, InventoryMovement } from "@/lib/types";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
 
 type NewInventoryItemCSVRecord = Omit<InventoryItem, 'id' | 'lastUpdated'>;
 
@@ -22,6 +23,7 @@ export default function ImportInventoryPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth(); // Get current user
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -148,6 +150,14 @@ export default function ImportInventoryPage() {
       toast({ title: "No File Selected", description: "Please select a CSV file to import.", variant: "destructive" });
       return;
     }
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to import items.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsProcessing(true);
     const reader = new FileReader();
@@ -200,13 +210,15 @@ export default function ImportInventoryPage() {
               movementDate: format(new Date(), "yyyy-MM-dd"),
               source: 'csv_import',
               reason: 'Initial stock from CSV import',
+              movedByUserId: user.uid,
+              movedByUserName: user.displayName || user.email || "Unknown User",
             }));
           }
         });
 
         try {
           await batch.commit();
-          await Promise.all(movementPromises); // Log movements after batch commit
+          await Promise.all(movementPromises); 
           itemsAddedSuccessfully += chunk.length;
         } catch (batchError: any) {
           console.error("Error committing batch or logging movements: ", batchError);
@@ -298,7 +310,7 @@ Paracetamol 500mg,,pcs,200,50,18.00,30.00,
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleImport} disabled={!file || isProcessing} className="w-full sm:w-auto">
+          <Button onClick={handleImport} disabled={!file || isProcessing || !user} className="w-full sm:w-auto">
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc, FieldValue as FirebaseFieldValue } from "firebase/firestore"; // Added FirebaseFieldValue
+import { doc, getDoc, updateDoc, deleteField, FieldValue } from "firebase/firestore"; 
 import { db } from "@/lib/firebase";
 import type { InventoryItem } from "@/lib/types";
 import { AddItemForm, type AddItemFormValues } from "@/app/(app)/inventory/add/components/AddItemForm";
@@ -13,12 +13,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
 
 export default function EditInventoryItemPage() {
   const router = useRouter();
   const params = useParams();
   const { itemId } = params as { itemId: string };
   const { toast } = useToast();
+  const { user } = useAuth(); // Get current user
 
   const [itemData, setItemData] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,15 @@ export default function EditInventoryItemPage() {
       setIsSubmitting(false);
       return;
     }
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to edit items.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -78,20 +89,16 @@ export default function EditInventoryItemPage() {
       const newStock = currentStock + stockAdjustment;
 
       if (newStock < 0) {
-        // This is a warning, the operation will still proceed.
-        // Consider if stock should actually go negative or be clamped at 0.
-        // For now, it allows negative stock based on current logic.
         toast({
           title: "Stock Alert",
-          description: `Stock for ${data.name} is now ${newStock}.`,
+          description: `Stock for ${data.name} is now ${newStock}. Proceeding with update.`,
           variant: "default", 
         });
       }
       
       const itemDocRef = doc(db, "inventory", itemId);
       
-      // Construct the payload carefully to handle optional fields for update
-      const updatePayload: { [key: string]: any } = { // Use any for flexibility with FieldValue.delete()
+      const updatePayload: { [key: string]: any } = { 
         name: data.name,
         stock: newStock,
         lowStockThreshold: data.lowStockThreshold,
@@ -100,19 +107,13 @@ export default function EditInventoryItemPage() {
         lastUpdated: new Date().toISOString(),
       };
 
-      // For optional string fields, update to new value or empty string if cleared
-      // Firestore treats undefined in update as "do not change", so if it was "abc" and data.batchNo is undefined, it stays "abc"
-      // If data.batchNo is "", it becomes ""
       updatePayload.batchNo = data.batchNo !== undefined ? data.batchNo : ""; 
       updatePayload.unit = data.unit !== undefined ? data.unit : "";
 
-      // For optional date field, update to formatted date, or remove the field if cleared
       if (data.expiryDate) {
         updatePayload.expiryDate = format(data.expiryDate, "yyyy-MM-dd");
       } else {
-        // If data.expiryDate is undefined (meaning user cleared it in the form)
-        // Set to FieldValue.delete() to remove the field from Firestore document
-        updatePayload.expiryDate = FirebaseFieldValue.delete();
+        updatePayload.expiryDate = deleteField();
       }
       
       await updateDoc(itemDocRef, updatePayload);
@@ -128,6 +129,8 @@ export default function EditInventoryItemPage() {
           reason: stockAdjustment > 0 
             ? `Stock increased by ${stockAdjustment} via edit` 
             : `Stock decreased by ${Math.abs(stockAdjustment)} via edit`,
+          movedByUserId: user.uid,
+          movedByUserName: user.displayName || user.email || "Unknown User",
         });
       }
       
