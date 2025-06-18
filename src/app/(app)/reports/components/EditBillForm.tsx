@@ -25,9 +25,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card"; // Added Card import
 import { Loader2 } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
-import { useEffect, useState, useMemo } from "react"; // Added useMemo
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
