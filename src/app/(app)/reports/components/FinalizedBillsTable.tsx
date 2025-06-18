@@ -62,7 +62,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
               <TableHead>Customer Name</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Items</TableHead>
-              <TableHead className="text-right">Discount (₹)</TableHead>
+              <TableHead className="text-right">Balance (₹)</TableHead>
               <TableHead className="text-right">Grand Total (₹)</TableHead>
               <TableHead>Remarks</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -81,7 +81,9 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">{bill.items.reduce((sum, item) => sum + item.quantityInBill, 0)}</TableCell>
-                <TableCell className="text-right">₹{bill.discountAmount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  {bill.status === 'debt' ? `₹${bill.remainingBalance.toFixed(2)}` : 'N/A'}
+                </TableCell>
                 <TableCell className="text-right font-semibold">₹{bill.grandTotal.toFixed(2)}</TableCell>
                 <TableCell className="text-xs">{bill.remarks || "N/A"}</TableCell>
                 <TableCell className="text-right">
@@ -140,6 +142,12 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
                   <p>Subtotal: <span className="font-medium">₹{selectedBillForDialog.subTotal.toFixed(2)}</span></p>
                   <p>Discount: <span className="font-medium">₹{selectedBillForDialog.discountAmount.toFixed(2)}</span></p>
                   <p className="text-base font-semibold">Grand Total: <span className="font-bold">₹{selectedBillForDialog.grandTotal.toFixed(2)}</span></p>
+                  {selectedBillForDialog.status === 'debt' && (
+                    <>
+                      <p>Amount Paid: <span className="font-medium">₹{selectedBillForDialog.amountActuallyPaid.toFixed(2)}</span></p>
+                      <p className="text-destructive font-semibold">Remaining Balance: <span className="font-bold">₹{selectedBillForDialog.remainingBalance.toFixed(2)}</span></p>
+                    </>
+                  )}
                </div>
 
               <DialogFooter className="mt-4 gap-2 sm:justify-end">
