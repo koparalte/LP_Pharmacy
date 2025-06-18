@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, Settings, HelpCircle, Receipt, BarChartHorizontalBig, FileClock } from "lucide-react";
+import { LayoutDashboard, Boxes, Settings, HelpCircle, Receipt, BarChartHorizontalBig, FileClock, FileText } from "lucide-react"; // Added FileText
 import type { ReactNode } from "react";
 
 const navItems = [
@@ -23,6 +23,7 @@ const navItems = [
   { href: "/cashout", label: "Billing", icon: Receipt },
   { href: "/sales-analytics", label: "Sales Analytics", icon: BarChartHorizontalBig },
   { href: "/inventory-analysis", label: "Inventory Analysis", icon: FileClock },
+  { href: "/reports", label: "Sales Report", icon: FileText }, // Re-added Sales Report
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
