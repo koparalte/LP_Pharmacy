@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Card } from "@/components/ui/card"; // Added Card import
+import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
 import { useEffect, useState, useMemo } from "react";
@@ -37,7 +37,7 @@ const formSchema = z.object({
   discountAmount: z.coerce.number().min(0, { message: "Discount cannot be negative." }),
   remarks: z.string().max(500).optional(),
   status: z.enum(["paid", "debt"], { required_error: "Bill status is required." }),
-  paymentReceivedNow: z.coerce.number().min(0, "Payment amount cannot be negative.").optional(),
+  paymentReceivedNow: z.coerce.number().min(0, "Payment amount cannot be negative.").optional().default(0),
   paidInFull: z.boolean().optional(),
 }).refine(data => {
   if (data.status === 'debt' && data.paidInFull && data.paymentReceivedNow && data.paymentReceivedNow > 0) {
@@ -73,7 +73,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
       discountAmount: initialData.discountAmount || 0,
       remarks: initialData.remarks || "",
       status: initialData.status || "paid",
-      paymentReceivedNow: undefined,
+      paymentReceivedNow: 0, // Initialize with 0 or "" to avoid undefined
       paidInFull: false,
     },
   });
@@ -85,7 +85,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
       discountAmount: initialData.discountAmount,
       remarks: initialData.remarks,
       status: initialData.status,
-      paymentReceivedNow: undefined,
+      paymentReceivedNow: 0, // Reset with 0 or ""
       paidInFull: false,
     });
   }, [form, initialData]);
@@ -114,7 +114,13 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
 
 
   async function onSubmit(data: EditBillFormValues) {
-    await onFormSubmit(data);
+    // Ensure numeric fields that might be empty strings are coerced or handled
+    const submissionData = {
+        ...data,
+        discountAmount: Number(data.discountAmount) || 0,
+        paymentReceivedNow: Number(data.paymentReceivedNow) || 0,
+    };
+    await onFormSubmit(submissionData);
   }
 
   return (
@@ -141,7 +147,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
               <FormItem>
                 <FormLabel>Customer Address (Optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter customer address" {...field} />
+                  <Input placeholder="Enter customer address" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -157,10 +163,20 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                 <FormItem>
                     <FormLabel>Discount Amount (₹)</FormLabel>
                     <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field}
+                    <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00" 
+                        {...field}
+                        value={field.value === undefined || field.value === null ? "" : String(field.value)}
                         onChange={e => {
-                            const value = parseFloat(e.target.value);
-                            field.onChange(isNaN(value) ? undefined : value);
+                            const val = e.target.value;
+                            if (val === "") {
+                                field.onChange(""); // Pass empty string for Zod coerce
+                            } else {
+                                const numVal = parseFloat(val);
+                                field.onChange(isNaN(numVal) ? "" : numVal);
+                            }
                         }}
                     />
                     </FormControl>
@@ -177,7 +193,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                     <Select onValueChange={(value) => {
                         field.onChange(value);
                         if (value === 'paid') {
-                            form.setValue('paymentReceivedNow', undefined);
+                            form.setValue('paymentReceivedNow', 0);
                             form.setValue('paidInFull', false);
                         }
                     }} defaultValue={field.value}>
@@ -204,7 +220,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
             <FormItem>
               <FormLabel>Remarks (Optional)</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter any remarks for this bill" {...field} />
+                <Textarea placeholder="Enter any remarks for this bill" {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -239,9 +255,15 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                                 step="0.01"
                                 placeholder="0.00"
                                 {...field}
+                                value={field.value === undefined || field.value === null ? "" : String(field.value)}
                                 onChange={e => {
-                                    const value = parseFloat(e.target.value);
-                                    field.onChange(isNaN(value) ? undefined : value);
+                                    const val = e.target.value;
+                                    if (val === "") {
+                                        field.onChange(""); 
+                                    } else {
+                                        const numVal = parseFloat(val);
+                                        field.onChange(isNaN(numVal) ? "" : numVal);
+                                    }
                                 }}
                                 disabled={watchedPaidInFull || currentFormStatus === 'paid'}
                             />
@@ -261,7 +283,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                                 onCheckedChange={(checked) => {
                                     field.onChange(checked);
                                     if (checked) {
-                                      form.setValue('paymentReceivedNow', undefined);
+                                      form.setValue('paymentReceivedNow', 0);
                                     }
                                 }}
                                 disabled={(watchedPaymentReceivedNow || 0) > 0 || currentFormStatus === 'paid'}
@@ -285,6 +307,9 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                  <FormMessage>
                     {form.formState.errors.paidInFull?.message}
                 </FormMessage>
+                 <FormMessage>
+                    {form.formState.errors.root?.message} {/* For global form errors from refine */}
+                </FormMessage>
             </Card>
         )}
 
@@ -295,7 +320,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
             </div>
             <div className="flex justify-between">
                 <span>New Discount:</span>
-                <span className="font-medium">₹{(form.getValues("discountAmount") || 0).toFixed(2)}</span>
+                <span className="font-medium">₹{(Number(form.getValues("discountAmount")) || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-base font-semibold">
                 <span>New Grand Total:</span>
@@ -316,4 +341,3 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
     </Form>
   );
 }
-
