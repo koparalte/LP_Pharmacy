@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { FinalizedBill } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
@@ -18,8 +18,8 @@ import {
   endBefore,
   limitToLast,
   type DocumentSnapshot,
-  deleteDoc, // Added deleteDoc
-  doc, // Added doc
+  deleteDoc, 
+  doc, 
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -168,11 +168,6 @@ export default function SalesReportPage() {
     setSelectedStatus("all");
   };
 
-  const displayedBills = useMemo(() => {
-    return currentBills;
-  }, [currentBills]);
-
-
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Sales Report</h1>
@@ -220,7 +215,7 @@ export default function SalesReportPage() {
             </div>
           ) : (
             <FinalizedBillsTable 
-                bills={displayedBills} 
+                bills={currentBills} 
                 onBillUpdate={handleBillUpdate}
                 onDeleteBill={handleDeleteBill} 
             />
@@ -251,4 +246,3 @@ export default function SalesReportPage() {
     </div>
   );
 }
-
