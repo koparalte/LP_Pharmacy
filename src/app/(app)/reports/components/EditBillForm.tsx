@@ -23,6 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -34,7 +36,18 @@ const formSchema = z.object({
   discountAmount: z.coerce.number().min(0, { message: "Discount cannot be negative." }),
   remarks: z.string().max(500).optional(),
   status: z.enum(["paid", "debt"], { required_error: "Bill status is required." }),
+  paymentReceivedNow: z.coerce.number().min(0, "Payment amount cannot be negative.").optional(),
+  paidInFull: z.boolean().optional(),
+}).refine(data => {
+  if (data.status === 'debt' && data.paidInFull && data.paymentReceivedNow && data.paymentReceivedNow > 0) {
+    return false; 
+  }
+  return true;
+}, {
+  message: "Cannot check 'Paid in Full' and enter a 'Payment Received Now' simultaneously.",
+  path: ["paidInFull"], 
 });
+
 
 export type EditBillFormValues = z.infer<typeof formSchema>;
 
@@ -42,13 +55,11 @@ interface EditBillFormProps {
   initialData: FinalizedBill;
   onFormSubmit: (data: EditBillFormValues) => Promise<void>;
   isLoading?: boolean;
-  subTotal: number; // To validate discount against
+  subTotal: number; 
 }
 
 export function EditBillForm({ initialData, onFormSubmit, isLoading = false, subTotal }: EditBillFormProps) {
   const router = useRouter();
-  const [currentDiscount, setCurrentDiscount] = useState(initialData.discountAmount);
-  const [currentStatus, setCurrentStatus] = useState(initialData.status);
 
   const form = useForm<EditBillFormValues>({
     resolver: zodResolver(formSchema.refine(data => data.discountAmount <= subTotal, {
@@ -61,6 +72,8 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
       discountAmount: initialData.discountAmount || 0,
       remarks: initialData.remarks || "",
       status: initialData.status || "paid",
+      paymentReceivedNow: undefined,
+      paidInFull: false,
     },
   });
 
@@ -71,13 +84,33 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
       discountAmount: initialData.discountAmount,
       remarks: initialData.remarks,
       status: initialData.status,
+      paymentReceivedNow: undefined,
+      paidInFull: false,
     });
-    setCurrentDiscount(initialData.discountAmount);
-    setCurrentStatus(initialData.status);
   }, [form, initialData]);
 
   const watchedDiscount = form.watch("discountAmount");
   const calculatedGrandTotal = Math.max(0, subTotal - (isNaN(watchedDiscount) ? 0 : watchedDiscount));
+  
+  const watchedPaymentReceivedNow = form.watch("paymentReceivedNow");
+  const watchedPaidInFull = form.watch("paidInFull");
+  const currentFormStatus = form.watch("status");
+
+  const projectedRemainingBalance = useMemo(() => {
+    if (initialData.status !== 'debt' && currentFormStatus !== 'debt') return 0;
+
+    let currentPaid = initialData.amountActuallyPaid;
+    let paymentNow = isNaN(parseFloat(String(watchedPaymentReceivedNow))) ? 0 : parseFloat(String(watchedPaymentReceivedNow));
+    
+    if (watchedPaidInFull) {
+        return 0;
+    }
+    const newTotalPaid = currentPaid + paymentNow;
+    const remaining = calculatedGrandTotal - newTotalPaid;
+    return Math.max(0, remaining);
+
+  }, [initialData, calculatedGrandTotal, watchedPaymentReceivedNow, watchedPaidInFull, currentFormStatus]);
+
 
   async function onSubmit(data: EditBillFormValues) {
     await onFormSubmit(data);
@@ -126,8 +159,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                     <Input type="number" step="0.01" placeholder="0.00" {...field} 
                         onChange={e => {
                             const value = parseFloat(e.target.value);
-                            field.onChange(value);
-                            if (!isNaN(value)) setCurrentDiscount(value); else setCurrentDiscount(0);
+                            field.onChange(isNaN(value) ? undefined : value);
                         }}
                     />
                     </FormControl>
@@ -143,7 +175,10 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                     <FormLabel>Bill Status</FormLabel>
                     <Select onValueChange={(value) => {
                         field.onChange(value);
-                        setCurrentStatus(value as "paid" | "debt");
+                        if (value === 'paid') {
+                            form.setValue('paymentReceivedNow', undefined);
+                            form.setValue('paidInFull', false);
+                        }
                     }} defaultValue={field.value}>
                     <FormControl>
                         <SelectTrigger>
@@ -175,9 +210,86 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
           )}
         />
         
-        <div className="p-4 border rounded-md bg-muted/50 space-y-2 text-sm">
+        {(initialData.status === 'debt' || currentFormStatus === 'debt') && (
+            <Card className="p-4 bg-muted/30">
+                <FormLabel className="text-base font-semibold">Debt Management</FormLabel>
+                <Separator className="my-3" />
+                <div className="space-y-4 text-sm">
+                    <div className="flex justify-between">
+                        <span>Original Amount Paid:</span>
+                        <span className="font-medium">₹{initialData.amountActuallyPaid.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Original Remaining Balance:</span>
+                        <span className="font-medium">₹{initialData.remainingBalance.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 items-end">
+                    <FormField
+                        control={form.control}
+                        name="paymentReceivedNow"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Receive Payment Now (₹)</FormLabel>
+                            <FormControl>
+                            <Input 
+                                type="number" 
+                                step="0.01" 
+                                placeholder="0.00" 
+                                {...field} 
+                                onChange={e => {
+                                    const value = parseFloat(e.target.value);
+                                    field.onChange(isNaN(value) ? undefined : value);
+                                }}
+                                disabled={watchedPaidInFull || currentFormStatus === 'paid'}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="paidInFull"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 bg-card shadow-sm h-10">
+                            <FormControl>
+                            <Checkbox
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    if (checked) {
+                                      form.setValue('paymentReceivedNow', undefined);
+                                    }
+                                }}
+                                disabled={(watchedPaymentReceivedNow || 0) > 0 || currentFormStatus === 'paid'}
+                            />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                            <FormLabel className="font-normal">
+                                Mark as Paid in Full
+                            </FormLabel>
+                            </div>
+                        </FormItem>
+                        )}
+                    />
+                </div>
+                { (watchedPaymentReceivedNow || watchedPaidInFull) && (
+                     <div className="mt-3 text-sm flex justify-between font-medium text-primary">
+                        <span>Projected New Remaining Balance:</span>
+                        <span>₹{projectedRemainingBalance.toFixed(2)}</span>
+                    </div>
+                )}
+                 <FormMessage>
+                    {form.formState.errors.paidInFull?.message}
+                </FormMessage>
+            </Card>
+        )}
+        
+        <div className="p-4 border rounded-md bg-muted/50 space-y-2 text-sm mt-6">
             <div className="flex justify-between">
-                <span>Subtotal:</span>
+                <span>Subtotal (Original):</span>
                 <span className="font-medium">₹{subTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
@@ -203,3 +315,4 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
     </Form>
   );
 }
+

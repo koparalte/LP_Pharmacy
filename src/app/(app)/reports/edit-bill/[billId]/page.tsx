@@ -69,44 +69,90 @@ export default function EditBillPage() {
 
     try {
       const billDocRef = doc(db, "finalizedBills", billId);
+      
+      const newGrandTotal = billData.subTotal - (data.discountAmount || 0);
 
-      const newGrandTotal = Math.max(0, billData.subTotal - data.discountAmount);
-      let newAmountActuallyPaid = billData.amountActuallyPaid;
-      let newRemainingBalance = billData.remainingBalance;
+      let updatedStatus = data.status;
+      let updatedAmountPaid = billData.amountActuallyPaid;
+      let updatedRemainingBalance = billData.remainingBalance;
 
-      if (data.status === 'paid') {
-        newAmountActuallyPaid = newGrandTotal;
-        newRemainingBalance = 0;
-      } else { // status === 'debt'
-        // If changing to debt, we might zero out amount paid or keep existing if it was partial.
-        // For simplicity, if status changes to 'debt' from 'paid', assume it becomes fully debt.
-        // If it was already 'debt' and discount changes, re-evaluate.
-        // A more complex scenario would involve tracking actual payments if status is debt.
-        // Let's assume if it's marked 'debt', the full newGrandTotal is the remaining balance.
-        newAmountActuallyPaid = 0; 
-        newRemainingBalance = newGrandTotal;
+      // Handle debt payment logic first if original status was debt
+      if (billData.status === 'debt') {
+        if (data.paidInFull) {
+          updatedStatus = 'paid';
+          updatedAmountPaid = newGrandTotal;
+          updatedRemainingBalance = 0;
+        } else if (data.paymentReceivedNow && data.paymentReceivedNow > 0) {
+          updatedAmountPaid += data.paymentReceivedNow;
+          if (updatedAmountPaid >= newGrandTotal) {
+            updatedStatus = 'paid';
+            updatedAmountPaid = newGrandTotal; // Cap at grand total
+            updatedRemainingBalance = 0;
+          } else {
+            // Bill remains debt if status dropdown hasn't changed it to paid
+            updatedStatus = data.status === 'paid' ? 'paid' : 'debt'; 
+            if(updatedStatus === 'paid'){
+                 updatedAmountPaid = newGrandTotal;
+                 updatedRemainingBalance = 0;
+            } else {
+                 updatedRemainingBalance = newGrandTotal - updatedAmountPaid;
+            }
+          }
+        }
       }
       
-      // If the original status was 'paid' and amountActuallyPaid was based on the old grandTotal,
-      // and now discount changes (affecting grandTotal) but status remains 'paid',
-      // then amountActuallyPaid should also update to the newGrandTotal.
-      if (billData.status === 'paid' && data.status === 'paid') {
-        newAmountActuallyPaid = newGrandTotal;
-        newRemainingBalance = 0;
+      // General status change and grand total adjustment logic
+      // This section will apply if not handled by specific debt payment actions above,
+      // or if original status was 'paid'.
+      if (!data.paidInFull && !(billData.status === 'debt' && data.paymentReceivedNow && data.paymentReceivedNow > 0) ) {
+         if (data.status === 'paid') {
+            updatedStatus = 'paid';
+            updatedAmountPaid = newGrandTotal;
+            updatedRemainingBalance = 0;
+        } else { // data.status === 'debt'
+            updatedStatus = 'debt';
+            if (billData.status === 'paid') { // If changed from 'paid' to 'debt'
+                 updatedAmountPaid = 0; // Reset paid amount for new debt
+            }
+            // If it was already 'debt', updatedAmountPaid carries over unless modified by paymentReceivedNow
+            updatedRemainingBalance = newGrandTotal - updatedAmountPaid;
+        }
+      }
+
+
+      // Final consistency checks and adjustments
+      if (updatedStatus === 'paid') {
+        updatedAmountPaid = newGrandTotal;
+        updatedRemainingBalance = 0;
+      } else { // status is 'debt'
+        if (updatedAmountPaid > newGrandTotal) { // Cannot have paid more than the new total if it's still debt
+          updatedAmountPaid = newGrandTotal; // This would imply it should be paid
+          updatedStatus = 'paid';
+          updatedRemainingBalance = 0;
+        } else {
+             updatedRemainingBalance = newGrandTotal - updatedAmountPaid;
+        }
+      }
+      
+      if (updatedRemainingBalance < 0) updatedRemainingBalance = 0; // Remaining balance cannot be negative
+      if (updatedAmountPaid < 0) updatedAmountPaid = 0; // Amount paid cannot be negative
+      if (newGrandTotal < 0) { // Should not happen with discount validation, but as a safeguard
+          // This implies an error in subTotal or discount, log or handle
+          toast({title: "Calculation Error", description: "Grand total became negative.", variant: "destructive"});
+          setIsSubmitting(false);
+          return;
       }
 
 
       const updatePayload: Partial<FinalizedBill> = {
         customerName: data.customerName,
         customerAddress: data.customerAddress || "",
-        discountAmount: data.discountAmount,
+        discountAmount: data.discountAmount || 0,
         remarks: data.remarks || "",
-        status: data.status,
+        status: updatedStatus,
         grandTotal: newGrandTotal,
-        amountActuallyPaid: newAmountActuallyPaid,
-        remainingBalance: newRemainingBalance,
-        // items and subTotal are not changed by this form
-        // date is not changed
+        amountActuallyPaid: updatedAmountPaid,
+        remainingBalance: updatedRemainingBalance,
       };
 
       await updateDoc(billDocRef, updatePayload);
@@ -231,3 +277,4 @@ export default function EditBillPage() {
     </div>
   );
 }
+
