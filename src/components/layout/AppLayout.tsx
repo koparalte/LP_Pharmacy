@@ -21,7 +21,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
   { href: "/cashout", label: "Billing", icon: Receipt },
-  { href: "/sales-report", label: "Sales Report", icon: LineChart },
+  // { href: "/sales-report", label: "Sales Report", icon: LineChart }, // Temporarily disabled
   { href: "/sales-analytics", label: "Sales Analytics", icon: BarChartHorizontalBig },
   { href: "/inventory-analysis", label: "Inventory Analysis", icon: FileClock },
 ];
