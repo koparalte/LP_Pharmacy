@@ -67,7 +67,7 @@ export default function BillingPage() {
     } finally {
       setLoadingInventory(false);
     }
-  }, [toast, lastFetchedInventoryBilling]); // Removed user from dependency array as it's not used here
+  }, [toast, lastFetchedInventoryBilling]); 
 
   useEffect(() => {
     fetchInventoryForBilling();
@@ -160,14 +160,15 @@ export default function BillingPage() {
       });
       return;
     }
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to process bills.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Login disabled: Original auth check removed
+    // if (!user) {
+    //   toast({
+    //     title: "Authentication Error",
+    //     description: "You must be logged in to process bills.",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     setIsSubmittingBill(true);
 
@@ -246,8 +247,8 @@ export default function BillingPage() {
               movementDate: billDateStr,
               source: 'sale',
               reason: `Sale - Bill ID: ${customBillId} (Status: ${status})`,
-              movedByUserId: user.uid, // Pass user ID
-              movedByUserName: user.displayName || user.email || "Unknown User", // Pass user name
+              movedByUserId: user ? user.uid : 'SYSTEM_LOGIN_DISABLED', 
+              movedByUserName: user ? (user.displayName || user.email || "Unknown User") : 'System (Login Disabled)', 
             });
           } catch (logError: any) {
              console.error(`Failed to log movement for item ${bItem.name} in bill ${customBillId}:`, logError);

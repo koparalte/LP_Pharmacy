@@ -13,14 +13,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
-import { useAuth } from "@/hooks/useAuth"; // Import useAuth
+import { useAuth } from "@/hooks/useAuth"; 
 
 export default function EditInventoryItemPage() {
   const router = useRouter();
   const params = useParams();
   const { itemId } = params as { itemId: string };
   const { toast } = useToast();
-  const { user } = useAuth(); // Get current user
+  const { user } = useAuth(); 
 
   const [itemData, setItemData] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,21 +67,23 @@ export default function EditInventoryItemPage() {
   }, [itemId, toast, router]);
 
   const handleFormSubmit = async (data: AddItemFormValues, originalItem?: InventoryItem) => {
+    setIsSubmitting(true);
     if (!originalItem) {
       toast({ title: "Error", description: "Original item data missing for update.", variant: "destructive" });
       setIsSubmitting(false);
       return;
     }
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to edit items.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-    setIsSubmitting(true);
+    // Login disabled: Original auth check removed
+    // if (!user) {
+    //   toast({
+    //     title: "Authentication Error",
+    //     description: "You must be logged in to edit items.",
+    //     variant: "destructive",
+    //   });
+    //   setIsSubmitting(false);
+    //   return;
+    // }
+    
 
     try {
       const currentStock = originalItem.stock;
@@ -129,8 +131,8 @@ export default function EditInventoryItemPage() {
           reason: stockAdjustment > 0 
             ? `Stock increased by ${stockAdjustment} via edit` 
             : `Stock decreased by ${Math.abs(stockAdjustment)} via edit`,
-          movedByUserId: user.uid,
-          movedByUserName: user.displayName || user.email || "Unknown User",
+          movedByUserId: user ? user.uid : 'SYSTEM_LOGIN_DISABLED',
+          movedByUserName: user ? (user.displayName || user.email || "Unknown User") : 'System (Login Disabled)',
         });
       }
       

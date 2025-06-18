@@ -10,26 +10,27 @@ import { collection, addDoc, doc, setDoc, serverTimestamp, FieldValue } from "fi
 import { useState } from "react";
 import { format } from "date-fns";
 import { logInventoryMovement } from "@/lib/inventoryLogService";
-import { useAuth } from "@/hooks/useAuth"; // Import useAuth
+import { useAuth } from "@/hooks/useAuth"; 
 
 export default function AddInventoryItemPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth(); // Get current user
+  const { user } = useAuth(); 
 
   const handleFormSubmit = async (data: AddItemFormValues) => {
     setIsSubmitting(true);
 
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to add items.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
+    // Login disabled: Original auth check removed
+    // if (!user) {
+    //   toast({
+    //     title: "Authentication Error",
+    //     description: "You must be logged in to add items.",
+    //     variant: "destructive",
+    //   });
+    //   setIsSubmitting(false);
+    //   return;
+    // }
 
     const inventoryCollectionRef = collection(db, "inventory");
     
@@ -58,8 +59,8 @@ export default function AddInventoryItemPage() {
           movementDate: format(new Date(), "yyyy-MM-dd"),
           source: 'initial_stock',
           reason: 'Initial stock for new item',
-          movedByUserId: user.uid,
-          movedByUserName: user.displayName || user.email || "Unknown User",
+          movedByUserId: user ? user.uid : 'SYSTEM_LOGIN_DISABLED',
+          movedByUserName: user ? (user.displayName || user.email || "Unknown User") : 'System (Login Disabled)',
         });
       }
       
