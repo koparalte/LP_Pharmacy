@@ -98,7 +98,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
       </div>
 
       {selectedBillForDialog && (
-          <DialogContent className="sm:max-w-2xl"> {/* Increased width for better display */}
+          <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                   <DialogTitle>Bill Details - {selectedBillForDialog.id}</DialogTitle>
                   <DialogDescription>
@@ -106,7 +106,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
                   </DialogDescription>
               </DialogHeader>
               
-              <ScrollArea className="max-h-[50vh] pr-4"> {/* Added ScrollArea */}
+              <ScrollArea className="max-h-[50vh] pr-4">
                 <div className="text-sm mb-3">
                   <p><strong>Address:</strong> {selectedBillForDialog.customerAddress || 'N/A'}</p>
                   {selectedBillForDialog.remarks && <p><strong>Remarks:</strong> {selectedBillForDialog.remarks}</p>}
@@ -145,7 +145,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
               <DialogFooter className="mt-4 gap-2 sm:justify-end">
                   <Button variant="outline" asChild>
                       <Link href={`/reports/edit-bill/${selectedBillForDialog.id}`} onClick={() => setSelectedBillForDialog(null)}>
-                         <Edit className="mr-2 h-4 w-4" /> Edit Bill (Soon)
+                         <Edit className="mr-2 h-4 w-4" /> Edit Bill
                       </Link>
                   </Button>
                   <Button asChild>
