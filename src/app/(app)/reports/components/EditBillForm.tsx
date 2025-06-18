@@ -27,7 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // Added useMemo
 import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
@@ -40,12 +40,12 @@ const formSchema = z.object({
   paidInFull: z.boolean().optional(),
 }).refine(data => {
   if (data.status === 'debt' && data.paidInFull && data.paymentReceivedNow && data.paymentReceivedNow > 0) {
-    return false; 
+    return false;
   }
   return true;
 }, {
   message: "Cannot check 'Paid in Full' and enter a 'Payment Received Now' simultaneously.",
-  path: ["paidInFull"], 
+  path: ["paidInFull"],
 });
 
 
@@ -55,7 +55,7 @@ interface EditBillFormProps {
   initialData: FinalizedBill;
   onFormSubmit: (data: EditBillFormValues) => Promise<void>;
   isLoading?: boolean;
-  subTotal: number; 
+  subTotal: number;
 }
 
 export function EditBillForm({ initialData, onFormSubmit, isLoading = false, subTotal }: EditBillFormProps) {
@@ -91,7 +91,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
 
   const watchedDiscount = form.watch("discountAmount");
   const calculatedGrandTotal = Math.max(0, subTotal - (isNaN(watchedDiscount) ? 0 : watchedDiscount));
-  
+
   const watchedPaymentReceivedNow = form.watch("paymentReceivedNow");
   const watchedPaidInFull = form.watch("paidInFull");
   const currentFormStatus = form.watch("status");
@@ -101,7 +101,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
 
     let currentPaid = initialData.amountActuallyPaid;
     let paymentNow = isNaN(parseFloat(String(watchedPaymentReceivedNow))) ? 0 : parseFloat(String(watchedPaymentReceivedNow));
-    
+
     if (watchedPaidInFull) {
         return 0;
     }
@@ -156,7 +156,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                 <FormItem>
                     <FormLabel>Discount Amount (₹)</FormLabel>
                     <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} 
+                    <Input type="number" step="0.01" placeholder="0.00" {...field}
                         onChange={e => {
                             const value = parseFloat(e.target.value);
                             field.onChange(isNaN(value) ? undefined : value);
@@ -195,7 +195,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                 )}
             />
         </div>
-        
+
         <FormField
           control={form.control}
           name="remarks"
@@ -209,7 +209,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
             </FormItem>
           )}
         />
-        
+
         {(initialData.status === 'debt' || currentFormStatus === 'debt') && (
             <Card className="p-4 bg-muted/30">
                 <FormLabel className="text-base font-semibold">Debt Management</FormLabel>
@@ -233,11 +233,11 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                         <FormItem>
                             <FormLabel>Receive Payment Now (₹)</FormLabel>
                             <FormControl>
-                            <Input 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="0.00" 
-                                {...field} 
+                            <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                {...field}
                                 onChange={e => {
                                     const value = parseFloat(e.target.value);
                                     field.onChange(isNaN(value) ? undefined : value);
@@ -286,7 +286,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, sub
                 </FormMessage>
             </Card>
         )}
-        
+
         <div className="p-4 border rounded-md bg-muted/50 space-y-2 text-sm mt-6">
             <div className="flex justify-between">
                 <span>Subtotal (Original):</span>
