@@ -1,7 +1,4 @@
 // This file path is problematic and causes Next.js routing errors
 // due to the folder structure "(app/sales-report)".
-// It is being overwritten with an empty module to neutralize it.
-// The correct content for the sales report page is located at:
-// src/app/(app)/sales-report/page.tsx
-
+// The Sales Report feature has been removed. This file is kept empty.
 export {};
