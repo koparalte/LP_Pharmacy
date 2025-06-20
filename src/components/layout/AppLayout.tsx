@@ -14,16 +14,15 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, Settings, HelpCircle, Receipt, BarChartHorizontalBig, FileClock } from "lucide-react"; // Removed FileText
+import { LayoutDashboard, Boxes, Settings, HelpCircle, BarChartHorizontalBig, FileClock } from "lucide-react"; // Removed Receipt
 import type { ReactNode } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
-  { href: "/cashout", label: "Billing", icon: Receipt },
+  // { href: "/cashout", label: "Billing", icon: Receipt }, // Billing item removed
   { href: "/sales-analytics", label: "Sales Analytics", icon: BarChartHorizontalBig },
   { href: "/inventory-analysis", label: "Inventory Analysis", icon: FileClock },
-  // { href: "/reports", label: "Sales Report", icon: FileText }, // Sales Report item removed
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
