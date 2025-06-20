@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -45,6 +45,16 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
     );
   }
 
+  const formatExpiry = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      // Assuming dateString is 'YYYY-MM-DD'
+      return format(parseISO(dateString), 'MMMM yyyy');
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
   return (
     <AlertDialog open={!!itemToDelete} onOpenChange={(isOpen) => {
       if (!isOpen) {
@@ -61,7 +71,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Rate (Cost) (₹)</TableHead>
               <TableHead className="text-right">MRP (Sell Price) (₹)</TableHead>
-              <TableHead>Expiry Date</TableHead>
+              <TableHead>Expiry Month/Year</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,7 +86,7 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                 </TableCell>
                 <TableCell className="text-right">₹{(item.rate || 0).toFixed(2)}</TableCell> 
                 <TableCell className="text-right">₹{(item.mrp || 0).toFixed(2)}</TableCell>
-                <TableCell>{item.expiryDate ? format(new Date(item.expiryDate), 'PPP') : 'N/A'}</TableCell>
+                <TableCell>{formatExpiry(item.expiryDate)}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => onEdit(item)} className="mr-2 hover:text-primary">
                     <Edit className="h-4 w-4" />

@@ -8,7 +8,7 @@ export type InventoryItem = {
   lowStockThreshold: number;
   rate: number; // Cost price of the item
   mrp: number; // Maximum Retail Price (also the Selling Price)
-  expiryDate?: string; // YYYY-MM-DD
+  expiryDate?: string; // YYYY-MM-DD, effectively represents month/year of expiry
   lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
 
@@ -84,3 +84,6 @@ export type DailyMovementLog = {
   lastUpdated: string; // ISO DateTime string of the last update to this daily log document
 };
 
+// Neutralize problematic sales report page
+// src/app/(app/sales-report/page.tsx
+export {};

@@ -52,6 +52,11 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
   const router = useRouter();
   const [expiryPopoverOpen, setExpiryPopoverOpen] = useState(false);
 
+  const currentYear = new Date().getFullYear();
+  const firstDayOfCurrentMonth = new Date(currentYear, new Date().getMonth(), 1);
+  firstDayOfCurrentMonth.setHours(0,0,0,0);
+
+
   const form = useForm<AddItemFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -135,7 +140,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               name="expiryDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Expiry Date (Optional)</FormLabel>
+                  <FormLabel>Expiry Month/Year (Optional)</FormLabel>
                   <Popover open={expiryPopoverOpen} onOpenChange={setExpiryPopoverOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -147,9 +152,9 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(field.value, "MMMM yyyy")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>Pick month & year</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -163,11 +168,19 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
                           field.onChange(date);
                           setExpiryPopoverOpen(false);
                         }}
-                        disabled={(date) => date < new Date(new Date().toDateString()) || date < new Date("1900-01-01")}
+                        disabled={(date) => {
+                           const day = new Date(date); 
+                           day.setHours(0,0,0,0); 
+                           return day < firstDayOfCurrentMonth;
+                        }}
                         initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={currentYear}
+                        toYear={currentYear + 15}
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormDescription>Select the month and year of expiry.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

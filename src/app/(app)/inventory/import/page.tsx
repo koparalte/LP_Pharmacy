@@ -12,7 +12,7 @@ import { db } from "@/lib/firebase";
 import { collection, doc, writeBatch } from "firebase/firestore";
 import { ArrowLeft, FileUp, Loader2 } from "lucide-react";
 import type { InventoryItem, InventoryMovement } from "@/lib/types";
-import { format } from "date-fns";
+import { format, parse } from "date-fns"; // Added parse
 import { logInventoryMovement } from "@/lib/inventoryLogService";
 import { useAuth } from "@/hooks/useAuth"; 
 
@@ -63,7 +63,7 @@ export default function ImportInventoryPage() {
       lowStockThreshold: "lowstockthreshold",
       rate: "rate", 
       mrp: "mrp",   
-      expiryDate: "expirydate", 
+      expiryDate: "expirydate", // Expects MM-YYYY or YYYY-MM
     };
 
     const headerIndices: { [key: string]: number } = {};
@@ -78,6 +78,8 @@ export default function ImportInventoryPage() {
         throw new Error(`CSV header must contain '${expectedHeaders[field]}' column (case-insensitive).`);
       }
     }
+    const firstDayCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    firstDayCurrentMonth.setHours(0,0,0,0);
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
@@ -117,11 +119,27 @@ export default function ImportInventoryPage() {
       if (headerIndices.expiryDate !== -1) {
         const expiryDateStr = values[headerIndices.expiryDate];
         if (expiryDateStr) {
-          if (/^\d{2}-\d{2}-\d{4}$/.test(expiryDateStr)) { 
-            const parts = expiryDateStr.split('-');
-            itemData.expiryDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+          let parsedDateInternal: Date | undefined;
+          
+          if (/^(\d{1,2})-(\d{4})$/.test(expiryDateStr)) { // MM-YYYY
+            const match = expiryDateStr.match(/^(\d{1,2})-(\d{4})$/)!;
+            // Ensure month is 0-indexed for Date constructor
+            parsedDateInternal = new Date(parseInt(match[2]), parseInt(match[1]) - 1, 1); 
+          } else if (/^(\d{4})-(\d{1,2})$/.test(expiryDateStr)) { // YYYY-MM
+            const match = expiryDateStr.match(/^(\d{4})-(\d{1,2})$/)!;
+            parsedDateInternal = new Date(parseInt(match[1]), parseInt(match[2]) - 1, 1);
+          }
+
+          if (parsedDateInternal && !isNaN(parsedDateInternal.getTime())) {
+            parsedDateInternal.setHours(0,0,0,0);
+            if (parsedDateInternal >= firstDayCurrentMonth) {
+              itemData.expiryDate = format(parsedDateInternal, "yyyy-MM-dd");
+            } else {
+              console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Date ${expiryDateStr} is in the past. Must be current month or future.`);
+              itemData.expiryDate = undefined;
+            }
           } else {
-            console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected DD-MM-YYYY. Found: '${expiryDateStr}'`);
+            console.warn(`Skipping expiry date for row ${i+1} (item '${name}'): Invalid format. Expected MM-YYYY or YYYY-MM. Found: '${expiryDateStr}'`);
             itemData.expiryDate = undefined;
           }
         } else {
@@ -130,6 +148,7 @@ export default function ImportInventoryPage() {
       } else {
         itemData.expiryDate = undefined;
       }
+
 
       if (validRow && itemData.mrp < itemData.rate) { 
          console.warn(`Skipping row ${i+1} (item '${name}'): MRP (${itemData.mrp}) cannot be less than Rate (Cost Price) (${itemData.rate}).`);
@@ -284,9 +303,9 @@ export default function ImportInventoryPage() {
               <li><code className="font-semibold">lowStockThreshold</code> (Required, Number)</li>
               <li><code className="font-semibold">rate</code> (Required, Number - cost price)</li>
               <li><code className="font-semibold">mrp</code> (Required, Number - selling price / MRP)</li>
-              <li><code className="font-semibold">expiryDate</code> (Optional, Text - format DD-MM-YYYY)</li>
+              <li><code className="font-semibold">expiryDate</code> (Optional, Text - format MM-YYYY or YYYY-MM)</li>
             </ul>
-             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Rate (Cost Price) will be skipped.</p>
+             <p className="mt-1 text-xs text-destructive">Note: Rows where MRP is less than Rate (Cost Price) will be skipped. Expiry dates in past months will also be skipped.</p>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -305,8 +324,8 @@ export default function ImportInventoryPage() {
             </p>
             <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-x-auto">
 name,batchNo,unit,stock,lowStockThreshold,rate,mrp,expiryDate<br/>
-Amoxicillin 250mg,BATCH001,strips,100,20,35.00,55.00,31-12-2025<br/>
-Paracetamol 500mg,,pcs,200,50,18.00,30.00,
+Amoxicillin 250mg,BATCH001,strips,100,20,35.00,55.00,12-2025<br/>
+Paracetamol 500mg,,pcs,200,50,18.00,30.00,2026-03
             </pre>
           </div>
         </CardContent>
