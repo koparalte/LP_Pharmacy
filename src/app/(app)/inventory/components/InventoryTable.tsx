@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { format, parseISO } from 'date-fns';
+import Link from "next/link";
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -78,7 +79,11 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.id} className={item.stock <= item.lowStockThreshold ? "bg-destructive/10 hover:bg-destructive/20" : ""}>
-                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell className="font-medium">
+                   <Link href={`/inventory/edit/${item.id}`} className="hover:underline">
+                      {item.name}
+                    </Link>
+                </TableCell>
                 <TableCell>{item.batchNo || 'N/A'}</TableCell>
                 <TableCell>{item.unit || 'N/A'}</TableCell>
                 <TableCell className={`text-right font-semibold ${item.stock <= item.lowStockThreshold ? 'text-destructive' : ''}`}>

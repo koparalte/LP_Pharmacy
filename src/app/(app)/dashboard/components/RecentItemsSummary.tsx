@@ -53,7 +53,11 @@ export function RecentItemsSummary({ items }: RecentItemsSummaryProps) {
             <TableBody>
               {recentItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="font-medium">
+                     <Link href={`/inventory/edit/${item.id}`} className="hover:underline">
+                        {item.name}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground">{formatDate(item.lastUpdated)}</TableCell>
                 </TableRow>
               ))}

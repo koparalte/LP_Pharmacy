@@ -41,7 +41,11 @@ export function LowStockSummary({ items }: LowStockSummaryProps) {
             <TableBody>
               {lowStockItems.slice(0, 5).map((item) => ( // Show top 5
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/inventory/edit/${item.id}`} className="hover:underline">
+                      {item.name}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-right text-destructive font-semibold">{item.stock}</TableCell>
                   <TableCell className="text-right">{item.lowStockThreshold}</TableCell>
                 </TableRow>
