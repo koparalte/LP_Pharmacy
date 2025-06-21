@@ -42,7 +42,7 @@ export default function InventoryAnalysisPage() {
   const [isClearingLog, setIsClearingLog] = useState(false);
   const { isAdmin, loading: authLoading } = useAuth();
 
-  const fetchDailyLogs = useCallback(async (startDate: Date, endDate: Date, isInitialLoad: boolean = false) => {
+  const fetchDailyLogs = useCallback(async (startDate: Date, isInitialLoad: boolean = false) => {
     setLoadingMovements(true);
     let newFetchedMovements: InventoryMovement[] = [];
     let processedOldestDate: Date | null = startDate;
@@ -84,7 +84,7 @@ export default function InventoryAnalysisPage() {
       console.error("Error fetching daily movement logs: ", error);
       toast({ title: "Error", description: "Could not load movement history.", variant: "destructive" });
     } finally {
-      // setLoadingMovements(false); // Moved to after state updates in callers
+      // setLoadingMovements(false); is handled by the calling functions
     }
     return { fetchedMovements: newFetchedMovements, oldestDate: processedOldestDate };
   }, [toast]);
@@ -97,14 +97,14 @@ export default function InventoryAnalysisPage() {
     }
     setLoadingMovements(true);
     const today = new Date();
-    const { fetchedMovements, oldestDate } = await fetchDailyLogs(today, today, true); 
+    const { fetchedMovements, oldestDate } = await fetchDailyLogs(today, true); 
     
     const sortedMovements = fetchedMovements.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
     setAllMovements(sortedMovements);
     setOldestDocDateLoaded(oldestDate);
     setLastFetchedMovements(Date.now());
     if (fetchedMovements.length === 0) setCanLoadMore(false);
-    else if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY * 1 ) setCanLoadMore(false); 
+    else if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY) setCanLoadMore(false); 
     setLoadingMovements(false);
   }, [fetchDailyLogs, lastFetchedMovements]);
 
@@ -117,7 +117,7 @@ export default function InventoryAnalysisPage() {
     setLoadingMovements(true);
     
     const dayBeforeOldest = subDays(oldestDocDateLoaded, 1);
-    const { fetchedMovements, oldestDate: newOldestDate } = await fetchDailyLogs(dayBeforeOldest, dayBeforeOldest, false);
+    const { fetchedMovements, oldestDate: newOldestDate } = await fetchDailyLogs(dayBeforeOldest, false);
 
     if (fetchedMovements.length > 0) {
       setAllMovements(prevMovements => 
