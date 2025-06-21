@@ -149,8 +149,8 @@ export default function BillingPage() {
   const billItemIds = useMemo(() => billItems.map(item => item.id), [billItems]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-110px)] gap-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow min-h-0">
+    <div className="grid grid-rows-[1fr_auto] h-[calc(100vh-110px)] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
           <OrderItemSelector onAddItem={handleAddItem} disabledItems={billItemIds} />
           <CurrentBill
             items={billItems}
@@ -160,21 +160,19 @@ export default function BillingPage() {
           />
       </div>
 
-      <div className="flex-shrink-0">
-          <Card>
-              <CardHeader>
-                  <CardTitle>Finalize Bill</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <BillFinalization 
-                      billItems={billItems} 
-                      subTotal={subTotal}
-                      onFinalize={handleFinalizeBill}
-                      isProcessing={isFinalizing}
-                  />
-              </CardContent>
-          </Card>
-      </div>
+      <Card>
+          <CardHeader>
+              <CardTitle>Finalize Bill</CardTitle>
+          </CardHeader>
+          <CardContent>
+              <BillFinalization 
+                  billItems={billItems} 
+                  subTotal={subTotal}
+                  onFinalize={handleFinalizeBill}
+                  isProcessing={isFinalizing}
+              />
+          </CardContent>
+      </Card>
     </div>
   );
 }
