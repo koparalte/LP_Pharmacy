@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -148,35 +149,31 @@ export default function BillingPage() {
   const billItemIds = useMemo(() => billItems.map(item => item.id), [billItems]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-110px)]">
-      <div className="lg:col-span-2 h-full">
-        <OrderItemSelector onAddItem={handleAddItem} disabledItems={billItemIds} />
+    <div className="flex flex-col h-[calc(100vh-110px)] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow min-h-0">
+          <OrderItemSelector onAddItem={handleAddItem} disabledItems={billItemIds} />
+          <CurrentBill
+            items={billItems}
+            onQuantityChange={handleQuantityChange}
+            onRemoveItem={handleRemoveItem}
+            subTotal={subTotal}
+          />
       </div>
 
-      <div className="lg:col-span-3 h-full grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="md:col-span-1 h-full">
-            <CurrentBill
-              items={billItems}
-              onQuantityChange={handleQuantityChange}
-              onRemoveItem={handleRemoveItem}
-              subTotal={subTotal}
-            />
-        </div>
-        <div className="md:col-span-1 h-full">
-           <Card className="h-full flex flex-col">
-                <CardHeader>
-                    <CardTitle>Finalize Bill</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow overflow-y-auto">
-                    <BillFinalization 
-                        billItems={billItems} 
-                        subTotal={subTotal}
-                        onFinalize={handleFinalizeBill}
-                        isProcessing={isFinalizing}
-                    />
-                </CardContent>
-            </Card>
-        </div>
+      <div className="flex-shrink-0">
+          <Card>
+              <CardHeader>
+                  <CardTitle>Finalize Bill</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <BillFinalization 
+                      billItems={billItems} 
+                      subTotal={subTotal}
+                      onFinalize={handleFinalizeBill}
+                      isProcessing={isFinalizing}
+                  />
+              </CardContent>
+          </Card>
       </div>
     </div>
   );
