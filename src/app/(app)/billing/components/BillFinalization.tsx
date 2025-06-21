@@ -221,7 +221,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
             {isProcessing ? (
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
             ) : (
-             "Finalize & Print Bill"
+             "Finalize Bill"
             )}
         </Button>
       </form>

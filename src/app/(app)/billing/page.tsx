@@ -130,9 +130,8 @@ export default function BillingPage() {
         description: "The bill has been saved and inventory updated.",
       });
       
-      // 5. Reset state and redirect
+      // 5. Reset state
       setBillItems([]);
-      router.push(`/print-bill/${newBillRef.id}`);
 
     } catch (error) {
       console.error("Error finalizing bill: ", error);
