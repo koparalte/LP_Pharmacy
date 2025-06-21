@@ -36,7 +36,7 @@ export default function SalesAnalyticsPage() {
     setLoading(true);
     try {
       const billsCollection = collection(db, "finalizedBills");
-      const q = query(billsCollection, orderBy("__name__", "desc"), limit(BILLS_FETCH_LIMIT)); // Add limit
+      const q = query(billsCollection, orderBy("date", "desc"), limit(BILLS_FETCH_LIMIT)); // Add limit
       const querySnapshot = await getDocs(q);
       const billsList = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -52,7 +52,7 @@ export default function SalesAnalyticsPage() {
       console.error("Error fetching finalized bills: ", error);
       toast({
         title: "Error Fetching Sales Data",
-        description: "Could not load sales transactions.",
+        description: "Could not load sales transactions. This might be due to a missing database index. Please check the browser console for a link to create it.",
         variant: "destructive",
       });
       setFinalizedBills([]);

@@ -47,13 +47,13 @@ export default function SalesReportPage() {
       let q;
 
       if (direction === 'initial') {
-        q = query(billsCollectionRef, orderBy("__name__", "desc"), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILLS_PER_PAGE));
       } else if (direction === 'next' && currentLastDoc) {
-        q = query(billsCollectionRef, orderBy("__name__", "desc"), startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("date", "desc"), startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
       } else if (direction === 'prev' && currentFirstDoc) {
-        q = query(billsCollectionRef, orderBy("__name__", "desc"), endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("date", "desc"), endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
       } else {
-        q = query(billsCollectionRef, orderBy("__name__", "desc"), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILLS_PER_PAGE));
         setCurrentPage(1); 
       }
 
@@ -90,7 +90,7 @@ export default function SalesReportPage() {
       console.error("Error fetching finalized bills: ", error);
       toast({
         title: "Error Fetching Bills",
-        description: "Could not load sales data.",
+        description: "Could not load sales data. This might be due to a missing database index. Please check the browser console for a link to create it.",
         variant: "destructive",
       });
       setFinalizedBills([]);
