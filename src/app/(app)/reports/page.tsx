@@ -181,33 +181,54 @@ export default function SalesReportPage() {
 
   const handleExport = async () => {
     setIsExporting(true);
-    toast({
-      title: "Starting Export...",
-      description: "Fetching all sales data. This may take a moment."
-    });
-
     try {
-      const billsCollectionRef = collection(db, "finalizedBills");
-      const q = query(billsCollectionRef, orderBy("date", "desc"));
-      const querySnapshot = await getDocs(q);
+      let billsToExport: FinalizedBill[] = [];
+      let fileNameBase = "All_Sales";
 
-      if (querySnapshot.empty) {
+      if (selectedBillIds.length > 0) {
         toast({
-          title: "No Data to Export",
-          description: "There are no sales reports to export.",
+          title: "Starting Export...",
+          description: `Preparing ${selectedBillIds.length} selected bill(s).`
+        });
+        billsToExport = finalizedBills.filter(bill => selectedBillIds.includes(bill.id));
+        fileNameBase = "Selected_Sales";
+      } else {
+        toast({
+          title: "Starting Export...",
+          description: "Fetching all sales data. This may take a moment."
+        });
+        const billsCollectionRef = collection(db, "finalizedBills");
+        const q = query(billsCollectionRef, orderBy("date", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          toast({
+            title: "No Data to Export",
+            description: "There are no sales reports to export.",
+          });
+          setIsExporting(false);
+          return;
+        }
+
+        billsToExport = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          billNumber: doc.id,
+          ...doc.data(),
+        } as FinalizedBill));
+      }
+
+      if (billsToExport.length === 0) {
+        toast({
+          title: "No Bills to Export",
+          description: "No data found for the export operation.",
+          variant: "destructive"
         });
         setIsExporting(false);
         return;
       }
 
       const exportData: any[] = [];
-      const billsList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        billNumber: doc.id,
-        ...doc.data(),
-      } as FinalizedBill));
-
-      billsList.forEach(bill => {
+      billsToExport.forEach(bill => {
         if (bill.items && bill.items.length > 0) {
           bill.items.forEach(item => {
             exportData.push({
@@ -242,12 +263,12 @@ export default function SalesReportPage() {
       });
       worksheet["!cols"] = colWidths;
 
-      const fileName = `LP_Pharmacy_Sales_Report_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+      const fileName = `LP_Pharmacy_${fileNameBase}_Report_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
       toast({
         title: "Export Complete",
-        description: `${billsList.length} bills have been exported to ${fileName}.`
+        description: `${billsToExport.length} bills have been exported to ${fileName}.`
       });
 
     } catch (error) {
@@ -297,7 +318,7 @@ export default function SalesReportPage() {
           )}
           <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
             {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
-            Export as XLSX
+            {selectedBillIds.length > 0 ? `Export Selected (${selectedBillIds.length})` : "Export All as XLSX"}
           </Button>
           <Button asChild size="lg">
             <Link href="/billing">
