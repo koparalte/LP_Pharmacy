@@ -70,12 +70,14 @@ export default function BillingPage() {
 
     const batch = writeBatch(db);
     const movementPromises: Promise<void>[] = [];
-    const newBillRef = doc(collection(db, "finalizedBills"));
+    
+    // Generate custom bill number which will also be the document ID
+    const billNumber = `LP${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`;
+    const newBillRef = doc(db, "finalizedBills", billNumber); // Use billNumber as the document ID
+
     const currentDate = new Date();
     const formattedDate = format(currentDate, "yyyy-MM-dd");
 
-    // Generate custom bill number
-    const billNumber = `LP${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`;
 
     // 1. Prepare inventory updates
     for (const item of billItems) {
@@ -107,8 +109,7 @@ export default function BillingPage() {
     }
 
     // 3. Prepare finalized bill data
-    const finalizedBillPayload: Omit<FinalizedBill, 'id'> = {
-      billNumber: billNumber,
+    const finalizedBillPayload: Omit<FinalizedBill, 'id' | 'billNumber'> = {
       date: currentDate.toISOString(),
       items: billItems.map(({ stock, lowStockThreshold, lastUpdated, ...billItemData }) => billItemData), // strip inventory-specific fields
       subTotal,

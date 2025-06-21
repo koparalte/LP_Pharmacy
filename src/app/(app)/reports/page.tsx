@@ -47,21 +47,25 @@ export default function SalesReportPage() {
       let q;
 
       if (direction === 'initial') {
-        q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("__name__", "desc"), limit(BILLS_PER_PAGE));
       } else if (direction === 'next' && currentLastDoc) {
-        q = query(billsCollectionRef, orderBy("date", "desc"), startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("__name__", "desc"), startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
       } else if (direction === 'prev' && currentFirstDoc) {
-        q = query(billsCollectionRef, orderBy("date", "desc"), endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("__name__", "desc"), endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
       } else {
-        q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, orderBy("__name__", "desc"), limit(BILLS_PER_PAGE));
         setCurrentPage(1); 
       }
 
       const querySnapshot = await getDocs(q);
-      const billsList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as FinalizedBill));
+      const billsList = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            billNumber: doc.id,
+            ...data,
+        } as FinalizedBill
+      });
       
       setFinalizedBills(billsList);
 

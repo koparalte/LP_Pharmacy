@@ -36,12 +36,16 @@ export default function SalesAnalyticsPage() {
     setLoading(true);
     try {
       const billsCollection = collection(db, "finalizedBills");
-      const q = query(billsCollection, orderBy("date", "desc"), limit(BILLS_FETCH_LIMIT)); // Add limit
+      const q = query(billsCollection, orderBy("__name__", "desc"), limit(BILLS_FETCH_LIMIT)); // Add limit
       const querySnapshot = await getDocs(q);
-      const billsList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as FinalizedBill));
+      const billsList = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            billNumber: doc.id,
+            ...data,
+        } as FinalizedBill;
+      });
       setFinalizedBills(billsList);
       setLastFetchedAnalyticsBills(Date.now());
     } catch (error) {

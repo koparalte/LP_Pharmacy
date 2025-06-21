@@ -47,8 +47,8 @@ export type BillItem = {
 
 
 export type FinalizedBill = {
-  id: string; // Firestore document ID for this bill
-  billNumber: string; // Human-readable bill ID, e.g., LP123456
+  id: string; // Firestore document ID for this bill (is the same as billNumber)
+  billNumber: string; // Human-readable bill ID, e.g., LP123456 (is the same as id)
   date: string; // ISO DateTime string (or Firestore Timestamp) when the bill was finalized
   items: BillItem[];
   subTotal: number; // Total before discount

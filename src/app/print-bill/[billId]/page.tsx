@@ -36,7 +36,12 @@ export default function PrintBillPage() {
           const billDocSnap = await getDoc(billDocRef);
 
           if (billDocSnap.exists()) {
-            setBill({ id: billDocSnap.id, ...billDocSnap.data() } as FinalizedBill);
+             const data = billDocSnap.data();
+             setBill({ 
+                id: billDocSnap.id, 
+                billNumber: billDocSnap.id, // Set billNumber from doc.id
+                ...data 
+            } as FinalizedBill);
           } else {
             setError('Bill not found.');
           }

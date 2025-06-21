@@ -36,7 +36,12 @@ export default function EditBillPage() {
           const billDocSnap = await getDoc(billDocRef);
 
           if (billDocSnap.exists()) {
-            setBillData({ id: billDocSnap.id, ...billDocSnap.data() } as FinalizedBill);
+            const data = billDocSnap.data();
+            setBillData({ 
+                id: billDocSnap.id, 
+                billNumber: billDocSnap.id, // Set billNumber from doc.id
+                ...data 
+            } as FinalizedBill);
           } else {
             toast({
               title: "Error",
