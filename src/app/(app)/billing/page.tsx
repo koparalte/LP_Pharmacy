@@ -6,7 +6,6 @@ import { OrderItemSelector } from "./components/OrderItemSelector";
 import { CurrentBill } from "./components/CurrentBill";
 import { BillFinalization, type BillFinalizationFormValues } from "./components/BillFinalization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { InventoryItem, BillInProgressItem, FinalizedBill, BillItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -155,7 +154,15 @@ export default function BillingPage() {
       </div>
 
       <div className="lg:col-span-3 h-full grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="md:col-span-2 h-full">
+        <div className="md:col-span-1 h-full">
+            <CurrentBill
+              items={billItems}
+              onQuantityChange={handleQuantityChange}
+              onRemoveItem={handleRemoveItem}
+              subTotal={subTotal}
+            />
+        </div>
+        <div className="md:col-span-1 h-full">
            <Card className="h-full flex flex-col">
                 <CardHeader>
                     <CardTitle>Finalize Bill</CardTitle>
