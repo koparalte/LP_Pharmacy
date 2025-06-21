@@ -11,12 +11,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Eye, Printer, Edit, FileText } from "lucide-react";
 import type { FinalizedBill, BillItem } from "@/lib/types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FinalizedBillsTableProps {
   bills: FinalizedBill[];
+  isAdmin: boolean;
+  selectedBillIds: string[];
+  onSelectedBillIdsChange: (ids: string[]) => void;
 }
 
-export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
+export function FinalizedBillsTable({ bills, isAdmin, selectedBillIds, onSelectedBillIdsChange }: FinalizedBillsTableProps) {
   const [selectedBill, setSelectedBill] = useState<FinalizedBill | null>(null);
 
   const formatDate = (dateString: string) => {
@@ -109,6 +113,17 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
         <Table>
             <TableHeader>
             <TableRow>
+                {isAdmin && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={bills.length > 0 && selectedBillIds.length === bills.length}
+                      onCheckedChange={(checked) => {
+                        onSelectedBillIdsChange(checked ? bills.map((b) => b.id) : []);
+                      }}
+                      aria-label="Select all bills on page"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Bill No.</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
@@ -120,7 +135,21 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
             </TableHeader>
             <TableBody>
             {bills.map((bill) => (
-                <TableRow key={bill.id}>
+                <TableRow key={bill.id} data-state={selectedBillIds.includes(bill.id) && "selected"}>
+                 {isAdmin && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedBillIds.includes(bill.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelectedIds = checked
+                            ? [...selectedBillIds, bill.id]
+                            : selectedBillIds.filter((id) => id !== bill.id);
+                          onSelectedBillIdsChange(newSelectedIds);
+                        }}
+                        aria-label={`Select bill ${bill.billNumber}`}
+                      />
+                    </TableCell>
+                  )}
                 <TableCell className="font-mono text-xs">{bill.billNumber}</TableCell>
                 <TableCell className="font-medium">{bill.customerName}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{formatDate(bill.date)}</TableCell>

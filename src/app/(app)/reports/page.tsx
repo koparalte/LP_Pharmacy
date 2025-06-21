@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText } from "lucide-react";
+import { PlusCircle, FileText, Trash2, Loader2 } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -21,6 +21,19 @@ import {
 } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
+import { useAuth } from "@/hooks/useAuth";
+import { batchDeleteBills } from "@/lib/billService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const BILLS_PER_PAGE = 20;
 
@@ -34,6 +47,10 @@ export default function SalesReportPage() {
   const [firstVisibleDoc, setFirstVisibleDoc] = useState<DocumentSnapshot | null>(null);
   const [isLastPage, setIsLastPage] = useState(false);
   
+  const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { isAdmin, loading: authLoading } = useAuth();
+
   const fetchBillsPage = useCallback(async (
     page: number,
     direction: 'initial' | 'next' | 'prev',
@@ -41,6 +58,7 @@ export default function SalesReportPage() {
     currentLastDoc: DocumentSnapshot | null
   ) => {
     setLoading(true);
+    setSelectedBillIds([]); // Clear selection on page change
 
     try {
       const billsCollectionRef = collection(db, "finalizedBills");
@@ -124,6 +142,40 @@ export default function SalesReportPage() {
     }
   };
 
+  const handleBatchDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await batchDeleteBills(selectedBillIds);
+      if (result.success) {
+        toast({
+          title: "Bills Deleted",
+          description: result.message,
+        });
+        setSelectedBillIds([]);
+        // Refetch from page 1 to ensure consistency after deletion
+        setCurrentPage(1);
+        setLastVisibleDoc(null);
+        setFirstVisibleDoc(null);
+        await fetchBillsPage(1, 'initial', null, null);
+      } else {
+        toast({
+          title: "Deletion Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Batch deletion error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred during deletion.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -133,6 +185,30 @@ export default function SalesReportPage() {
           Sales Reports
         </h1>
         <div className="flex gap-2">
+          {!authLoading && isAdmin && selectedBillIds.length > 0 && (
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Delete ({selectedBillIds.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will permanently delete the selected {selectedBillIds.length} bill(s). This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBatchDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                    {isDeleting ? "Deleting..." : "Yes, delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button asChild size="lg">
             <Link href="/billing">
               <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
@@ -148,7 +224,12 @@ export default function SalesReportPage() {
           <Skeleton className="h-10 w-full" />
         </div>
       ) : (
-        <FinalizedBillsTable bills={finalizedBills} />
+        <FinalizedBillsTable
+          bills={finalizedBills}
+          isAdmin={!authLoading && isAdmin}
+          selectedBillIds={selectedBillIds}
+          onSelectedBillIdsChange={setSelectedBillIds}
+        />
       )}
 
       {!loading && finalizedBills.length > 0 && (
