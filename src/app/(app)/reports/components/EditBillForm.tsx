@@ -82,8 +82,8 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
     if (initialData.status !== 'debt' && currentFormStatus !== 'debt') return 0;
 
     const subTotal = initialData.subTotal;
-    const discount = watchedDiscount || 0;
-    const paymentNow = watchedPaymentReceived || 0;
+    const discount = Number(watchedDiscount) || 0;
+    const paymentNow = Number(watchedPaymentReceived) || 0; // Coerce to number to prevent string concatenation
 
     const grandTotal = subTotal - discount;
 

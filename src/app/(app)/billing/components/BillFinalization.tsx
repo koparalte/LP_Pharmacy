@@ -73,14 +73,11 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
 
   const { amountActuallyPaid, remainingBalance } = useMemo(() => {
     if (watchedStatus === 'paid') {
+      // If status is 'paid', they are paying the full grand total for this transaction.
       return { amountActuallyPaid: grandTotal, remainingBalance: 0 };
     }
-    // For debt
-    const paidAmount = watchedAmountPaid || 0;
-    if (paidAmount >= grandTotal) {
-        // If they pay more than or equal to total, it's considered paid in full for this transaction
-        return { amountActuallyPaid: grandTotal, remainingBalance: 0 };
-    }
+    // For 'debt' status, calculate based on the amount being paid right now.
+    const paidAmount = Number(watchedAmountPaid) || 0;
     return { amountActuallyPaid: paidAmount, remainingBalance: grandTotal - paidAmount };
   }, [grandTotal, watchedStatus, watchedAmountPaid]);
 
@@ -90,7 +87,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
         return;
     }
      if (data.status === 'debt' && data.amountPaid && data.amountPaid >= grandTotal) {
-        form.setError("amountPaid", { type: "manual", message: "For 'Debt', amount paid must be less than the grand total." });
+        form.setError("amountPaid", { type: "manual", message: "For 'Debt', amount paid must be less than the grand total. If paying in full, please select 'Paid'." });
         return;
     }
     await onFinalize(data, grandTotal, remainingBalance, amountActuallyPaid);
