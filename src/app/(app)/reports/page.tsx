@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, FileText, Trash2, Loader2, FileDown } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -34,6 +34,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import * as XLSX from "xlsx";
+import { format, parseISO } from "date-fns";
 
 const BILLS_PER_PAGE = 20;
 
@@ -49,6 +51,7 @@ export default function SalesReportPage() {
   
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const { isAdmin, loading: authLoading } = useAuth();
 
   const fetchBillsPage = useCallback(async (
@@ -176,6 +179,89 @@ export default function SalesReportPage() {
     }
   };
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    toast({
+      title: "Starting Export...",
+      description: "Fetching all sales data. This may take a moment."
+    });
+
+    try {
+      const billsCollectionRef = collection(db, "finalizedBills");
+      const q = query(billsCollectionRef, orderBy("date", "desc"));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast({
+          title: "No Data to Export",
+          description: "There are no sales reports to export.",
+        });
+        setIsExporting(false);
+        return;
+      }
+
+      const exportData: any[] = [];
+      const billsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        billNumber: doc.id,
+        ...doc.data(),
+      } as FinalizedBill));
+
+      billsList.forEach(bill => {
+        if (bill.items && bill.items.length > 0) {
+          bill.items.forEach(item => {
+            exportData.push({
+              "Bill Number": bill.billNumber,
+              "Bill Date": format(parseISO(bill.date), "yyyy-MM-dd HH:mm:ss"),
+              "Customer Name": bill.customerName,
+              "Customer Address": bill.customerAddress || 'N/A',
+              "Bill Status": bill.status,
+              "Item Name": item.name,
+              "Item Quantity": item.quantityInBill,
+              "Item MRP (₹)": item.mrp,
+              "Item Rate (Cost) (₹)": item.rate,
+              "Item Total (₹)": item.mrp * item.quantityInBill,
+              "Bill Subtotal (₹)": bill.subTotal,
+              "Bill Discount (₹)": bill.discountAmount,
+              "Bill Grand Total (₹)": bill.grandTotal,
+              "Bill Amount Paid (₹)": bill.amountActuallyPaid,
+              "Bill Remaining Balance (₹)": bill.remainingBalance,
+              "Bill Remarks": bill.remarks || 'N/A',
+            });
+          });
+        }
+      });
+      
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Report");
+      
+      const colWidths = Object.keys(exportData[0]).map(key => {
+          const maxWidth = exportData.reduce((w, r) => Math.max(w, (r[key]?.toString() || '').length), key.length);
+          return { wch: maxWidth + 2 };
+      });
+      worksheet["!cols"] = colWidths;
+
+      const fileName = `LP_Pharmacy_Sales_Report_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      toast({
+        title: "Export Complete",
+        description: `${billsList.length} bills have been exported to ${fileName}.`
+      });
+
+    } catch (error) {
+      console.error("Error exporting sales data: ", error);
+      toast({
+        title: "Export Failed",
+        description: "Could not export sales data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -209,6 +295,10 @@ export default function SalesReportPage() {
               </AlertDialogContent>
             </AlertDialog>
           )}
+          <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
+            {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
+            Export as XLSX
+          </Button>
           <Button asChild size="lg">
             <Link href="/billing">
               <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
