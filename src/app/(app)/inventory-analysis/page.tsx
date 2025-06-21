@@ -29,7 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 
 const MOVEMENT_HISTORY_STALE_TIME = 2 * 60 * 1000; // 2 minutes
-const TARGET_ITEMS_PER_LOAD = 15;
+const TARGET_ITEMS_PER_LOAD = 10;
 const MAX_DAYS_TO_SEARCH_PER_BATCH = 90; // Safety limit to avoid infinite loops
 
 
