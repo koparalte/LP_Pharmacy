@@ -149,8 +149,8 @@ export default function BillingPage() {
   const billItemIds = useMemo(() => billItems.map(item => item.id), [billItems]);
 
   return (
-    <div className="grid grid-rows-[1fr_auto] h-[calc(100vh-110px)] gap-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <OrderItemSelector onAddItem={handleAddItem} disabledItems={billItemIds} />
           <CurrentBill
             items={billItems}
