@@ -21,7 +21,7 @@ import type { BillInProgressItem } from "@/lib/types";
 import { useMemo } from "react";
 
 const formSchema = z.object({
-  customerName: z.string().min(2, "Customer name is required."),
+  customerName: z.string().optional(),
   customerAddress: z.string().optional(),
   remarks: z.string().optional(),
   discountAmount: z.preprocess(
@@ -35,15 +35,6 @@ const formSchema = z.object({
     (val) => (val === "" ? undefined : val),
     z.coerce.number().min(0, "Amount paid must be a positive number.").optional()
   ),
-}).refine(data => {
-    // If status is 'debt', amountPaid must be provided and less than the grand total
-    if (data.status === 'debt') {
-        return typeof data.amountPaid === 'number';
-    }
-    return true;
-}, {
-    message: "Amount paid is required for debt status.",
-    path: ["amountPaid"],
 });
 
 
@@ -114,9 +105,9 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
                 name="customerName"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Customer Name</FormLabel>
+                    <FormLabel>Customer Name (Optional)</FormLabel>
                     <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="Walk-in Customer" {...field} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -210,7 +201,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
                     <FormControl>
                         <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} />
                     </FormControl>
-                    <FormDescription>Enter the amount the customer is paying now.</FormDescription>
+                    <FormDescription>Enter the amount the customer is paying now. Can be zero.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}

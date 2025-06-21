@@ -109,7 +109,7 @@ export default function BillingPage() {
       subTotal,
       discountAmount: formData.discountAmount || 0,
       grandTotal,
-      customerName: formData.customerName,
+      customerName: formData.customerName || "Walk-in Customer",
       customerAddress: formData.customerAddress || "",
       status: grandTotal > amountActuallyPaid ? 'debt' : 'paid',
       amountActuallyPaid,
