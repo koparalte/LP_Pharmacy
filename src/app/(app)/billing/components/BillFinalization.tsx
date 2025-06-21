@@ -66,7 +66,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
   const watchedAmountPaid = form.watch("amountPaid");
 
   const grandTotal = useMemo(() => {
-    const discount = watchedDiscount || 0;
+    const discount = Number(watchedDiscount) || 0;
     const calculatedTotal = subTotal - discount;
     return calculatedTotal > 0 ? calculatedTotal : 0;
   }, [subTotal, watchedDiscount]);
@@ -78,7 +78,10 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
     }
     // For 'debt' status, calculate based on the amount being paid right now.
     const paidAmount = Number(watchedAmountPaid) || 0;
-    return { amountActuallyPaid: paidAmount, remainingBalance: grandTotal - paidAmount };
+    const calculatedBalance = grandTotal - paidAmount;
+    // Prevent negative balance display if overpaid on debt somehow
+    const finalBalance = calculatedBalance < 0 ? 0 : calculatedBalance;
+    return { amountActuallyPaid: paidAmount, remainingBalance: finalBalance };
   }, [grandTotal, watchedStatus, watchedAmountPaid]);
 
   async function onSubmit(data: BillFinalizationFormValues) {

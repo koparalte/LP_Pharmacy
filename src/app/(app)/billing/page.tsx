@@ -108,6 +108,9 @@ export default function BillingPage() {
       }));
     }
 
+    // Correctly determine the final status based on user intent and final balance.
+    const finalStatus = formData.status === 'paid' || remainingBalance <= 0 ? 'paid' : 'debt';
+
     // 3. Prepare finalized bill data
     const finalizedBillPayload: Omit<FinalizedBill, 'id' | 'billNumber'> = {
       date: currentDate.toISOString(),
@@ -117,7 +120,7 @@ export default function BillingPage() {
       grandTotal,
       customerName: formData.customerName || "Walk-in Customer",
       customerAddress: formData.customerAddress || "",
-      status: grandTotal > amountActuallyPaid ? 'debt' : 'paid',
+      status: finalStatus,
       amountActuallyPaid,
       remainingBalance,
       remarks: formData.remarks || "",
