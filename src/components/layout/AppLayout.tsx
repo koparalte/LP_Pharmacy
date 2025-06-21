@@ -14,13 +14,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, Settings, HelpCircle, BarChartHorizontalBig, FileClock } from "lucide-react"; // Removed Receipt
+import { LayoutDashboard, Boxes, Settings, HelpCircle, BarChartHorizontalBig, FileClock, Receipt } from "lucide-react"; 
 import type { ReactNode } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inventory", label: "Inventory", icon: Boxes },
-  // { href: "/cashout", label: "Billing", icon: Receipt }, // Billing item removed
+  { href: "/billing", label: "Billing", icon: Receipt },
+  { href: "/reports", label: "Sales Reports", icon: FileText },
   { href: "/sales-analytics", label: "Sales Analytics", icon: BarChartHorizontalBig },
   { href: "/inventory-analysis", label: "Inventory Analysis", icon: FileClock },
 ];

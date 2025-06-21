@@ -12,6 +12,10 @@ export type InventoryItem = {
   lastUpdated: string; // ISO DateTime string (or Firestore Timestamp if using serverTimestamp)
 };
 
+export type BillInProgressItem = InventoryItem & {
+  quantityInBill: number;
+};
+
 export type ReportData = {
   totalUniqueItems: number;
   totalValue: number; // This will now be based on cost price (rate)
