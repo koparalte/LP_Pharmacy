@@ -95,7 +95,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
       return 0;
     }
 
-    const totalPaid = (initialData.amountActuallyPaid || 0) + paymentNow;
+    const totalPaid = (Number(initialData.amountActuallyPaid) || 0) + paymentNow;
     const newBalance = grandTotal - totalPaid;
     
     return newBalance < 0 ? 0 : newBalance;
@@ -207,8 +207,8 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
                 <div className="space-y-4 text-sm">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                         <span className="font-medium text-muted-foreground">Original Subtotal:</span><span className="text-right">₹{initialData.subTotal.toFixed(2)}</span>
-                        <span className="font-medium text-muted-foreground">Amount Originally Paid:</span><span className="text-right">₹{(initialData.amountActuallyPaid || 0).toFixed(2)}</span>
-                        <span className="font-medium text-muted-foreground">Original Remaining Balance:</span><span className="text-right font-semibold">₹{(initialData.remainingBalance || 0).toFixed(2)}</span>
+                        <span className="font-medium text-muted-foreground">Amount Originally Paid:</span><span className="text-right">₹{(Number(initialData.amountActuallyPaid) || 0).toFixed(2)}</span>
+                        <span className="font-medium text-muted-foreground">Original Remaining Balance:</span><span className="text-right font-semibold">₹{(Number(initialData.remainingBalance) || 0).toFixed(2)}</span>
                     </div>
 
                     <FormField
