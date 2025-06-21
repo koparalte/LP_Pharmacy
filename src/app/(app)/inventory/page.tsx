@@ -25,6 +25,7 @@ import {
 } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -34,6 +35,7 @@ export default function InventoryPage() {
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
@@ -215,7 +217,7 @@ export default function InventoryPage() {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
       />
-      {isLoadingItems && filteredItems.length === 0 ? ( // Show skeleton only when loading AND no items are displayed yet
+      {isLoadingItems || authLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -223,7 +225,7 @@ export default function InventoryPage() {
           <Skeleton className="h-10 w-full" />
         </div>
       ) : (
-        <InventoryTable items={filteredItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+        <InventoryTable items={filteredItems} onEdit={handleEditItem} onDelete={handleDeleteItem} isAdmin={isAdmin} />
       )}
 
       {!isLoadingItems && filteredItems.length === 0 && searchTerm && (
