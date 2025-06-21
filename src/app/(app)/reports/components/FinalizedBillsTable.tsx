@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -29,7 +30,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
   const BillDetailsDialog = ({ bill }: { bill: FinalizedBill }) => (
      <DialogContent className="max-w-3xl">
       <DialogHeader>
-        <DialogTitle>Bill Details - ID: {bill.id}</DialogTitle>
+        <DialogTitle>Bill Details - Bill No: {bill.billNumber}</DialogTitle>
         <DialogDescription>
           A detailed summary of the bill for {bill.customerName}.
         </DialogDescription>
@@ -108,6 +109,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
         <Table>
             <TableHeader>
             <TableRow>
+                <TableHead>Bill No.</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -119,6 +121,7 @@ export function FinalizedBillsTable({ bills }: FinalizedBillsTableProps) {
             <TableBody>
             {bills.map((bill) => (
                 <TableRow key={bill.id}>
+                <TableCell className="font-mono text-xs">{bill.billNumber}</TableCell>
                 <TableCell className="font-medium">{bill.customerName}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{formatDate(bill.date)}</TableCell>
                 <TableCell className="text-center">

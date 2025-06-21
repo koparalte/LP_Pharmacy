@@ -74,6 +74,9 @@ export default function BillingPage() {
     const currentDate = new Date();
     const formattedDate = format(currentDate, "yyyy-MM-dd");
 
+    // Generate custom bill number
+    const billNumber = `LP${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`;
+
     // 1. Prepare inventory updates
     for (const item of billItems) {
       const inventoryItemRef = doc(db, "inventory", item.id);
@@ -97,7 +100,7 @@ export default function BillingPage() {
           quantity: item.quantityInBill,
           movementDate: formattedDate,
           source: 'sale',
-          reason: `Sale - Bill ID: ${newBillRef.id}`,
+          reason: `Sale - Bill No: ${billNumber}`,
           movedByUserId: user.uid,
           movedByUserName: user.displayName || user.email || 'Unknown User',
       }));
@@ -105,6 +108,7 @@ export default function BillingPage() {
 
     // 3. Prepare finalized bill data
     const finalizedBillPayload: Omit<FinalizedBill, 'id'> = {
+      billNumber: billNumber,
       date: currentDate.toISOString(),
       items: billItems.map(({ stock, lowStockThreshold, lastUpdated, ...billItemData }) => billItemData), // strip inventory-specific fields
       subTotal,

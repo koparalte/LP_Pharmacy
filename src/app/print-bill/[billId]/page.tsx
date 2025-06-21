@@ -98,7 +98,7 @@ export default function PrintBillPage() {
       </div>
 
       <div className="print-customer-details">
-        <p><strong>Bill ID:</strong> {bill.id}</p>
+        <p><strong>Bill No:</strong> {bill.billNumber}</p>
         <p><strong>Date:</strong> {formatDateForPrint(bill.date)}</p>
         <p><strong>Customer Name:</strong> {bill.customerName}</p>
         <p><strong>Address:</strong> {bill.customerAddress || 'N/A'}</p>

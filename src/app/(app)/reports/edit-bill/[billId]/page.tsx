@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -175,7 +176,7 @@ export default function EditBillPage() {
             </Button>
             <h1 className="text-3xl font-bold font-headline flex items-center">
                 <Edit className="mr-3 h-7 w-7" />
-                Edit Bill (ID: {billData.id.substring(0, 8)}...)
+                Edit Bill (No: {billData.billNumber})
             </h1>
         </div>
         
