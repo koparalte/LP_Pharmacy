@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore"; // Import limit
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,6 +19,7 @@ interface SalesData {
 }
 
 const ANALYTICS_BILLS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const BILLS_FETCH_LIMIT = 500; // Performance cap
 
 export default function SalesAnalyticsPage() {
   const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
@@ -35,7 +35,7 @@ export default function SalesAnalyticsPage() {
     setLoading(true);
     try {
       const billsCollection = collection(db, "finalizedBills");
-      const q = query(billsCollection, orderBy("date", "desc"));
+      const q = query(billsCollection, orderBy("date", "desc"), limit(BILLS_FETCH_LIMIT)); // Add limit
       const querySnapshot = await getDocs(q);
       const billsList = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -225,7 +225,7 @@ export default function SalesAnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Sales & Profit Breakdown</CardTitle>
-          <CardDescription>View sales and profit data aggregated by different time periods. Profit is calculated as (MRP - Rate).</CardDescription>
+          <CardDescription>View sales and profit data aggregated by different time periods. Analysis is based on the last {BILLS_FETCH_LIMIT} transactions.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="daily">

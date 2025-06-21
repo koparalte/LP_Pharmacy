@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,6 +51,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
   const router = useRouter();
   const [expiryPopoverOpen, setExpiryPopoverOpen] = useState(false);
 
+  // Moved from module scope to component scope for stability
   const currentYear = new Date().getFullYear();
   const firstDayOfCurrentMonth = new Date(currentYear, new Date().getMonth(), 1);
   firstDayOfCurrentMonth.setHours(0,0,0,0);
