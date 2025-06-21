@@ -150,7 +150,7 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[65vh]">
           <OrderItemSelector onAddItem={handleAddItem} disabledItems={billItemIds} />
           <CurrentBill
             items={billItems}
