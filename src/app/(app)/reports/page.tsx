@@ -180,47 +180,27 @@ export default function SalesReportPage() {
   };
 
   const handleExport = async () => {
+    if (selectedBillIds.length === 0) {
+      toast({
+        title: "No Bills Selected",
+        description: "Please select one or more bills to export.",
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
-      let billsToExport: FinalizedBill[] = [];
-      let fileNameBase = "All_Sales";
-
-      if (selectedBillIds.length > 0) {
-        toast({
-          title: "Starting Export...",
-          description: `Preparing ${selectedBillIds.length} selected bill(s).`
-        });
-        billsToExport = finalizedBills.filter(bill => selectedBillIds.includes(bill.id));
-        fileNameBase = "Selected_Sales";
-      } else {
-        toast({
-          title: "Starting Export...",
-          description: "Fetching all sales data. This may take a moment."
-        });
-        const billsCollectionRef = collection(db, "finalizedBills");
-        const q = query(billsCollectionRef, orderBy("date", "desc"));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          toast({
-            title: "No Data to Export",
-            description: "There are no sales reports to export.",
-          });
-          setIsExporting(false);
-          return;
-        }
-
-        billsToExport = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          billNumber: doc.id,
-          ...doc.data(),
-        } as FinalizedBill));
-      }
+      toast({
+        title: "Starting Export...",
+        description: `Preparing ${selectedBillIds.length} selected bill(s).`
+      });
+      const billsToExport = finalizedBills.filter(bill => selectedBillIds.includes(bill.id));
+      const fileNameBase = "Selected_Sales";
 
       if (billsToExport.length === 0) {
         toast({
           title: "No Bills to Export",
-          description: "No data found for the export operation.",
+          description: "Could not find selected bills on the current page. Please refresh and try again.",
           variant: "destructive"
         });
         setIsExporting(false);
@@ -293,33 +273,35 @@ export default function SalesReportPage() {
         </h1>
         <div className="flex gap-2">
           {!authLoading && isAdmin && selectedBillIds.length > 0 && (
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={isDeleting}>
-                  {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                  Delete ({selectedBillIds.length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action will permanently delete the selected {selectedBillIds.length} bill(s). This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleBatchDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                    {isDeleting ? "Deleting..." : "Yes, delete"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={isDeleting}>
+                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                    Delete ({selectedBillIds.length})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action will permanently delete the selected {selectedBillIds.length} bill(s). This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBatchDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                      {isDeleting ? "Deleting..." : "Yes, delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
+                {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
+                Export Selected ({selectedBillIds.length})
+              </Button>
+            </>
           )}
-          <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
-            {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
-            {selectedBillIds.length > 0 ? `Export Selected (${selectedBillIds.length})` : "Export All as XLSX"}
-          </Button>
           <Button asChild size="lg">
             <Link href="/billing">
               <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
