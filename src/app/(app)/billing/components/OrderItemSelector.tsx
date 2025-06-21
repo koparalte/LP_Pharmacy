@@ -11,6 +11,7 @@ import { collection, query, getDocs, limit, startAt, endAt, orderBy } from "fire
 import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format, parseISO } from "date-fns";
 
 interface OrderItemSelectorProps {
   onAddItem: (item: InventoryItem) => void;
@@ -106,6 +107,15 @@ export function OrderItemSelector({ onAddItem, disabledItems }: OrderItemSelecto
     }
   };
 
+  const formatExpiry = (dateString?: string) => {
+    if (!dateString) return null;
+    try {
+      return format(parseISO(dateString), 'MMM yyyy');
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -137,6 +147,7 @@ export function OrderItemSelector({ onAddItem, disabledItems }: OrderItemSelecto
                         <p className="font-semibold">{item.name}</p>
                         <p className="text-sm text-muted-foreground">
                             Stock: <span className={item.stock > 0 ? 'font-bold text-green-600' : 'font-bold text-destructive'}>{item.stock}</span> | MRP: ₹{item.mrp.toFixed(2)}
+                            {item.expiryDate && <span className="text-red-600"> | Exp: {formatExpiry(item.expiryDate)}</span>}
                         </p>
                         </div>
                         <Button
