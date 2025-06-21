@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -195,7 +196,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               <FormItem>
                 <FormLabel>Rate (Cost Price) (₹)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} onWheel={(e) => e.currentTarget.blur()} />
                 </FormControl>
                 <FormDescription>The purchase price of the item.</FormDescription>
                 <FormMessage />
@@ -209,7 +210,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               <FormItem>
                 <FormLabel>MRP (Selling Price) (₹)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} onWheel={(e) => e.currentTarget.blur()} />
                 </FormControl>
                 <FormDescription>Maximum Retail Price, also the selling price.</FormDescription>
                 <FormMessage />
@@ -226,7 +227,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               <FormItem>
                 <FormLabel>{isEditMode ? "Current Stock" : "Initial Stock Quantity"}</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0" {...field} readOnly={isEditMode} />
+                  <Input type="number" placeholder="0" {...field} readOnly={isEditMode} onWheel={(e) => e.currentTarget.blur()} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -240,7 +241,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
                   <FormItem>
                     <FormLabel>Adjust Stock By (+/-)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
+                      <Input type="number" placeholder="0" {...field} onWheel={(e) => e.currentTarget.blur()} />
                     </FormControl>
                     <FormDescription>Enter positive to add, negative to subtract.</FormDescription>
                     <FormMessage />
@@ -255,7 +256,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
               <FormItem>
                 <FormLabel>Low Stock Threshold</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="10" {...field} />
+                  <Input type="number" placeholder="10" {...field} onWheel={(e) => e.currentTarget.blur()} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

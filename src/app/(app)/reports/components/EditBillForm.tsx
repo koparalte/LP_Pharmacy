@@ -83,7 +83,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
 
     const subTotal = initialData.subTotal;
     const discount = Number(watchedDiscount) || 0;
-    const paymentNow = Number(watchedPaymentReceived) || 0; // Coerce to number to prevent string concatenation
+    const paymentNow = Number(watchedPaymentReceived) || 0; 
 
     const grandTotal = subTotal - discount;
 
@@ -95,7 +95,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
       return 0;
     }
 
-    const totalPaid = (Number(initialData.amountActuallyPaid) || 0) + paymentNow;
+    const totalPaid = Number(initialData.amountActuallyPaid || 0) + paymentNow;
     const newBalance = grandTotal - totalPaid;
     
     return newBalance < 0 ? 0 : newBalance;
@@ -156,7 +156,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
                 <FormItem>
                 <FormLabel>Discount Amount (₹)</FormLabel>
                 <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} />
+                    <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} onWheel={(e) => e.currentTarget.blur()} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -207,8 +207,8 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
                 <div className="space-y-4 text-sm">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                         <span className="font-medium text-muted-foreground">Original Subtotal:</span><span className="text-right">₹{initialData.subTotal.toFixed(2)}</span>
-                        <span className="font-medium text-muted-foreground">Amount Originally Paid:</span><span className="text-right">₹{(Number(initialData.amountActuallyPaid) || 0).toFixed(2)}</span>
-                        <span className="font-medium text-muted-foreground">Original Remaining Balance:</span><span className="text-right font-semibold">₹{(Number(initialData.remainingBalance) || 0).toFixed(2)}</span>
+                        <span className="font-medium text-muted-foreground">Amount Originally Paid:</span><span className="text-right">₹{Number(initialData.amountActuallyPaid || 0).toFixed(2)}</span>
+                        <span className="font-medium text-muted-foreground">Original Remaining Balance:</span><span className="text-right font-semibold">₹{Number(initialData.remainingBalance || 0).toFixed(2)}</span>
                     </div>
 
                     <FormField
@@ -218,7 +218,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: E
                         <FormItem>
                             <FormLabel>Payment Received Now (₹)</FormLabel>
                             <FormControl>
-                                <Input type="number" step="0.01" id="paymentReceivedNow" placeholder="0.00" {...field} disabled={watchedPaidInFull} value={field.value ?? ""} />
+                                <Input type="number" step="0.01" id="paymentReceivedNow" placeholder="0.00" {...field} disabled={watchedPaidInFull} value={field.value ?? ""} onWheel={(e) => e.currentTarget.blur()} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

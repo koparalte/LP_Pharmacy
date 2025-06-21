@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,13 +74,11 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
 
   const { amountActuallyPaid, remainingBalance } = useMemo(() => {
     if (watchedStatus === 'paid') {
-      // If status is 'paid', they are paying the full grand total for this transaction.
       return { amountActuallyPaid: grandTotal, remainingBalance: 0 };
     }
-    // For 'debt' status, calculate based on the amount being paid right now.
+    
     const paidAmount = Number(watchedAmountPaid) || 0;
     const calculatedBalance = grandTotal - paidAmount;
-    // Prevent negative balance display if overpaid on debt somehow
     const finalBalance = calculatedBalance < 0 ? 0 : calculatedBalance;
     return { amountActuallyPaid: paidAmount, remainingBalance: finalBalance };
   }, [grandTotal, watchedStatus, watchedAmountPaid]);
@@ -135,7 +134,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
                 <FormItem>
                 <FormLabel>Discount Amount (₹)</FormLabel>
                 <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} />
+                    <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} onWheel={(e) => e.currentTarget.blur()} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -199,7 +198,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
                     <FormItem>
                     <FormLabel>Amount Paid Now (₹)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} />
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} onWheel={(e) => e.currentTarget.blur()} />
                     </FormControl>
                     <FormDescription>Enter the amount the customer is paying now. Can be zero.</FormDescription>
                     <FormMessage />
