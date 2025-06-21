@@ -9,7 +9,7 @@ import { FileClock, PackageSearch, Trash2 } from "lucide-react";
 import { format, parseISO, subDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, doc, getDoc } from "firebase/firestore";
 import type { InventoryMovement, DailyMovementLog } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -29,64 +29,58 @@ import { useAuth } from "@/hooks/useAuth";
 
 
 const MOVEMENT_HISTORY_STALE_TIME = 2 * 60 * 1000; // 2 minutes
-const DAYS_TO_LOAD_INITIALLY = 7; 
-const DAYS_TO_LOAD_MORE = 7; 
+const TARGET_ITEMS_PER_LOAD = 15;
+const MAX_DAYS_TO_SEARCH_PER_BATCH = 90; // Safety limit to avoid infinite loops
+
 
 export default function InventoryAnalysisPage() {
   const [allMovements, setAllMovements] = useState<InventoryMovement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(true);
   const [lastFetchedMovements, setLastFetchedMovements] = useState<number | null>(null);
   const { toast } = useToast();
-  const [oldestDocDateLoaded, setOldestDocDateLoaded] = useState<Date | null>(null);
+  const [oldestDocDateLoaded, setOldestDocDateLoaded] = useState<Date | null>(new Date());
   const [canLoadMore, setCanLoadMore] = useState(true);
   const [isClearingLog, setIsClearingLog] = useState(false);
   const { isAdmin, loading: authLoading } = useAuth();
 
-  const fetchDailyLogs = useCallback(async (startDate: Date, isInitialLoad: boolean = false) => {
-    setLoadingMovements(true);
-    let newFetchedMovements: InventoryMovement[] = [];
-    let processedOldestDate: Date | null = startDate;
+  const fetchAndProcessMovements = useCallback(async (
+    startDate: Date | null, 
+    existingMovementsCount: number
+  ): Promise<{ newMovements: InventoryMovement[], nextStartDate: Date | null, hasMore: boolean }> => {
+    
+    if (!startDate) return { newMovements: [], nextStartDate: null, hasMore: false };
 
-    try {
-      const dateStringsToFetch: string[] = [];
-      for (let i = 0; i < (isInitialLoad ? DAYS_TO_LOAD_INITIALLY : DAYS_TO_LOAD_MORE); i++) {
-          const dateToFetch = subDays(startDate, i); 
-          dateStringsToFetch.push(format(dateToFetch, "yyyy-MM-dd"));
-          if (i === (isInitialLoad ? DAYS_TO_LOAD_INITIALLY : DAYS_TO_LOAD_MORE) - 1) {
-            processedOldestDate = dateToFetch;
-          }
-      }
-      
-      if (dateStringsToFetch.length === 0) {
-        setCanLoadMore(false);
-        setLoadingMovements(false);
-        return { fetchedMovements: [], oldestDate: startDate };
-      }
+    let collectedMovements: InventoryMovement[] = [];
+    let currentDate = startDate;
+    let daysSearched = 0;
 
-      const dailyLogsCollection = collection(db, "dailyMovementLogs");
-      const q = query(dailyLogsCollection, where("id", "in", dateStringsToFetch), orderBy("id", "desc"));
-      
-      const snapshot = await getDocs(q);
-      snapshot.docs.forEach(docSnap => {
-        const dailyLog = docSnap.data() as DailyMovementLog;
-        newFetchedMovements.push(...(dailyLog.movements || []));
-      });
+    while (
+      collectedMovements.length < TARGET_ITEMS_PER_LOAD &&
+      daysSearched < MAX_DAYS_TO_SEARCH_PER_BATCH
+    ) {
+        const dateToFetchStr = format(currentDate, "yyyy-MM-dd");
+        
+        try {
+            const dailyLogDocRef = doc(db, "dailyMovementLogs", dateToFetchStr);
+            const docSnap = await getDoc(dailyLogDocRef);
+            
+            if (docSnap.exists()) {
+                const dailyLog = docSnap.data() as DailyMovementLog;
+                collectedMovements.push(...(dailyLog.movements || []));
+            }
+        } catch (error) {
+            console.error("Error fetching single daily log:", error);
+            toast({ title: "Error", description: `Could not load movement history for ${dateToFetchStr}.`, variant: "destructive" });
+            return { newMovements: [], nextStartDate: currentDate, hasMore: false }; // Stop on error
+        }
 
-      if (snapshot.docs.length < dateStringsToFetch.length) {
-         setCanLoadMore(false);
-      }
-      
-      if (snapshot.empty && !isInitialLoad) { 
-        setCanLoadMore(false);
-      }
-
-    } catch (error) {
-      console.error("Error fetching daily movement logs: ", error);
-      toast({ title: "Error", description: "Could not load movement history.", variant: "destructive" });
-    } finally {
-      // setLoadingMovements(false); is handled by the calling functions
+        currentDate = subDays(currentDate, 1);
+        daysSearched++;
     }
-    return { fetchedMovements: newFetchedMovements, oldestDate: processedOldestDate };
+
+    const hasMore = daysSearched < MAX_DAYS_TO_SEARCH_PER_BATCH;
+    return { newMovements: collectedMovements, nextStartDate: currentDate, hasMore };
+
   }, [toast]);
 
 
@@ -96,17 +90,18 @@ export default function InventoryAnalysisPage() {
       return;
     }
     setLoadingMovements(true);
-    const today = new Date();
-    const { fetchedMovements, oldestDate } = await fetchDailyLogs(today, true); 
+    setAllMovements([]);
+
+    const { newMovements, nextStartDate, hasMore } = await fetchAndProcessMovements(new Date(), 0);
     
-    const sortedMovements = fetchedMovements.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+    const sortedMovements = newMovements.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+    
     setAllMovements(sortedMovements);
-    setOldestDocDateLoaded(oldestDate);
+    setOldestDocDateLoaded(nextStartDate);
+    setCanLoadMore(hasMore && newMovements.length > 0);
     setLastFetchedMovements(Date.now());
-    if (fetchedMovements.length === 0) setCanLoadMore(false);
-    else if (fetchedMovements.length < DAYS_TO_LOAD_INITIALLY) setCanLoadMore(false); 
     setLoadingMovements(false);
-  }, [fetchDailyLogs, lastFetchedMovements]);
+  }, [fetchAndProcessMovements, lastFetchedMovements]);
 
   useEffect(() => {
     loadInitialMovements();
@@ -116,17 +111,16 @@ export default function InventoryAnalysisPage() {
     if (!oldestDocDateLoaded || !canLoadMore || loadingMovements) return;
     setLoadingMovements(true);
     
-    const dayBeforeOldest = subDays(oldestDocDateLoaded, 1);
-    const { fetchedMovements, oldestDate: newOldestDate } = await fetchDailyLogs(dayBeforeOldest, false);
+    const { newMovements, nextStartDate, hasMore } = await fetchAndProcessMovements(oldestDocDateLoaded, allMovements.length);
 
-    if (fetchedMovements.length > 0) {
+    if (newMovements.length > 0) {
       setAllMovements(prevMovements => 
-        [...prevMovements, ...fetchedMovements].sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+        [...prevMovements, ...newMovements].sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
       );
-      setOldestDocDateLoaded(newOldestDate);
-    } else {
-      setCanLoadMore(false); 
     }
+    
+    setOldestDocDateLoaded(nextStartDate);
+    setCanLoadMore(hasMore && newMovements.length > 0);
     setLoadingMovements(false);
   };
 
@@ -158,13 +152,14 @@ export default function InventoryAnalysisPage() {
     try {
       await clearAllDailyMovementLogs();
       setAllMovements([]);
-      setOldestDocDateLoaded(null);
+      setOldestDocDateLoaded(new Date());
       setLastFetchedMovements(null);
       setCanLoadMore(true); 
       toast({
         title: "Log Cleared",
         description: "All inventory movement logs have been deleted.",
       });
+      loadInitialMovements(); // Reload to confirm it's empty
     } catch (error) {
       console.error("Error clearing logs:", error);
       toast({
@@ -221,7 +216,7 @@ export default function InventoryAnalysisPage() {
       <Card>
         <CardHeader>
           <CardTitle>Movement History</CardTitle>
-          <CardDescription>Automatically recorded stock movements. Logs are grouped by day.</CardDescription>
+          <CardDescription>Automatically recorded stock movements. Click "Load More" to see older records.</CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[calc(100vh-400px)]"> 
