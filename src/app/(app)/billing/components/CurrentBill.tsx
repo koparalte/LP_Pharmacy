@@ -3,8 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Trash2, ShoppingCart } from "lucide-react";
+import { Trash2, ShoppingCart, Plus, Minus } from "lucide-react";
 import type { BillInProgressItem } from "@/lib/types";
 
 interface CurrentBillProps {
@@ -15,15 +14,6 @@ interface CurrentBillProps {
 }
 
 export function CurrentBill({ items, onQuantityChange, onRemoveItem, subTotal }: CurrentBillProps) {
-  
-  const handleQuantityBlur = (e: React.FocusEvent<HTMLInputElement>, item: BillInProgressItem) => {
-    const newQuantity = parseInt(e.target.value, 10);
-    if (isNaN(newQuantity) || newQuantity < 1) {
-      onQuantityChange(item.id, 1); // Reset to 1 if invalid
-    } else if (newQuantity > item.stock) {
-      onQuantityChange(item.id, item.stock); // Cap at max stock
-    }
-  };
 
   return (
     <Card className="h-full flex flex-col">
@@ -44,7 +34,7 @@ export function CurrentBill({ items, onQuantityChange, onRemoveItem, subTotal }:
               <TableHeader>
                 <TableRow>
                   <TableHead>Item</TableHead>
-                  <TableHead className="w-[100px]">Qty</TableHead>
+                  <TableHead className="w-[120px]">Qty</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="w-[50px]"> </TableHead>
                 </TableRow>
@@ -54,15 +44,27 @@ export function CurrentBill({ items, onQuantityChange, onRemoveItem, subTotal }:
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>
-                      <Input
-                        type="number"
-                        min="1"
-                        max={item.stock}
-                        value={item.quantityInBill}
-                        onChange={(e) => onQuantityChange(item.id, parseInt(e.target.value, 10) || 1)}
-                        onBlur={(e) => handleQuantityBlur(e, item)}
-                        className="h-8 w-20"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={() => onQuantityChange(item.id, item.quantityInBill - 1)}
+                          disabled={item.quantityInBill <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="font-bold text-center w-8">{item.quantityInBill}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={() => onQuantityChange(item.id, item.quantityInBill + 1)}
+                          disabled={item.quantityInBill >= item.stock}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                        <p className="text-xs text-muted-foreground mt-1">
                         Stock: {item.stock}
                       </p>
