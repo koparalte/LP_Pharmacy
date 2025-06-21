@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Search, PackageSearch } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, limit, startAt, endAt, orderBy } from "firebase/firestore";
+import { collection, query, getDocs, limit, startAt, endAt, orderBy } from "firebase/firestore";
 import type { InventoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,25 +31,49 @@ export function OrderItemSelector({ onAddItem, disabledItems }: OrderItemSelecto
     setLoading(true);
     try {
       const inventoryRef = collection(db, "inventory");
-      const q = query(
-        inventoryRef,
-        orderBy("name"),
-        startAt(searchTerm.toLowerCase()),
-        endAt(searchTerm.toLowerCase() + '\uf8ff'),
-        limit(15)
-      );
+      const searchTermLower = searchTerm.toLowerCase();
+      // Most products are either all lowercase or start with a capital letter.
+      // We'll create queries for both cases to make the search work more reliably.
+      const searchTermCap = searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1).toLowerCase();
+
+      const queries = [
+        query(
+          inventoryRef,
+          orderBy("name"),
+          startAt(searchTermLower),
+          endAt(searchTermLower + '\uf8ff'),
+          limit(15)
+        )
+      ];
+
+      if (searchTermLower !== searchTermCap) {
+        queries.push(query(
+          inventoryRef,
+          orderBy("name"),
+          startAt(searchTermCap),
+          endAt(searchTermCap + '\uf8ff'),
+          limit(15)
+        ));
+      }
+
+      const querySnapshots = await Promise.all(queries.map(q => getDocs(q)));
       
-      const querySnapshot = await getDocs(q);
-      const items: InventoryItem[] = [];
-      querySnapshot.forEach(doc => {
-         const data = doc.data() as Omit<InventoryItem, 'id'>;
-         // Secondary client-side filter because Firestore case-insensitive search is limited
-         if (data.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-             items.push({ id: doc.id, ...data });
-         }
+      const itemsMap = new Map<string, InventoryItem>();
+
+      querySnapshots.forEach(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data() as Omit<InventoryItem, 'id'>;
+          // Secondary client-side filter for a more accurate "contains" search on the fetched results.
+          if (data.name.toLowerCase().includes(searchTermLower)) {
+            if (!itemsMap.has(doc.id)) {
+              itemsMap.set(doc.id, { id: doc.id, ...data });
+            }
+          }
+        });
       });
       
-      setSearchResults(items);
+      const finalItems = Array.from(itemsMap.values()).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 15);
+      setSearchResults(finalItems);
 
     } catch (error) {
       console.error("Error searching inventory: ", error);
