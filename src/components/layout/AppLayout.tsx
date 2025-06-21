@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/icons/Logo";
 import { UserNav } from "@/components/layout/UserNav";
-import { LayoutDashboard, Boxes, Settings, HelpCircle, BarChartHorizontalBig, FileClock, Receipt } from "lucide-react"; 
+import { LayoutDashboard, Boxes, Settings, HelpCircle, BarChartHorizontalBig, FileClock, Receipt, FileText } from "lucide-react"; 
 import type { ReactNode } from "react";
 
 const navItems = [
