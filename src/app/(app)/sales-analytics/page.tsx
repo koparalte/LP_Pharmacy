@@ -3,9 +3,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore"; // Import limit
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +27,7 @@ export default function SalesAnalyticsPage() {
   const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [lastFetchedAnalyticsBills, setLastFetchedAnalyticsBills] = useState<number | null>(null);
 
   const fetchFinalizedBills = useCallback(async (forceRefresh = false) => {
@@ -36,7 +38,7 @@ export default function SalesAnalyticsPage() {
     setLoading(true);
     try {
       const billsCollection = collection(db, "finalizedBills");
-      const q = query(billsCollection, orderBy("date", "desc"), limit(BILLS_FETCH_LIMIT)); // Add limit
+      const q = query(billsCollection, orderBy("date", "desc"), limit(BILLS_FETCH_LIMIT));
       const querySnapshot = await getDocs(q);
       const billsList = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -137,7 +139,7 @@ export default function SalesAnalyticsPage() {
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-bold">Sales: INR ₹{sales.toFixed(2)}</p>
-        <p className="text-xl text-green-600">Profit: INR ₹{profit.toFixed(2)}</p>
+        {isAdmin && <p className="text-xl text-green-600">Profit: INR ₹{profit.toFixed(2)}</p>}
       </CardContent>
     </Card>
   );
@@ -168,7 +170,7 @@ export default function SalesAnalyticsPage() {
 
 
   const renderSalesDataTable = (data: SalesData[], caption: string) => {
-    if (loading && data.length === 0) { 
+    if ((loading || authLoading) && data.length === 0) { 
       return (
         <div className="space-y-2 pt-4">
           <Skeleton className="h-10 w-full" />
@@ -177,7 +179,7 @@ export default function SalesAnalyticsPage() {
         </div>
       );
     }
-    if (data.length === 0 && !loading) {
+    if (data.length === 0 && !(loading || authLoading)) {
       return <p className="text-muted-foreground pt-4">No sales data for this period.</p>;
     }
     return (
@@ -187,7 +189,7 @@ export default function SalesAnalyticsPage() {
           <TableRow>
             <TableHead>Period</TableHead>
             <TableHead className="text-right">Total Sales (₹)</TableHead>
-            <TableHead className="text-right">Total Profit (₹)</TableHead>
+            {isAdmin && <TableHead className="text-right">Total Profit (₹)</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -195,7 +197,7 @@ export default function SalesAnalyticsPage() {
             <TableRow key={entry.period}>
               <TableCell>{entry.period}</TableCell>
               <TableCell className="text-right">INR ₹{entry.totalSales.toFixed(2)}</TableCell>
-              <TableCell className="text-right text-green-600">INR ₹{entry.totalProfit.toFixed(2)}</TableCell>
+              {isAdmin && <TableCell className="text-right text-green-600">INR ₹{entry.totalProfit.toFixed(2)}</TableCell>}
             </TableRow>
           ))}
         </TableBody>
@@ -212,7 +214,7 @@ export default function SalesAnalyticsPage() {
         </h1>
       </div>
 
-      {loading && !finalizedBills.length ? ( 
+      {(loading || authLoading) && !finalizedBills.length ? ( 
         <div className="grid gap-4 md:grid-cols-3">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -230,7 +232,7 @@ export default function SalesAnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Sales & Profit Breakdown</CardTitle>
-          <CardDescription>View sales and profit data aggregated by different time periods. Analysis is based on the last {BILLS_FETCH_LIMIT} transactions.</CardDescription>
+          <CardDescription>View sales{isAdmin ? " and profit" : ""} data aggregated by different time periods. Analysis is based on the last {BILLS_FETCH_LIMIT} transactions.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="daily">
