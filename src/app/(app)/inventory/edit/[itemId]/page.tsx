@@ -189,7 +189,6 @@ export default function EditInventoryItemPage() {
           isEditMode={true}
           onFormSubmit={handleFormSubmit}
           isLoading={isSubmitting}
-          disabled={!user}
         />
       </div>
     </div>

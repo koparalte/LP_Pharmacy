@@ -56,6 +56,7 @@ export default function BillingPage() {
   
   const handleFinalizeBill = async (formData: BillFinalizationFormValues, grandTotal: number, remainingBalance: number, amountActuallyPaid: number) => {
     setIsFinalizing(true);
+    // Assuming 'user' is always available on this page due to layout protection
     if (!user) {
         toast({ title: "Authentication Error", description: "You must be logged in to finalize a bill.", variant: "destructive" });
         setIsFinalizing(false);
@@ -177,7 +178,6 @@ export default function BillingPage() {
                   subTotal={subTotal}
                   onFinalize={handleFinalizeBill}
                   isProcessing={isFinalizing}
-                  disabled={!user}
               />
           </CardContent>
       </Card>

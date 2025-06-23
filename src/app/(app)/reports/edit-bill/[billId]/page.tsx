@@ -203,7 +203,6 @@ export default function EditBillPage() {
                         initialData={billData}
                         onFormSubmit={handleFormSubmit}
                         isLoading={isSubmitting}
-                        disabled={!user}
                     />
                 )}
             </div>

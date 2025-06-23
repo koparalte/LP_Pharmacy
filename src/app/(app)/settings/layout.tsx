@@ -21,11 +21,13 @@ export default function AdminSettingsLayout({
       if (!user) {
         router.replace("/login?redirect=/settings"); 
       } else if (!isAdmin) {
+        // If user is logged in but not an admin, redirect them away.
         router.replace("/dashboard"); 
       }
     }
   }, [user, isAdmin, loading, router]);
 
+  // While loading, show a spinner
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-150px)] flex-col items-center justify-center bg-background p-6">
@@ -34,22 +36,9 @@ export default function AdminSettingsLayout({
       </div>
     );
   }
-
-  if (!user) {
-     return (
-      <div className="flex h-[calc(100vh-150px)] flex-col items-center justify-center bg-background p-6 text-center">
-        <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold mb-2">Authentication Required</h2>
-        <p className="text-muted-foreground mb-6">
-          You need to be logged in to access this page.
-        </p>
-        <Button asChild>
-          <Link href="/login?redirect=/settings">Go to Login</Link>
-        </Button>
-      </div>
-    );
-  }
   
+  // After loading, if user is not an admin (which also covers not logged in), show access denied.
+  // The useEffect will handle the redirect, but this provides an immediate UI feedback.
   if (!isAdmin) {
     return (
       <div className="flex h-[calc(100vh-150px)] flex-col items-center justify-center bg-background p-6 text-center">
@@ -65,5 +54,6 @@ export default function AdminSettingsLayout({
     );
   }
 
+  // If loading is false and user is admin, render the children
   return <>{children}</>;
 }

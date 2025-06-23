@@ -16,12 +16,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface FinalizedBillsTableProps {
   bills: FinalizedBill[];
   isAdmin: boolean;
-  isGuest: boolean;
   selectedBillIds: string[];
   onSelectedBillIdsChange: (ids: string[]) => void;
 }
 
-export function FinalizedBillsTable({ bills, isAdmin, isGuest, selectedBillIds, onSelectedBillIdsChange }: FinalizedBillsTableProps) {
+export function FinalizedBillsTable({ bills, isAdmin, selectedBillIds, onSelectedBillIdsChange }: FinalizedBillsTableProps) {
   const [selectedBill, setSelectedBill] = useState<FinalizedBill | null>(null);
 
   const formatDate = (dateString: string) => {
@@ -201,17 +200,11 @@ export function FinalizedBillsTable({ bills, isAdmin, isGuest, selectedBillIds, 
                                     <Eye className="h-4 w-4" />
                                 </Button>
                             </DialogTrigger>
-                            {!isGuest ? (
-                                <Button asChild variant="ghost" size="icon" className="mr-2 hover:text-primary">
-                                    <Link href={`/reports/edit-bill/${bill.id}`}>
-                                        <Edit className="h-4 w-4" />
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button variant="ghost" size="icon" className="mr-2" disabled>
+                            <Button asChild variant="ghost" size="icon" className="mr-2 hover:text-primary">
+                                <Link href={`/reports/edit-bill/${bill.id}`}>
                                     <Edit className="h-4 w-4" />
-                                </Button>
-                            )}
+                                </Link>
+                            </Button>
                              <Button asChild variant="ghost" size="icon" className="hover:text-primary">
                                 <Link href={`/print-bill/${bill.id}`} target="_blank">
                                     <Printer className="h-4 w-4" />

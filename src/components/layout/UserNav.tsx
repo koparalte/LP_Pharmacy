@@ -20,18 +20,10 @@ export function UserNav() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <Button variant="ghost" className="relative h-10 w-10 rounded-full" disabled>
         <Loader2 className="h-5 w-5 animate-spin" />
-      </Button>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Button variant="outline" onClick={() => router.push('/login')}>
-        Sign In
       </Button>
     );
   }

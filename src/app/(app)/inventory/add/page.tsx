@@ -90,8 +90,7 @@ export default function AddInventoryItemPage() {
         <AddItemForm 
           onFormSubmit={handleFormSubmit} 
           isEditMode={false} 
-          isLoading={isSubmitting} 
-          disabled={!user}
+          isLoading={isSubmitting}
         />
       </div>
     </div>

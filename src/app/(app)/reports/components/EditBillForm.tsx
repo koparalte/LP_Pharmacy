@@ -55,10 +55,9 @@ interface EditBillFormProps {
   initialData: FinalizedBill;
   onFormSubmit: (data: EditBillFormValues, billData: FinalizedBill) => Promise<void>;
   isLoading?: boolean;
-  disabled?: boolean;
 }
 
-export function EditBillForm({ initialData, onFormSubmit, isLoading = false, disabled = false }: EditBillFormProps) {
+export function EditBillForm({ initialData, onFormSubmit, isLoading = false }: EditBillFormProps) {
   const router = useRouter();
 
   const form = useForm<EditBillFormValues>({
@@ -262,7 +261,7 @@ export function EditBillForm({ initialData, onFormSubmit, isLoading = false, dis
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting || isLoading || disabled}>
+          <Button type="submit" disabled={form.formState.isSubmitting || isLoading}>
             {(form.formState.isSubmitting || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Update Bill
           </Button>

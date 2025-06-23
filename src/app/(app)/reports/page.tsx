@@ -302,7 +302,7 @@ export default function SalesReportPage() {
               </Button>
             </>
           )}
-          <Button asChild size="lg" disabled={!user}>
+          <Button asChild size="lg">
             <Link href="/billing">
               <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
             </Link>
@@ -320,7 +320,6 @@ export default function SalesReportPage() {
         <FinalizedBillsTable
           bills={finalizedBills}
           isAdmin={!authLoading && isAdmin}
-          isGuest={!user}
           selectedBillIds={selectedBillIds}
           onSelectedBillIdsChange={setSelectedBillIds}
         />
