@@ -177,6 +177,7 @@ export default function BillingPage() {
                   subTotal={subTotal}
                   onFinalize={handleFinalizeBill}
                   isProcessing={isFinalizing}
+                  disabled={!user}
               />
           </CardContent>
       </Card>

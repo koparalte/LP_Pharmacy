@@ -25,9 +25,10 @@ interface InventoryTableProps {
   onEdit: (item: InventoryItem) => void;
   onDelete: (itemId: string) => void;
   isAdmin: boolean;
+  isGuest: boolean;
 }
 
-export function InventoryTable({ items, onEdit, onDelete, isAdmin }: InventoryTableProps) {
+export function InventoryTable({ items, onEdit, onDelete, isAdmin, isGuest }: InventoryTableProps) {
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
 
   const handleDeleteConfirm = () => {
@@ -94,11 +95,11 @@ export function InventoryTable({ items, onEdit, onDelete, isAdmin }: InventoryTa
                 <TableCell className="text-right">₹{(item.mrp || 0).toFixed(2)}</TableCell>
                 <TableCell>{formatExpiry(item.expiryDate)}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(item)} className="mr-2 hover:text-primary">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(item)} className="mr-2 hover:text-primary" disabled={isGuest}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setItemToDelete(item)} className="hover:text-destructive">
+                    <Button variant="ghost" size="icon" onClick={() => setItemToDelete(item)} className="hover:text-destructive" disabled={isGuest}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>

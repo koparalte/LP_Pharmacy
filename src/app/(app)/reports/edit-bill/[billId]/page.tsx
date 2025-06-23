@@ -67,6 +67,17 @@ export default function EditBillPage() {
 
   const handleFormSubmit = async (data: EditBillFormValues, billData: FinalizedBill) => {
     setIsSubmitting(true);
+    
+    if (!user) {
+        toast({
+            title: "Authentication Required",
+            description: "You must be logged in to edit bills.",
+            variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
 
     const discount = data.discountAmount || 0;
 
@@ -192,6 +203,7 @@ export default function EditBillPage() {
                         initialData={billData}
                         onFormSubmit={handleFormSubmit}
                         isLoading={isSubmitting}
+                        disabled={!user}
                     />
                 )}
             </div>

@@ -52,7 +52,7 @@ export default function SalesReportPage() {
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
 
   const fetchBillsPage = useCallback(async (
     page: number,
@@ -302,7 +302,7 @@ export default function SalesReportPage() {
               </Button>
             </>
           )}
-          <Button asChild size="lg">
+          <Button asChild size="lg" disabled={!user}>
             <Link href="/billing">
               <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
             </Link>
@@ -320,6 +320,7 @@ export default function SalesReportPage() {
         <FinalizedBillsTable
           bills={finalizedBills}
           isAdmin={!authLoading && isAdmin}
+          isGuest={!user}
           selectedBillIds={selectedBillIds}
           onSelectedBillIdsChange={setSelectedBillIds}
         />

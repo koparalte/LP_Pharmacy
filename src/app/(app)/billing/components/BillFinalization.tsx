@@ -46,9 +46,10 @@ interface BillFinalizationProps {
   subTotal: number;
   onFinalize: (data: BillFinalizationFormValues, grandTotal: number, remainingBalance: number, amountActuallyPaid: number) => Promise<void>;
   isProcessing: boolean;
+  disabled?: boolean;
 }
 
-export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing }: BillFinalizationProps) {
+export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing, disabled = false }: BillFinalizationProps) {
   
   const form = useForm<BillFinalizationFormValues>({
     resolver: zodResolver(formSchema),
@@ -216,7 +217,7 @@ export function BillFinalization({ billItems, subTotal, onFinalize, isProcessing
             )}
         </div>
 
-        <Button type="submit" className="w-full text-lg py-6" disabled={isProcessing || billItems.length === 0}>
+        <Button type="submit" className="w-full text-lg py-6" disabled={isProcessing || billItems.length === 0 || disabled}>
             {isProcessing ? (
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
             ) : (

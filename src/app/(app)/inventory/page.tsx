@@ -35,7 +35,7 @@ export default function InventoryPage() {
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
@@ -134,10 +134,27 @@ export default function InventoryPage() {
 
 
   const handleEditItem = (itemToEdit: InventoryItem) => {
+    if (!user) {
+        toast({
+            title: "Authentication Required",
+            description: "You must be logged in to edit items.",
+            variant: "destructive",
+        });
+        return;
+    }
     router.push(`/inventory/edit/${itemToEdit.id}`);
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    if (!user) {
+        toast({
+            title: "Authentication Required",
+            description: "You must be logged in to delete items.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     const itemToDelete = currentItems.find(item => item.id === itemId);
     const itemName = itemToDelete ? itemToDelete.name : "The item";
     
@@ -200,12 +217,12 @@ export default function InventoryPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline">Inventory Management</h1>
         <div className="flex gap-2">
-          <Button asChild size="lg" variant="outline">
+          <Button asChild size="lg" variant="outline" disabled={!user}>
             <Link href="/inventory/import">
               <UploadCloud className="mr-2 h-5 w-5" /> Import from CSV
             </Link>
           </Button>
-          <Button asChild size="lg">
+          <Button asChild size="lg" disabled={!user}>
             <Link href="/inventory/add">
               <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
             </Link>
@@ -225,7 +242,7 @@ export default function InventoryPage() {
           <Skeleton className="h-10 w-full" />
         </div>
       ) : (
-        <InventoryTable items={filteredItems} onEdit={handleEditItem} onDelete={handleDeleteItem} isAdmin={isAdmin} />
+        <InventoryTable items={filteredItems} onEdit={handleEditItem} onDelete={handleDeleteItem} isAdmin={isAdmin} isGuest={!user} />
       )}
 
       {!isLoadingItems && filteredItems.length === 0 && searchTerm && (

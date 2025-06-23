@@ -11,9 +11,8 @@ function generateEventId(): string {
   return `${Date.now().toString()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-interface LogMovementData extends Omit<InventoryMovement, 'eventId' | 'recordedAt' | 'movedByUserId' | 'movedByUserName'> {
-  movedByUserId: string;
-  movedByUserName?: string;
+interface LogMovementData extends Omit<InventoryMovement, 'eventId' | 'recordedAt'> {
+  // movedByUserId & movedByUserName are now part of the base type passed in
 }
 
 export async function logInventoryMovement(movementData: LogMovementData): Promise<void> {
@@ -23,12 +22,10 @@ export async function logInventoryMovement(movementData: LogMovementData): Promi
   const currentTimestamp = new Date().toISOString();
 
   const newMovementEvent: InventoryMovement = {
-    ...movementData, // Spread existing data including itemId, itemName, type, quantity, source, reason
+    ...movementData, // Spread existing data including itemId, itemName, type, quantity, source, reason, movedBy fields
     eventId: generateEventId(),
     recordedAt: currentTimestamp,
     movementDate: movementData.movementDate || todayStr,
-    movedByUserId: movementData.movedByUserId,
-    movedByUserName: movementData.movedByUserName || "Unknown User", // Default if not provided
   };
 
   try {

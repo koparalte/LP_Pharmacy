@@ -46,9 +46,10 @@ interface AddItemFormProps {
   isEditMode?: boolean;
   onFormSubmit: (data: AddItemFormValues, originalItem?: InventoryItem) => Promise<void>;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
-export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isLoading = false }: AddItemFormProps) {
+export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isLoading = false, disabled = false }: AddItemFormProps) {
   const router = useRouter();
   const [expiryPopoverOpen, setExpiryPopoverOpen] = useState(false);
 
@@ -268,7 +269,7 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting || isLoading}>
+          <Button type="submit" disabled={form.formState.isSubmitting || isLoading || disabled}>
             {(form.formState.isSubmitting || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEditMode ? "Update Item" : "Add Item"}
           </Button>

@@ -73,16 +73,16 @@ export default function EditInventoryItemPage() {
       setIsSubmitting(false);
       return;
     }
-    // Login disabled: Original auth check removed
-    // if (!user) {
-    //   toast({
-    //     title: "Authentication Error",
-    //     description: "You must be logged in to edit items.",
-    //     variant: "destructive",
-    //   });
-    //   setIsSubmitting(false);
-    //   return;
-    // }
+
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to edit items.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
     
 
     try {
@@ -131,8 +131,8 @@ export default function EditInventoryItemPage() {
           reason: stockAdjustment > 0 
             ? `Stock increased by ${stockAdjustment} via edit` 
             : `Stock decreased by ${Math.abs(stockAdjustment)} via edit`,
-          movedByUserId: user ? user.uid : 'SYSTEM_LOGIN_DISABLED',
-          movedByUserName: user ? (user.displayName || user.email || "Unknown User") : 'System (Login Disabled)',
+          movedByUserId: user.uid,
+          movedByUserName: user.displayName || user.email || "Unknown User",
         });
       }
       
@@ -189,6 +189,7 @@ export default function EditInventoryItemPage() {
           isEditMode={true}
           onFormSubmit={handleFormSubmit}
           isLoading={isSubmitting}
+          disabled={!user}
         />
       </div>
     </div>

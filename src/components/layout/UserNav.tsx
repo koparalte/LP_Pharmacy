@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, User as UserIcon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export function UserNav() {
   const { user, logout, loading } = useAuth();
+  const router = useRouter();
 
   if (loading) {
     return (
@@ -27,9 +29,11 @@ export function UserNav() {
   }
 
   if (!user) {
-    // Optionally, render a sign-in button or nothing if user is not logged in
-    // For now, returning null as protected routes should handle redirection
-    return null;
+    return (
+      <Button variant="outline" onClick={() => router.push('/login')}>
+        Sign In
+      </Button>
+    );
   }
   
   const getInitials = (name?: string | null) => {

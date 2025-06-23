@@ -169,15 +169,14 @@ export default function ImportInventoryPage() {
       toast({ title: "No File Selected", description: "Please select a CSV file to import.", variant: "destructive" });
       return;
     }
-    // Login disabled: Original auth check removed
-    // if (!user) {
-    //   toast({
-    //     title: "Authentication Error",
-    //     description: "You must be logged in to import items.",
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to import items.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsProcessing(true);
     const reader = new FileReader();
@@ -230,8 +229,8 @@ export default function ImportInventoryPage() {
               movementDate: format(new Date(), "yyyy-MM-dd"),
               source: 'csv_import',
               reason: 'Initial stock from CSV import',
-              movedByUserId: user ? user.uid : 'SYSTEM_LOGIN_DISABLED',
-              movedByUserName: user ? (user.displayName || user.email || "Unknown User") : 'System (Login Disabled)',
+              movedByUserId: user.uid,
+              movedByUserName: user.displayName || user.email || "Unknown User",
             }));
           }
         });
@@ -317,7 +316,7 @@ export default function ImportInventoryPage() {
               accept=".csv"
               onChange={handleFileChange}
               className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-              disabled={isProcessing}
+              disabled={isProcessing || !user}
             />
              <p className="mt-2 text-xs text-muted-foreground">
               Example CSV format (ensure headers are exactly as listed above, case-insensitive):
@@ -330,7 +329,7 @@ Paracetamol 500mg,,pcs,200,50,18.00,30.00,2026-03
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleImport} disabled={!file || isProcessing} className="w-full sm:w-auto"> {/* Removed !user check */}
+          <Button onClick={handleImport} disabled={!file || isProcessing || !user} className="w-full sm:w-auto">
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

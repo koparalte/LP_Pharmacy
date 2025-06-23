@@ -21,16 +21,15 @@ export default function AddInventoryItemPage() {
   const handleFormSubmit = async (data: AddItemFormValues) => {
     setIsSubmitting(true);
 
-    // Login disabled: Original auth check removed
-    // if (!user) {
-    //   toast({
-    //     title: "Authentication Error",
-    //     description: "You must be logged in to add items.",
-    //     variant: "destructive",
-    //   });
-    //   setIsSubmitting(false);
-    //   return;
-    // }
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to add items.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     const inventoryCollectionRef = collection(db, "inventory");
     
@@ -59,8 +58,8 @@ export default function AddInventoryItemPage() {
           movementDate: format(new Date(), "yyyy-MM-dd"),
           source: 'initial_stock',
           reason: 'Initial stock for new item',
-          movedByUserId: user ? user.uid : 'SYSTEM_LOGIN_DISABLED',
-          movedByUserName: user ? (user.displayName || user.email || "Unknown User") : 'System (Login Disabled)',
+          movedByUserId: user.uid,
+          movedByUserName: user.displayName || user.email || "Unknown User",
         });
       }
       
@@ -92,6 +91,7 @@ export default function AddInventoryItemPage() {
           onFormSubmit={handleFormSubmit} 
           isEditMode={false} 
           isLoading={isSubmitting} 
+          disabled={!user}
         />
       </div>
     </div>
