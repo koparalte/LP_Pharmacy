@@ -16,7 +16,7 @@ export default function AddInventoryItemPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth(); 
+  const { user, isAdmin } = useAuth(); 
 
   const handleFormSubmit = async (data: AddItemFormValues) => {
     setIsSubmitting(true);
@@ -25,6 +25,16 @@ export default function AddInventoryItemPage() {
       toast({
         title: "Authentication Error",
         description: "You must be logged in to add items.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
+    if (isAdmin && data.rate <= 0) {
+      toast({
+        title: "Invalid Rate",
+        description: "As an admin, you must provide a Rate (Cost Price) greater than 0.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -91,6 +101,7 @@ export default function AddInventoryItemPage() {
           onFormSubmit={handleFormSubmit} 
           isEditMode={false} 
           isLoading={isSubmitting}
+          isAdmin={isAdmin}
         />
       </div>
     </div>

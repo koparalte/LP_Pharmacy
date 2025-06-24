@@ -30,7 +30,7 @@ const formSchema = z.object({
   unit: z.string().max(30).optional().describe("e.g., strips, bottle, pcs"),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   lowStockThreshold: z.coerce.number().int().min(0, { message: "Threshold cannot be negative." }),
-  rate: z.coerce.number().min(0.01, { message: "Rate (Cost Price) must be at least 0.01."}),
+  rate: z.coerce.number().min(0, { message: "Rate (Cost Price) must be a positive number."}),
   mrp: z.coerce.number().min(0.01, { message: "MRP (Selling Price) must be at least 0.01." }),
   expiryDate: z.date().optional(),
   stockAdjustment: z.coerce.number().int().optional(), 
@@ -46,9 +46,10 @@ interface AddItemFormProps {
   isEditMode?: boolean;
   onFormSubmit: (data: AddItemFormValues, originalItem?: InventoryItem) => Promise<void>;
   isLoading?: boolean;
+  isAdmin: boolean;
 }
 
-export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isLoading = false }: AddItemFormProps) {
+export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isLoading = false, isAdmin }: AddItemFormProps) {
   const router = useRouter();
   const [expiryPopoverOpen, setExpiryPopoverOpen] = useState(false);
 
@@ -189,20 +190,22 @@ export function AddItemForm({ initialData, isEditMode = false, onFormSubmit, isL
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-           <FormField
-            control={form.control}
-            name="rate" 
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Rate (Cost Price) (₹)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} onWheel={(e) => e.currentTarget.blur()} />
-                </FormControl>
-                <FormDescription>The purchase price of the item.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+           {isAdmin && (
+            <FormField
+              control={form.control}
+              name="rate" 
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Rate (Cost Price) (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" placeholder="0.00" {...field} onWheel={(e) => e.currentTarget.blur()} />
+                  </FormControl>
+                  <FormDescription>The purchase price of the item.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+           )}
           <FormField
             control={form.control}
             name="mrp"

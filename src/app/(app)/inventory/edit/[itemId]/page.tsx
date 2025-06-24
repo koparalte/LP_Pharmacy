@@ -20,7 +20,7 @@ export default function EditInventoryItemPage() {
   const params = useParams();
   const { itemId } = params as { itemId: string };
   const { toast } = useToast();
-  const { user } = useAuth(); 
+  const { user, isAdmin } = useAuth(); 
 
   const [itemData, setItemData] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,7 +104,7 @@ export default function EditInventoryItemPage() {
         name: data.name,
         stock: newStock,
         lowStockThreshold: data.lowStockThreshold,
-        rate: data.rate,
+        rate: isAdmin ? data.rate : originalItem.rate, // Only update rate if admin
         mrp: data.mrp,
         lastUpdated: new Date().toISOString(),
       };
@@ -189,6 +189,7 @@ export default function EditInventoryItemPage() {
           isEditMode={true}
           onFormSubmit={handleFormSubmit}
           isLoading={isSubmitting}
+          isAdmin={isAdmin}
         />
       </div>
     </div>
