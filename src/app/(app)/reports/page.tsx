@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText, Trash2, Loader2, FileDown } from "lucide-react";
+import { PlusCircle, FileText, Trash2, Loader2, FileDown, Terminal } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import type { FinalizedBill } from "@/lib/types";
@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 import { format, parseISO } from "date-fns";
 
@@ -57,6 +58,7 @@ export default function SalesReportPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showOnlyDebt, setShowOnlyDebt] = useState(false);
+  const [indexError, setIndexError] = useState<string | null>(null);
   const { user, isAdmin, loading: authLoading } = useAuth();
 
   const fetchBillsPage = useCallback(async (
@@ -101,6 +103,7 @@ export default function SalesReportPage() {
       });
       
       setFinalizedBills(billsList);
+      setIndexError(null);
 
       if (querySnapshot.docs.length > 0) {
         setFirstVisibleDoc(querySnapshot.docs[0]);
@@ -109,7 +112,7 @@ export default function SalesReportPage() {
       } else {
         if (direction === 'next') {
           setIsLastPage(true);
-          setCurrentPage(prevPage => Math.max(1, prevPage)); // Stay on current page if next is empty
+          setCurrentPage(prevPage => Math.max(1, prevPage));
         } else {
           setIsLastPage(true);
         }
@@ -122,13 +125,9 @@ export default function SalesReportPage() {
     } catch (error: any) {
       if (error.code === 'failed-precondition') {
         console.error("Firestore index missing:", error);
-        toast({
-            title: "Database Index Required",
-            description: "To show only debt bills sorted by date, a database index is needed. Please check the browser console for a link to create it.",
-            variant: "destructive",
-            duration: 10000,
-        });
-        setFinalizedBills([]); // Clear data to avoid showing inconsistent results
+        const errorMessage = "To filter by 'debt' and sort by date, a database index is required. Open your browser's developer console (F12), find the link in the error message, and click it to create the index in Firebase. Then, refresh this page.";
+        setIndexError(errorMessage);
+        setFinalizedBills([]);
       } else {
         console.error("Error fetching finalized bills: ", error);
         toast({
@@ -145,6 +144,9 @@ export default function SalesReportPage() {
 
 
   useEffect(() => {
+    if (!showOnlyDebt) {
+        setIndexError(null);
+    }
     fetchBillsPage(1, 'initial', null, null, showOnlyDebt);
   }, [fetchBillsPage, showOnlyDebt]);
   
@@ -178,7 +180,6 @@ export default function SalesReportPage() {
           description: result.message,
         });
         setSelectedBillIds([]);
-        // Refetch from page 1 to ensure consistency after deletion
         setCurrentPage(1);
         setLastVisibleDoc(null);
         setFirstVisibleDoc(null);
@@ -339,7 +340,15 @@ export default function SalesReportPage() {
         </div>
       </div>
 
-      {loading ? (
+      {indexError ? (
+        <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Action Required: Create Database Index</AlertTitle>
+            <AlertDescription>
+                {indexError}
+            </AlertDescription>
+        </Alert>
+      ) : loading ? (
         <div className="space-y-2">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -354,7 +363,7 @@ export default function SalesReportPage() {
         />
       )}
 
-      {!loading && finalizedBills.length > 0 && (
+      {!indexError && !loading && finalizedBills.length > 0 && (
           <div className="flex items-center justify-end space-x-2 py-4 mt-4 border-t">
             <Button
               variant="outline"
