@@ -48,7 +48,7 @@ export function FinalizedBillsTable({ bills, isAdmin, selectedBillIds, onSelecte
       };
     }
     acc[dateKey].bills.push(bill);
-    acc[dateKey].total += bill.grandTotal;
+    acc[dateKey].total += bill.amountActuallyPaid; // Changed from grandTotal
     return acc;
   }, {} as Record<string, { bills: FinalizedBill[], total: number }>);
 
@@ -162,7 +162,7 @@ export function FinalizedBillsTable({ bills, isAdmin, selectedBillIds, onSelecte
                         <TableCell colSpan={isAdmin ? 8 : 7} className="font-bold">
                             <div className="flex justify-between items-center text-base">
                                 <span>{format(parseISO(date), "PPP")}</span>
-                                <span className="text-primary">Daily Total: ₹{total.toFixed(2)}</span>
+                                <span className="text-primary">Daily Total (Paid): ₹{total.toFixed(2)}</span>
                             </div>
                         </TableCell>
                     </TableRow>

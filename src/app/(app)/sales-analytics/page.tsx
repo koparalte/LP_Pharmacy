@@ -23,6 +23,28 @@ interface SalesData {
 const ANALYTICS_BILLS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 const BILLS_FETCH_LIMIT = 500; // Performance cap
 
+
+/**
+ * Calculates the recognized sales and profit for a bill based on the amount paid.
+ * Sales are equal to the amount actually paid.
+ * Profit is recognized proportionally to the amount paid relative to the grand total.
+ */
+function getRecognizedValuesForBill(bill: FinalizedBill) {
+    const sales = bill.amountActuallyPaid;
+    
+    const totalProfitForBill = bill.items.reduce((itemSum, item) => {
+        const itemProfit = (item.mrp - item.rate) * item.quantityInBill;
+        return itemSum + itemProfit;
+    }, 0);
+
+    const recognizedProfit = bill.grandTotal > 0
+      ? totalProfitForBill * (bill.amountActuallyPaid / bill.grandTotal)
+      : 0;
+
+    return { sales, profit: recognizedProfit };
+}
+
+
 export default function SalesAnalyticsPage() {
   const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,18 +117,10 @@ export default function SalesAnalyticsPage() {
           rawDate: periodType === 'daily' ? billDate : (periodType === 'weekly' ? startOfWeek(billDate, {weekStartsOn: 1}) : startOfMonth(billDate))
         };
       }
-
-      // Sales are based on item.mrp (which is the selling price)
-      const salesForBill = bill.items.reduce((sum, item) => sum + (item.mrp * item.quantityInBill), 0);
       
-      // Profit is (MRP_selling_price - Rate_cost_price) * Quantity for each item
-      const profitForBill = bill.items.reduce((sum, item) => {
-        const itemProfitContribution = (item.mrp - item.rate) * item.quantityInBill;
-        return sum + itemProfitContribution;
-      }, 0);
-
-      aggregated[periodKey].totalSales += salesForBill;
-      aggregated[periodKey].totalProfit += profitForBill;
+      const { sales, profit } = getRecognizedValuesForBill(bill);
+      aggregated[periodKey].totalSales += sales;
+      aggregated[periodKey].totalProfit += profit;
     });
 
     return Object.entries(aggregated)
@@ -138,20 +152,19 @@ export default function SalesAnalyticsPage() {
         <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-bold">Sales: INR ₹{sales.toFixed(2)}</p>
-        {isAdmin && <p className="text-xl text-green-600">Profit: INR ₹{profit.toFixed(2)}</p>}
+        <p className="text-2xl font-bold">Sales (Paid): INR ₹{sales.toFixed(2)}</p>
+        {isAdmin && <p className="text-xl text-green-600">Profit (Recognized): INR ₹{profit.toFixed(2)}</p>}
       </CardContent>
     </Card>
   );
 
   const today = new Date();
-  const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-  const currentMonthStart = startOfMonth(today);
-
+  
   const calculatePerformance = (filteredBills: FinalizedBill[]) => {
     return filteredBills.reduce((acc, bill) => {
-      acc.sales += bill.items.reduce((itemSum, item) => itemSum + (item.mrp * item.quantityInBill), 0);
-      acc.profit += bill.items.reduce((itemSum, item) => itemSum + (item.mrp - item.rate) * item.quantityInBill, 0);
+      const { sales, profit } = getRecognizedValuesForBill(bill);
+      acc.sales += sales;
+      acc.profit += profit;
       return acc;
     }, { sales: 0, profit: 0 });
   };
@@ -161,12 +174,12 @@ export default function SalesAnalyticsPage() {
     ), [finalizedBills, today]);
 
   const thisWeekSales = useMemo(() => calculatePerformance(
-      finalizedBills.filter(bill => isWithinInterval(parseISO(bill.date), { start: currentWeekStart, end: endOfWeek(today, { weekStartsOn: 1 }) }))
-    ), [finalizedBills, currentWeekStart, today]);
+      finalizedBills.filter(bill => isWithinInterval(parseISO(bill.date), { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }) }))
+    ), [finalizedBills, today]);
 
   const thisMonthSales = useMemo(() => calculatePerformance(
-      finalizedBills.filter(bill => format(parseISO(bill.date), "yyyy-MM") === format(currentMonthStart, "yyyy-MM"))
-    ), [finalizedBills, currentMonthStart]);
+      finalizedBills.filter(bill => format(parseISO(bill.date), "yyyy-MM") === format(startOfMonth(today), "yyyy-MM"))
+    ), [finalizedBills, today]);
 
 
   const renderSalesDataTable = (data: SalesData[], caption: string) => {
@@ -188,8 +201,8 @@ export default function SalesAnalyticsPage() {
         <TableHeader>
           <TableRow>
             <TableHead>Period</TableHead>
-            <TableHead className="text-right">Total Sales (₹)</TableHead>
-            {isAdmin && <TableHead className="text-right">Total Profit (₹)</TableHead>}
+            <TableHead className="text-right">Total Sales (Paid) (₹)</TableHead>
+            {isAdmin && <TableHead className="text-right">Total Profit (Recognized) (₹)</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -232,7 +245,7 @@ export default function SalesAnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Sales & Profit Breakdown</CardTitle>
-          <CardDescription>View sales{isAdmin ? " and profit" : ""} data aggregated by different time periods. Analysis is based on the last {BILLS_FETCH_LIMIT} transactions.</CardDescription>
+          <CardDescription>View amounts paid{isAdmin ? " and recognized profit" : ""} aggregated by different time periods. Analysis is based on the last {BILLS_FETCH_LIMIT} transactions.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="daily">
@@ -242,13 +255,13 @@ export default function SalesAnalyticsPage() {
               <TabsTrigger value="monthly">Monthly</TabsTrigger>
             </TabsList>
             <TabsContent value="daily" className="mt-4">
-              {renderSalesDataTable(dailySalesData, "Daily sales and profit figures.")}
+              {renderSalesDataTable(dailySalesData, "Daily paid sales and recognized profit figures.")}
             </TabsContent>
             <TabsContent value="weekly" className="mt-4">
-              {renderSalesDataTable(weeklySalesData, "Weekly sales and profit figures.")}
+              {renderSalesDataTable(weeklySalesData, "Weekly paid sales and recognized profit figures.")}
             </TabsContent>
             <TabsContent value="monthly" className="mt-4">
-              {renderSalesDataTable(monthlySalesData, "Monthly sales and profit figures.")}
+              {renderSalesDataTable(monthlySalesData, "Monthly paid sales and recognized profit figures.")}
             </TabsContent>
           </Tabs>
         </CardContent>
