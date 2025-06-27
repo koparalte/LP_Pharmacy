@@ -119,14 +119,25 @@ export default function SalesReportPage() {
             setLastVisibleDoc(null);
         }
       }
-    } catch (error) {
-      console.error("Error fetching finalized bills: ", error);
-      toast({
-        title: "Error Fetching Bills",
-        description: "Could not load sales data. This might be due to a missing database index. Please check the browser console for a link to create it.",
-        variant: "destructive",
-      });
-      setFinalizedBills([]);
+    } catch (error: any) {
+      if (error.code === 'failed-precondition') {
+        console.error("Firestore index missing:", error);
+        toast({
+            title: "Database Index Required",
+            description: "To show only debt bills sorted by date, a database index is needed. Please check the browser console for a link to create it.",
+            variant: "destructive",
+            duration: 10000,
+        });
+        setFinalizedBills([]); // Clear data to avoid showing inconsistent results
+      } else {
+        console.error("Error fetching finalized bills: ", error);
+        toast({
+            title: "Error Fetching Bills",
+            description: "Could not load sales data. Please try again.",
+            variant: "destructive",
+        });
+        setFinalizedBills([]);
+      }
     } finally {
       setLoading(false);
     }
