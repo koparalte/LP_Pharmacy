@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText, Trash2, Loader2, FileDown, Terminal } from "lucide-react";
+import { PlusCircle, FileText, Trash2, Loader2, FileDown } from "lucide-react";
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -14,14 +14,10 @@ import {
   orderBy,
   getDocs,
   limit,
-  startAfter,
-  endBefore,
-  limitToLast,
-  type DocumentSnapshot,
-  type QueryConstraint,
 } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
+import { ReportFilters } from "./components/ReportFilters";
 import { useAuth } from "@/hooks/useAuth";
 import { batchDeleteBills } from "@/lib/billService";
 import {
@@ -36,51 +32,34 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import * as XLSX from "xlsx";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 
 const BILLS_PER_PAGE = 20;
+const BILL_FETCH_LIMIT = 500; // Fetch a larger number for client-side filtering
 
 export default function SalesReportPage() {
-  const [finalizedBills, setFinalizedBills] = useState<FinalizedBill[]>([]);
+  const [allBills, setAllBills] = useState<FinalizedBill[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "debt">("all");
+  const [dateFilter, setDateFilter] = useState<Date | null>(null);
+  
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [lastVisibleDoc, setLastVisibleDoc] = useState<DocumentSnapshot | null>(null);
-  const [firstVisibleDoc, setFirstVisibleDoc] = useState<DocumentSnapshot | null>(null);
-  const [isLastPage, setIsLastPage] = useState(false);
   
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { user, isAdmin, loading: authLoading } = useAuth();
 
-  const fetchBillsPage = useCallback(async (
-    page: number,
-    direction: 'initial' | 'next' | 'prev',
-    currentFirstDoc: DocumentSnapshot | null,
-    currentLastDoc: DocumentSnapshot | null
-  ) => {
+  const fetchBills = useCallback(async () => {
     setLoading(true);
-    setSelectedBillIds([]); // Clear selection on page change
-
     try {
       const billsCollectionRef = collection(db, "finalizedBills");
-      
-      const queryConstraints: QueryConstraint[] = [orderBy("date", "desc")];
-      
-      let q;
-
-      if (direction === 'initial') {
-        q = query(billsCollectionRef, ...queryConstraints, limit(BILLS_PER_PAGE));
-      } else if (direction === 'next' && currentLastDoc) {
-        q = query(billsCollectionRef, ...queryConstraints, startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
-      } else if (direction === 'prev' && currentFirstDoc) {
-        q = query(billsCollectionRef, ...queryConstraints, endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
-      } else {
-        q = query(billsCollectionRef, ...queryConstraints, limit(BILLS_PER_PAGE));
-        setCurrentPage(1); 
-      }
+      const q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILL_FETCH_LIMIT));
 
       const querySnapshot = await getDocs(q);
       const billsList = querySnapshot.docs.map(doc => {
@@ -92,25 +71,7 @@ export default function SalesReportPage() {
         } as FinalizedBill
       });
       
-      setFinalizedBills(billsList);
-
-      if (querySnapshot.docs.length > 0) {
-        setFirstVisibleDoc(querySnapshot.docs[0]);
-        setLastVisibleDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
-        setIsLastPage(querySnapshot.docs.length < BILLS_PER_PAGE);
-      } else {
-        if (direction === 'next') {
-          setIsLastPage(true);
-          setCurrentPage(prevPage => Math.max(1, prevPage));
-        } else {
-          setIsLastPage(true);
-        }
-
-        if(billsList.length === 0 && page === 1) {
-            setFirstVisibleDoc(null);
-            setLastVisibleDoc(null);
-        }
-      }
+      setAllBills(billsList);
     } catch (error: any) {
       console.error("Error fetching finalized bills: ", error);
       toast({
@@ -118,7 +79,7 @@ export default function SalesReportPage() {
           description: "Could not load sales data. Please try again.",
           variant: "destructive",
       });
-      setFinalizedBills([]);
+      setAllBills([]);
     } finally {
       setLoading(false);
     }
@@ -126,28 +87,56 @@ export default function SalesReportPage() {
 
 
   useEffect(() => {
-    fetchBillsPage(1, 'initial', null, null);
-  }, [fetchBillsPage]);
-  
+    fetchBills();
+  }, [fetchBills]);
+
+  const filteredBills = useMemo(() => {
+    setCurrentPage(1); // Reset to first page on any filter change
+    setSelectedBillIds([]); // Clear selections on filter change
+    
+    return allBills.filter(bill => {
+      const searchTermLower = searchTerm.toLowerCase();
+
+      // Search filter
+      const matchesSearch = searchTerm ? 
+        bill.customerName.toLowerCase().includes(searchTermLower) || 
+        bill.billNumber.toLowerCase().includes(searchTermLower) : true;
+
+      // Status filter
+      const matchesStatus = statusFilter !== 'all' ? bill.status === statusFilter : true;
+
+      // Date filter
+      const matchesDate = dateFilter ? 
+        isWithinInterval(parseISO(bill.date), {
+          start: startOfDay(dateFilter),
+          end: endOfDay(dateFilter)
+        }) : true;
+
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [allBills, searchTerm, statusFilter, dateFilter]);
+
+  // Client-side pagination logic
+  const paginatedBills = useMemo(() => {
+    const startIndex = (currentPage - 1) * BILLS_PER_PAGE;
+    const endIndex = startIndex + BILLS_PER_PAGE;
+    return filteredBills.slice(startIndex, endIndex);
+  }, [filteredBills, currentPage]);
+
+  const totalPages = Math.ceil(filteredBills.length / BILLS_PER_PAGE);
+
   const handleNextPage = () => {
-    if (!isLastPage && !loading) {
-      setCurrentPage(prev => {
-        const nextPage = prev + 1;
-        fetchBillsPage(nextPage, 'next', firstVisibleDoc, lastVisibleDoc);
-        return nextPage;
-      });
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1 && !loading) {
-      setCurrentPage(prev => {
-        const prevPage = prev - 1;
-        fetchBillsPage(prevPage, 'prev', firstVisibleDoc, lastVisibleDoc);
-        return prevPage;
-      });
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
     }
   };
+
 
   const handleBatchDelete = async () => {
     setIsDeleting(true);
@@ -159,10 +148,8 @@ export default function SalesReportPage() {
           description: result.message,
         });
         setSelectedBillIds([]);
-        setCurrentPage(1);
-        setLastVisibleDoc(null);
-        setFirstVisibleDoc(null);
-        await fetchBillsPage(1, 'initial', null, null);
+        // Refetch data from server
+        await fetchBills();
       } else {
         toast({
           title: "Deletion Failed",
@@ -193,57 +180,38 @@ export default function SalesReportPage() {
 
     setIsExporting(true);
     try {
-      toast({
-        title: "Starting Export...",
-        description: `Preparing ${selectedBillIds.length} selected bill(s).`
-      });
-      const billsToExport = finalizedBills.filter(bill => selectedBillIds.includes(bill.id));
+      const billsToExport = allBills.filter(bill => selectedBillIds.includes(bill.id));
       const fileNameBase = "Selected_Sales";
-
-      if (billsToExport.length === 0) {
-        toast({
-          title: "No Bills to Export",
-          description: "Could not find selected bills on the current page. Please refresh and try again.",
-          variant: "destructive"
-        });
-        setIsExporting(false);
-        return;
-      }
 
       const exportData: any[] = [];
       billsToExport.forEach(bill => {
-        if (bill.items && bill.items.length > 0) {
-          bill.items.forEach(item => {
-            exportData.push({
-              "Bill Number": bill.billNumber,
-              "Bill Date": format(parseISO(bill.date), "yyyy-MM-dd HH:mm:ss"),
-              "Customer Name": bill.customerName,
-              "Customer Address": bill.customerAddress || 'N/A',
-              "Bill Status": bill.status,
-              "Item Name": item.name,
-              "Item Quantity": item.quantityInBill,
-              "Item MRP (₹)": item.mrp,
-              "Item Rate (Cost) (₹)": item.rate,
-              "Item Total (₹)": item.mrp * item.quantityInBill,
-              "Bill Subtotal (₹)": bill.subTotal,
-              "Bill Discount (₹)": bill.discountAmount,
-              "Bill Grand Total (₹)": bill.grandTotal,
-              "Bill Amount Paid (₹)": bill.amountActuallyPaid,
-              "Bill Remaining Balance (₹)": bill.remainingBalance,
-              "Bill Remarks": bill.remarks || 'N/A',
-            });
+        bill.items.forEach(item => {
+          exportData.push({
+            "Bill Number": bill.billNumber,
+            "Bill Date": format(parseISO(bill.date), "yyyy-MM-dd HH:mm:ss"),
+            "Customer Name": bill.customerName,
+            "Customer Address": bill.customerAddress || 'N/A',
+            "Bill Status": bill.status,
+            "Item Name": item.name,
+            "Item Quantity": item.quantityInBill,
+            "Item MRP (₹)": item.mrp,
+            "Item Rate (Cost) (₹)": item.rate,
+            "Item Total (₹)": item.mrp * item.quantityInBill,
+            "Bill Subtotal (₹)": bill.subTotal,
+            "Bill Discount (₹)": bill.discountAmount,
+            "Bill Grand Total (₹)": bill.grandTotal,
+            "Bill Amount Paid (₹)": bill.amountActuallyPaid,
+            "Bill Remaining Balance (₹)": bill.remainingBalance,
+            "Bill Remarks": bill.remarks || 'N/A',
           });
-        }
+        });
       });
       
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Report");
       
-      const colWidths = Object.keys(exportData[0]).map(key => {
-          const maxWidth = exportData.reduce((w, r) => Math.max(w, (r[key]?.toString() || '').length), key.length);
-          return { wch: maxWidth + 2 };
-      });
+      const colWidths = Object.keys(exportData[0]).map(key => ({ wch: Math.max(key.length, ...exportData.map(row => (row[key] || "").toString().length)) + 2 }));
       worksheet["!cols"] = colWidths;
 
       const fileName = `LP_Pharmacy_${fileNameBase}_Report_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
@@ -266,6 +234,11 @@ export default function SalesReportPage() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setDateFilter(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -274,8 +247,7 @@ export default function SalesReportPage() {
           <FileText className="mr-3 h-8 w-8 text-primary" />
           Sales Reports
         </h1>
-        <div className="flex items-center gap-4">
-          <div className="flex gap-2">
+        <div className="flex items-center gap-2">
             {!authLoading && isAdmin && selectedBillIds.length > 0 && (
                 <>
                 <AlertDialog>
@@ -300,9 +272,9 @@ export default function SalesReportPage() {
                     </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-                <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
-                    {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
-                    Export Selected ({selectedBillIds.length})
+                <Button onClick={handleExport} disabled={isExporting || loading} variant="outline">
+                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                    Export ({selectedBillIds.length})
                 </Button>
                 </>
             )}
@@ -311,9 +283,20 @@ export default function SalesReportPage() {
                 <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
                 </Link>
             </Button>
-          </div>
         </div>
       </div>
+
+      <ReportFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        clearFilters={clearFilters}
+      />
+      <p className="text-xs text-muted-foreground">Displaying {filteredBills.length} of {allBills.length} recent bills. Filters are applied client-side.</p>
+
 
       {loading ? (
         <div className="space-y-2">
@@ -323,32 +306,44 @@ export default function SalesReportPage() {
         </div>
       ) : (
         <FinalizedBillsTable
-          bills={finalizedBills}
+          bills={paginatedBills}
           isAdmin={!authLoading && isAdmin}
           selectedBillIds={selectedBillIds}
           onSelectedBillIdsChange={setSelectedBillIds}
         />
       )}
 
-      {!loading && finalizedBills.length > 0 && (
-          <div className="flex items-center justify-end space-x-2 py-4 mt-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrevPage}
-              disabled={currentPage === 1 || loading}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground px-2">Page {currentPage}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNextPage}
-              disabled={isLastPage || loading}
-            >
-              Next
-            </Button>
+      {!loading && paginatedBills.length === 0 && (
+        <div className="flex flex-col items-center justify-center text-center py-12 border rounded-lg bg-card shadow-sm">
+            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No Sales Reports Found</h3>
+            <p className="text-muted-foreground">Try adjusting your filters or clearing them to see all recent bills.</p>
+        </div>
+      )}
+
+      {!loading && filteredBills.length > BILLS_PER_PAGE && (
+          <div className="flex items-center justify-between space-x-2 py-4 mt-4 border-t">
+             <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center space-x-2">
+                 <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1 || loading}
+                    >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages || loading}
+                    >
+                    Next
+                </Button>
+            </div>
           </div>
         )}
     </div>
