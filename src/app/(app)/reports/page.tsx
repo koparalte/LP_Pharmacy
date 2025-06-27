@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import * as XLSX from "xlsx";
 import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 
@@ -124,6 +125,11 @@ export default function SalesReportPage() {
   }, [filteredBills, currentPage]);
 
   const totalPages = Math.ceil(filteredBills.length / BILLS_PER_PAGE);
+
+  const dailyTotal = useMemo(() => {
+    if (!dateFilter) return null;
+    return filteredBills.reduce((acc, bill) => acc + bill.amountActuallyPaid, 0);
+  }, [filteredBills, dateFilter]);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -295,8 +301,19 @@ export default function SalesReportPage() {
         setDateFilter={setDateFilter}
         clearFilters={clearFilters}
       />
-      <p className="text-xs text-muted-foreground">Displaying {filteredBills.length} of {allBills.length} recent bills. Filters are applied client-side.</p>
 
+      {dateFilter && dailyTotal !== null && (
+        <Card className="my-4">
+          <CardHeader className="p-4">
+            <CardDescription>Total sales (paid amount) for {format(dateFilter, "PPP")}</CardDescription>
+            <CardTitle className="text-2xl">
+              ₹{dailyTotal.toFixed(2)}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      )}
+
+      <p className="text-xs text-muted-foreground">Displaying {paginatedBills.length} of {filteredBills.length} matching bills. Data is based on the last {allBills.length} transactions.</p>
 
       {loading ? (
         <div className="space-y-2">
@@ -321,7 +338,7 @@ export default function SalesReportPage() {
         </div>
       )}
 
-      {!loading && filteredBills.length > BILLS_PER_PAGE && (
+      {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between space-x-2 py-4 mt-4 border-t">
              <span className="text-sm text-muted-foreground">
                 Page {currentPage} of {totalPages}
