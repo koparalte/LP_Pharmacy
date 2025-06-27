@@ -34,7 +34,7 @@ import {
 import * as XLSX from "xlsx";
 import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 
-const BILLS_PER_PAGE = 20;
+const BILLS_PER_PAGE = 10;
 const BILL_FETCH_LIMIT = 500; // Fetch a larger number for client-side filtering
 
 export default function SalesReportPage() {
