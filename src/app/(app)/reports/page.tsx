@@ -5,8 +5,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText, Trash2, Loader2, FileDown, Terminal } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -19,7 +17,6 @@ import {
   startAfter,
   endBefore,
   limitToLast,
-  where,
   type DocumentSnapshot,
   type QueryConstraint,
 } from "firebase/firestore";
@@ -38,7 +35,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 import { format, parseISO } from "date-fns";
 
@@ -57,16 +53,13 @@ export default function SalesReportPage() {
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [showOnlyDebt, setShowOnlyDebt] = useState(false);
-  const [indexError, setIndexError] = useState<string | null>(null);
   const { user, isAdmin, loading: authLoading } = useAuth();
 
   const fetchBillsPage = useCallback(async (
     page: number,
     direction: 'initial' | 'next' | 'prev',
     currentFirstDoc: DocumentSnapshot | null,
-    currentLastDoc: DocumentSnapshot | null,
-    filterDebt: boolean
+    currentLastDoc: DocumentSnapshot | null
   ) => {
     setLoading(true);
     setSelectedBillIds([]); // Clear selection on page change
@@ -75,10 +68,7 @@ export default function SalesReportPage() {
       const billsCollectionRef = collection(db, "finalizedBills");
       
       const queryConstraints: QueryConstraint[] = [orderBy("date", "desc")];
-      if (filterDebt) {
-        queryConstraints.push(where("status", "==", "debt"));
-      }
-
+      
       let q;
 
       if (direction === 'initial') {
@@ -103,7 +93,6 @@ export default function SalesReportPage() {
       });
       
       setFinalizedBills(billsList);
-      setIndexError(null);
 
       if (querySnapshot.docs.length > 0) {
         setFirstVisibleDoc(querySnapshot.docs[0]);
@@ -123,20 +112,13 @@ export default function SalesReportPage() {
         }
       }
     } catch (error: any) {
-      if (error.code === 'failed-precondition') {
-        console.error("Firestore index missing:", error);
-        const errorMessage = "To filter by 'debt' and sort by date, a database index is required. Open your browser's developer console (F12), find the link in the error message, and click it to create the index in Firebase. Then, refresh this page.";
-        setIndexError(errorMessage);
-        setFinalizedBills([]);
-      } else {
-        console.error("Error fetching finalized bills: ", error);
-        toast({
-            title: "Error Fetching Bills",
-            description: "Could not load sales data. Please try again.",
-            variant: "destructive",
-        });
-        setFinalizedBills([]);
-      }
+      console.error("Error fetching finalized bills: ", error);
+      toast({
+          title: "Error Fetching Bills",
+          description: "Could not load sales data. Please try again.",
+          variant: "destructive",
+      });
+      setFinalizedBills([]);
     } finally {
       setLoading(false);
     }
@@ -144,17 +126,14 @@ export default function SalesReportPage() {
 
 
   useEffect(() => {
-    if (!showOnlyDebt) {
-        setIndexError(null);
-    }
-    fetchBillsPage(1, 'initial', null, null, showOnlyDebt);
-  }, [fetchBillsPage, showOnlyDebt]);
+    fetchBillsPage(1, 'initial', null, null);
+  }, [fetchBillsPage]);
   
   const handleNextPage = () => {
     if (!isLastPage && !loading) {
       setCurrentPage(prev => {
         const nextPage = prev + 1;
-        fetchBillsPage(nextPage, 'next', firstVisibleDoc, lastVisibleDoc, showOnlyDebt);
+        fetchBillsPage(nextPage, 'next', firstVisibleDoc, lastVisibleDoc);
         return nextPage;
       });
     }
@@ -164,7 +143,7 @@ export default function SalesReportPage() {
     if (currentPage > 1 && !loading) {
       setCurrentPage(prev => {
         const prevPage = prev - 1;
-        fetchBillsPage(prevPage, 'prev', firstVisibleDoc, lastVisibleDoc, showOnlyDebt);
+        fetchBillsPage(prevPage, 'prev', firstVisibleDoc, lastVisibleDoc);
         return prevPage;
       });
     }
@@ -183,7 +162,7 @@ export default function SalesReportPage() {
         setCurrentPage(1);
         setLastVisibleDoc(null);
         setFirstVisibleDoc(null);
-        await fetchBillsPage(1, 'initial', null, null, showOnlyDebt);
+        await fetchBillsPage(1, 'initial', null, null);
       } else {
         toast({
           title: "Deletion Failed",
@@ -296,10 +275,6 @@ export default function SalesReportPage() {
           Sales Reports
         </h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <Switch id="debt-filter" checked={showOnlyDebt} onCheckedChange={setShowOnlyDebt} />
-            <Label htmlFor="debt-filter">Show Only Debt</Label>
-          </div>
           <div className="flex gap-2">
             {!authLoading && isAdmin && selectedBillIds.length > 0 && (
                 <>
@@ -340,15 +315,7 @@ export default function SalesReportPage() {
         </div>
       </div>
 
-      {indexError ? (
-        <Alert variant="destructive">
-            <Terminal className="h-4 w-4" />
-            <AlertTitle>Action Required: Create Database Index</AlertTitle>
-            <AlertDescription>
-                {indexError}
-            </AlertDescription>
-        </Alert>
-      ) : loading ? (
+      {loading ? (
         <div className="space-y-2">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -363,7 +330,7 @@ export default function SalesReportPage() {
         />
       )}
 
-      {!indexError && !loading && finalizedBills.length > 0 && (
+      {!loading && finalizedBills.length > 0 && (
           <div className="flex items-center justify-end space-x-2 py-4 mt-4 border-t">
             <Button
               variant="outline"
