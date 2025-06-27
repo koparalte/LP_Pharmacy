@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText, Trash2, Loader2, FileDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import type { FinalizedBill } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -17,7 +19,9 @@ import {
   startAfter,
   endBefore,
   limitToLast,
+  where,
   type DocumentSnapshot,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinalizedBillsTable } from "./components/FinalizedBillsTable";
@@ -52,29 +56,37 @@ export default function SalesReportPage() {
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showOnlyDebt, setShowOnlyDebt] = useState(false);
   const { user, isAdmin, loading: authLoading } = useAuth();
 
   const fetchBillsPage = useCallback(async (
     page: number,
     direction: 'initial' | 'next' | 'prev',
     currentFirstDoc: DocumentSnapshot | null,
-    currentLastDoc: DocumentSnapshot | null
+    currentLastDoc: DocumentSnapshot | null,
+    filterDebt: boolean
   ) => {
     setLoading(true);
     setSelectedBillIds([]); // Clear selection on page change
 
     try {
       const billsCollectionRef = collection(db, "finalizedBills");
+      
+      const queryConstraints: QueryConstraint[] = [orderBy("date", "desc")];
+      if (filterDebt) {
+        queryConstraints.push(where("status", "==", "debt"));
+      }
+
       let q;
 
       if (direction === 'initial') {
-        q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, ...queryConstraints, limit(BILLS_PER_PAGE));
       } else if (direction === 'next' && currentLastDoc) {
-        q = query(billsCollectionRef, orderBy("date", "desc"), startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, ...queryConstraints, startAfter(currentLastDoc), limit(BILLS_PER_PAGE));
       } else if (direction === 'prev' && currentFirstDoc) {
-        q = query(billsCollectionRef, orderBy("date", "desc"), endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, ...queryConstraints, endBefore(currentFirstDoc), limitToLast(BILLS_PER_PAGE));
       } else {
-        q = query(billsCollectionRef, orderBy("date", "desc"), limit(BILLS_PER_PAGE));
+        q = query(billsCollectionRef, ...queryConstraints, limit(BILLS_PER_PAGE));
         setCurrentPage(1); 
       }
 
@@ -122,14 +134,14 @@ export default function SalesReportPage() {
 
 
   useEffect(() => {
-    fetchBillsPage(1, 'initial', null, null);
-  }, [fetchBillsPage]);
+    fetchBillsPage(1, 'initial', null, null, showOnlyDebt);
+  }, [fetchBillsPage, showOnlyDebt]);
   
   const handleNextPage = () => {
     if (!isLastPage && !loading) {
       setCurrentPage(prev => {
         const nextPage = prev + 1;
-        fetchBillsPage(nextPage, 'next', firstVisibleDoc, lastVisibleDoc);
+        fetchBillsPage(nextPage, 'next', firstVisibleDoc, lastVisibleDoc, showOnlyDebt);
         return nextPage;
       });
     }
@@ -139,7 +151,7 @@ export default function SalesReportPage() {
     if (currentPage > 1 && !loading) {
       setCurrentPage(prev => {
         const prevPage = prev - 1;
-        fetchBillsPage(prevPage, 'prev', firstVisibleDoc, lastVisibleDoc);
+        fetchBillsPage(prevPage, 'prev', firstVisibleDoc, lastVisibleDoc, showOnlyDebt);
         return prevPage;
       });
     }
@@ -159,7 +171,7 @@ export default function SalesReportPage() {
         setCurrentPage(1);
         setLastVisibleDoc(null);
         setFirstVisibleDoc(null);
-        await fetchBillsPage(1, 'initial', null, null);
+        await fetchBillsPage(1, 'initial', null, null, showOnlyDebt);
       } else {
         toast({
           title: "Deletion Failed",
@@ -271,42 +283,48 @@ export default function SalesReportPage() {
           <FileText className="mr-3 h-8 w-8 text-primary" />
           Sales Reports
         </h1>
-        <div className="flex gap-2">
-          {!authLoading && isAdmin && selectedBillIds.length > 0 && (
-            <>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={isDeleting}>
-                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                    Delete ({selectedBillIds.length})
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action will permanently delete the selected {selectedBillIds.length} bill(s). This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleBatchDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                      {isDeleting ? "Deleting..." : "Yes, delete"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
-                {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
-                Export Selected ({selectedBillIds.length})
-              </Button>
-            </>
-          )}
-          <Button asChild size="lg">
-            <Link href="/billing">
-              <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
-            </Link>
-          </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Switch id="debt-filter" checked={showOnlyDebt} onCheckedChange={setShowOnlyDebt} />
+            <Label htmlFor="debt-filter">Show Only Debt</Label>
+          </div>
+          <div className="flex gap-2">
+            {!authLoading && isAdmin && selectedBillIds.length > 0 && (
+                <>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting}>
+                        {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Delete ({selectedBillIds.length})
+                    </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                        This action will permanently delete the selected {selectedBillIds.length} bill(s). This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBatchDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                        {isDeleting ? "Deleting..." : "Yes, delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <Button onClick={handleExport} disabled={isExporting || loading} size="lg" variant="outline">
+                    {isExporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
+                    Export Selected ({selectedBillIds.length})
+                </Button>
+                </>
+            )}
+            <Button asChild size="lg">
+                <Link href="/billing">
+                <PlusCircle className="mr-2 h-5 w-5" /> Go to Billing
+                </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
